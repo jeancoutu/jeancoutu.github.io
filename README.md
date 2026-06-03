@@ -100,18 +100,25 @@ Pick one host and deploy the contents of `dist/`:
 
 After deploy, open your site URL in **Safari** on iPhone (not Chrome-only features—Safari is required for “Add to Home Screen” on iOS).
 
-### 3. GitHub Pages (if you use a project site)
+### 3. GitHub Pages
 
-If the site is served at `https://<user>.github.io/<repo>/`, set the base path in `vite.config.ts`:
+This repo includes [`.github/workflows/deploy.yml`](/github/workflows/deploy.yml), which builds the Vite app and publishes `dist/` on every push to `master`.
 
-```ts
-export default defineConfig({
-  base: "/mealplan/", // use your repo name
-  plugins: [/* ... */],
-});
+**One-time setup**
+
+1. Open the repo on GitHub -> **Settings** -> **Pages**.
+2. Under **Build and deployment**, set **Source** to **GitHub Actions** (not "Deploy from a branch")
+3. Push to `master` (or run the workflow manually under **Actions**)
+
+**User site** (`jeancoutu.github.io`): no extra config - assets are served from `/`.
+
+**Project site** (`https://<user>.github.io/<repo>/`): set the base path when building:
+```
+VITE_BASE_PATH=/your-repo-name/ npm run build
 ```
 
-Then rebuild and publish `dist/` to the `gh-pages` branch or GitHub Actions.
+In CI, add that variable to the build step in the workflow.
+Routing and asset URLs pick up the base automatically.
 
 ### 4. Production checklist
 

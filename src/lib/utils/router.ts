@@ -1,12 +1,13 @@
 import { writable } from "svelte/store";
+import {appPath, isAppRoot, stripBase} from "./paths";
 
 export type Route =
   | { name: "planner" }
   | { name: "meals" }
   | { name: "meal"; id: string };
 
-function parsePath(pathname: string): Route {
-  const path = pathname.replace(/\/$/, "") || "/";
+function parseLogicalPath(pathname: string): Route {
+  const path = stripBase(pathname).replace(/\/$/, "") || "/";
 
   if (path === "/" || path === "/planner") {
     return { name: "planner" };
@@ -21,26 +22,30 @@ function parsePath(pathname: string): Route {
   return { name: "planner" };
 }
 
-export const route = writable<Route>(parsePath(window.location.pathname));
+export const route = writable<Route>(parseLogicalPath(window.location.pathname));
 
-export function navigate(to: string): void {
-  window.history.pushState({}, "", to);
-  route.set(parsePath(to));
+export function navigate(logicalPath: string): void {
+  const segment = logicalPath.replace(/^\//, "");
+  const href = appPath(segment);
+  window.history.pushState({}, "", href);
+  route.set(parseLogicalPath(href));
 }
 
 export function initRouter(): void {
   window.addEventListener("popstate", () => {
-    route.set(parsePath(window.location.pathname));
+    route.set(parseLogicalPath(window.location.pathname));
   });
 }
 
 export function pathFor(r: Route): string {
   switch (r.name) {
     case "planner":
-      return "/planner";
+      return appPath("/planner");
     case "meals":
-      return "/meals";
+      return appPath("/meals");
     case "meal":
-      return `/meal/${encodeURIComponent(r.id)}`;
+      return appPath(`/meal/${encodeURIComponent(r.id)}`);
   }
 }
+
+export { isAppRoot };

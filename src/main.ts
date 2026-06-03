@@ -1,13 +1,12 @@
 import { mount } from "svelte";
 import "./app.css";
 import App from "./App.svelte";
-import { initRouter, route } from "./lib/utils/router";
+import { initRouter, route, isAppRoot, pathFor } from "./lib/utils/router";
 
 initRouter();
 
-const current = window.location.pathname.replace(/\/$/, "") || "/";
-if (current === "/") {
-  window.history.replaceState({}, "", "/planner");
+if (isAppRoot(window.location.pathname)) {
+  window.history.replaceState({}, "", pathFor({ name: "planner" }));
   route.set({ name: "planner" });
 }
 

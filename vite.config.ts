@@ -1,10 +1,22 @@
+import { copyFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
+const base = process.env.VITE_BASE_URL ?? "/";
+
 export default defineConfig({
+  base,
   plugins: [
+    {
+      name: "gh-pages-spa-fallback",
+      closeBundle() {
+        const index = resolve("dist/index.html");
+        copyFileSync(index, resolve("dist/404.html"));
+      },
+    },
     svelte(),
     tailwindcss(),
     VitePWA({
