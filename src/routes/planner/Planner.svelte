@@ -8,10 +8,6 @@
 <div class="space-y-4">
   <header>
     <h1 class="text-2xl font-bold text-slate-900">Weekly Planner</h1>
-    <p class="mt-1 text-sm text-slate-600">
-      Assign supper and diner for each day. Auto fill picks suppers first, then
-      sets each diner to the next day&apos;s supper.
-    </p>
   </header>
 
   <div class="flex flex-wrap gap-2">

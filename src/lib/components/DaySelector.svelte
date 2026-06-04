@@ -11,8 +11,8 @@
   let { day, label }: Props = $props();
 
   const slots: { key: MealSlot; label: string }[] = [
-    { key: "supper", label: "Supper" },
     { key: "diner", label: "Diner" },
+    { key: "supper", label: "Supper" },
   ];
 
   function onChange(slot: MealSlot, e: Event) {

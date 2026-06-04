@@ -2,7 +2,8 @@ import { writable, get } from "svelte/store";
 import type { DayKey, DayPlan, MealSlot, WeeklyPlan } from "../types";
 import { DAYS } from "../types";
 import { meals } from "../../data/meals";
-import { nextDay } from "../utils/dayOrder";
+import { previousDay } from "../utils/dayOrder";
+import { mealsEligibleForSupper } from "../utils/supperDays";
 import { shuffle } from "../utils/shuffle";
 
 const STORAGE_KEY = "weekly-plan";
@@ -89,24 +90,32 @@ function createWeeklyPlanStore() {
             if (day.supper) usedIds.add(day.supper);
             if (day.diner) usedIds.add(day.diner);
           }
-          let pool = shuffle(meals.filter((m) => !usedIds.has(m.id)));
-          if (pool.length < emptySuppers.length) {
-            pool = [...pool, ...shuffle(meals)];
-          }
-          let index = 0;
           for (const { key } of emptySuppers) {
+            const candidates = shuffle(mealsEligibleForSupper(meals, key, usedIds));
+            const pick = candidates[0];
             const current = dayPlan(next, key);
-            next[key] = { ...current, supper: pool[index].id };
-            index++;
+            next[key] = { ...current, supper: pick.id };
+            usedIds.add(pick.id);
           }
         }
 
         for (const { key } of DAYS) {
-          const current = dayPlan(next, key);
-          if (current.diner) continue;
-          const nextSupper = dayPlan(next, nextDay(key)).supper;
-          if (!nextSupper) continue;
-          next[key] = { ...current, diner: nextSupper };
+          const current = { ...dayPlan(next, key) };
+
+          if (key === "saturday") {
+            delete current.diner;
+            if (current.supper) next[key] = current;
+            else delete next[key];
+            continue;
+          }
+
+          if (!current.diner) {
+            const prevSupper = dayPlan(next, previousDay(key)).supper;
+            if (prevSupper) current.diner = prevSupper;
+          }
+
+          if (current.supper || current.diner) next[key] = current;
+          else delete next[key];
         }
 
         return next;

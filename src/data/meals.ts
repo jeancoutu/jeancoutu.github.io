@@ -1,10 +1,10 @@
 import type { Meal } from "../lib/types";
 
-export const meals: Meal[] = [
-  {
+export const meals: Meal[] = [  {
     id: "saute-thai",
     name: "Sauté Thaï",
     duration: "short",
+    supperDays: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
     ingredients: [
       { name: "Haut de cuisse de poulet", quantity: "6" },
       { name: "Légumes thaï surgelés", quantity: "1" },
@@ -30,6 +30,7 @@ export const meals: Meal[] = [
     id: "gnocchi",
     name: "Gnocchi",
     duration: "medium",
+    supperDays: ["wednesday", "friday", "saturday", "sunday"],
     ingredients: [
       { name: "Épinard", quantity: "142g (1 paquet)" },
       { name: "Tomate en dés", quantity: "796 ml" },
@@ -56,6 +57,7 @@ export const meals: Meal[] = [
     id: "sandwich",
     name: "Sandwich",
     duration: "short",
+    supperDays: [],
     ingredients: [
       { name: "Viande à sandwich", quantity: "1" },
       { name: "Pain à sandwich", quantity: "1" },
@@ -69,6 +71,7 @@ export const meals: Meal[] = [
     id: "casserole-mexicaine",
     name: "Casserole Mexicaine",
     duration: "medium",
+    supperDays: ["wednesday", "friday", "saturday", "sunday"],
     ingredients: [
       { name: "Viande hachée", quantity: "1" },
       { name: "Fromage rapé", quantity: "1/2 block" },
@@ -87,6 +90,7 @@ export const meals: Meal[] = [
     id: "macaroni",
     name: "Macaroni",
     duration: "short",
+    supperDays: ["monday", "tuesday", "thursday"],
     ingredients: [
       { name: "Viande hachée", quantity: "1" },
       { name: "Poiveron rouge", quantity: "1" },
@@ -102,6 +106,7 @@ export const meals: Meal[] = [
     id: "pizza",
     name: "Pîzza",
     duration: "medium",
+    supperDays: ["friday", "saturday"],
     ingredients: [
       { name: "Pain pizza", quantity: "4" },
       { name: "Pepperoni", quantity: "1" },
@@ -118,6 +123,7 @@ export const meals: Meal[] = [
     id: "tacos",
     name: "Tacos",
     duration: "medium",
+    supperDays: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
     ingredients: [
       { name: "Pain taco", quantity: "1" },
       { name: "Viande hachée", quantity: "1" },
@@ -137,6 +143,7 @@ export const meals: Meal[] = [
     id: "pate-chinois",
     name: "Paté chinois",
     duration: "medium",
+    supperDays: ["sunday"],
     ingredients: [
       { name: "Patate", quantity: "8" },
       { name: "Viande hachée", quantity: "1" },
@@ -151,6 +158,7 @@ export const meals: Meal[] = [
     id: "saumon-legume",
     name: "Saumon et légume",
     duration: "short",
+    supperDays: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
     ingredients: [
       { name: "Saumon", quantity: "1" },
       { name: "Carotte", quantity: "3" },
@@ -168,6 +176,7 @@ export const meals: Meal[] = [
     id: "salade-pate",
     name: "Salade de Pâte",
     duration: "medium",
+    supperDays: ["saturday", "sunday"],
     ingredients: [
       { name: "Macaroni", quantity: "1" },
       { name: "Poulet/Viande", quantity: "1" },
@@ -187,6 +196,7 @@ export const meals: Meal[] = [
     id: "fajitas",
     name: "Fajitas",
     duration: "long",
+    supperDays: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
     ingredients: [
       { name: "Poulet", quantity: "1" },
       { name: "Assaisonnement fajitas", quantity: "1" },
@@ -205,6 +215,7 @@ export const meals: Meal[] = [
     id: "quesedias-poulet",
     name: "Quesedias au Poulet",
     duration: "medium",
+    supperDays: ["wednesday", "friday", "saturday", "sunday"],
     ingredients: [
       { name: "Poulet", quantity: "1" },
       { name: "Oignon jaune", quantity: "1" },
@@ -225,12 +236,167 @@ export const meals: Meal[] = [
     id: "hamberger",
     name: "Hamberger",
     duration: "short",
+    supperDays: ["friday", "saturday"],
     ingredients: [
       { name: "Viande hachée", quantity: "1" },
       { name: "Pain hamberger", quantity: "1" },
       { name: "Tomate", quantity: "1" },
       { name: "Cornichon", quantity: "1" },
       { name: "Oingnon", quantity: "1" },
+    ],
+    instructions: [
+      "TBD",
+    ],
+  },
+  {
+    id: "hotddog",
+    name: "Hot dog",
+    duration: "short",
+    supperDays: ["friday", "saturday"],
+    ingredients: [
+      { name: "Saucisse hot dog", quantity: "1" },
+      { name: "Pain hot dog", quantity: "1" },
+    ],
+    instructions: [
+      "TBD",
+    ],
+  },
+  {
+    id: "spaghetti",
+    name: "Spaghetti",
+    duration: "short",
+    supperDays: ["monday", "tuesday", "thursday"],
+    ingredients: [
+      { name: "Saucisse hot dog", quantity: "1" },
+      { name: "Pain hot dog", quantity: "1" },
+    ],
+    instructions: [
+      "TBD",
+    ],
+  },
+  {
+    id: "coquilles-farcies",
+    name: "Coquilles farcies",
+    duration: "medium",
+    supperDays: ["sunday"],
+    ingredients: [
+      { name: "Coquilles géantes", quantity: "1" },
+      { name: "Cuisse de poulet", quantity: "1" },
+      { name: "Sauce tomate et basilic", quantity: "2 1/2 tasses" },
+      { name: "Oignon rouge", quantity: "1" },
+      { name: "Ail", quantity: "2 gousses" },
+      { name: "Épinard", quantity: "1 tasse" },
+      { name: "Fromage ricotta", quantity: "1 tasse" },
+      { name: "Zeste citron", quantity: "1/2" },
+      { name: "Mayonnaise", quantity: "1/4 tasse" },
+      { name: "Fromage mozzarella", quantity: "2 tassess" },
+      { name: "Oeuf", quantity: "1" },
+    ],
+    instructions: [
+      "TBD",
+    ],
+  },
+  {
+    id: "poulet-general-tao",
+    name: "Poulet général tao",
+    duration: "long",
+    supperDays: ["saturday", "sunday"],
+    ingredients: [
+      { name: "Sauce soya", quantity: "6 c. à soupe" },
+      { name: "Bouillon de poulet", quantity: "6 c. à soupe" },
+      { name: "Vinaigre de riz", quantity: "6 c. à soupe" },
+      { name: "Gingembre", quantity: "2 c. à soupe" },
+      { name: "Ail", quantity: "3 gousses" },
+      { name: "Fécule de maïs", quantity: "4 c. à thé" },
+      { name: "Paprika doux", quantity: "2 c. à thé" },
+      { name: "Sambal oelek", quantity: "2 c. à thé" },
+      { name: "Huile de sésame grillé", quantity: "1 c. à thé" },
+      { name: "Sucre", quantity: "1 tasse" },
+      { name: "Poiveron rouge", quantity: "2" },
+      { name: "Haut de cuisse de poulet", quantity: "1" },
+      { name: "Farine tout usage", quantity: "1/2 tasse" },
+      { name: "Oignon vert (optionel)", quantity: "2" },
+    ],
+    instructions: [
+      "TBD",
+    ],
+  },
+  {
+    id: "jambon-patate",
+    name: "Jambon et patate",
+    duration: "short",
+    supperDays: ["wednesday", "sunday"],
+    ingredients: [
+      { name: "Jambon", quantity: "1" },
+      { name: "Patate", quantity: "6" },
+      { name: "Carotte", quantity: "3" },
+      { name: "Sirop d'érable", quantity: "1" },
+      { name: "Oignon jaune", quantity: "1" },
+      { name: "Ail", quantity: "3 gousses" },
+    ],
+    instructions: [
+      "TBD",
+    ],
+  },
+  {
+    id: "saucisse-legume",
+    name: "Saucisses et légumes",
+    duration: "short",
+    supperDays: ["monday", "tuesday", "wednesday", "thursday", "sunday"],
+    ingredients: [
+      { name: "Saussice", quantity: "8" },
+      { name: "Poiveron rouge", quantity: "2" },
+      { name: "Oignon jaune", quantity: "1" },
+    ],
+    instructions: [
+      "TBD",
+    ],
+  },
+  {
+    id: "shawarma-poulet",
+    name: "Shawarma et poulet grek",
+    duration: "short",
+    supperDays: ["monday", "tuesday", "wednesday", "thursday", "sunday"],
+    ingredients: [
+      { name: "Cuisse de poulet", quantity: "1" },
+      { name: "Fromage à la crème", quantity: "1" },
+      { name: "Mayonnaise", quantity: "1" },
+      { name: "Pain pita", quantity: "1" },
+      { name: "Tomate", quantity: "1" },
+    ],
+    instructions: [
+      "TBD",
+    ],
+  },
+  {
+    id: "boulette-peche",
+    name: "Boulettes aux pêches",
+    duration: "medium",
+    supperDays: ["wednesday", "saturday", "sunday"],
+    ingredients: [
+      { name: "Viande hachée", quantity: "1" },
+      { name: "Canne pêche", quantity: "1" },
+      { name: "Oignon jaune", quantity: "1" },
+      { name: "Sauce chili", quantity: "1 tasse" },
+      { name: "Cassonade", quantity: "1/4 tasse" },
+      { name: "Moutarde", quantity: "1 c. à thé" },
+      { name: "Jus de citron", quantity: "1 c. à thé" },
+    ],
+    instructions: [
+      "TBD",
+    ],
+  },
+  {
+    id: "wrap-poulet",
+    name: "Wrap poulet",
+    duration: "short",
+    supperDays: ["monday", "tuesday", "thursday"],
+    ingredients: [
+      { name: "Croquette de poulet", quantity: "1" },
+      { name: "Wrap", quantity: "1" },
+      { name: "Sauce ranch", quantity: "1" },
+      { name: "Tomate", quantity: "1" },
+      { name: "Échalotte", quantity: "1" },
     ],
     instructions: [
       "TBD",

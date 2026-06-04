@@ -9,6 +9,8 @@ export interface Meal {
   id: string;
   name: string;
   duration: DurationTag;
+  /** Days this meal may be picked for supper during auto fill (0–7 unique). */
+  supperDays: DayKey[];
   ingredients: Ingredient[];
   instructions: string[];
 }
@@ -40,11 +42,11 @@ export interface WeeklyPlan {
 }
 
 export const DAYS: { key: DayKey; label: string }[] = [
+  { key: "saturday", label: "Saturday" },
+  { key: "sunday", label: "Sunday" },
   { key: "monday", label: "Monday" },
   { key: "tuesday", label: "Tuesday" },
   { key: "wednesday", label: "Wednesday" },
   { key: "thursday", label: "Thursday" },
   { key: "friday", label: "Friday" },
-  { key: "saturday", label: "Saturday" },
-  { key: "sunday", label: "Sunday" },
 ];

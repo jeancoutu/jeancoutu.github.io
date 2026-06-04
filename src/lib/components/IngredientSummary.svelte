@@ -4,7 +4,7 @@
   import { weeklyPlan } from "../stores/weeklyPlan";
   import { getMealById } from "../stores/meals";
 
-  const slots: MealSlot[] = ["supper", "diner"];
+  const slots: MealSlot[] = ["diner", "supper"];
 
   let plannedMeals = $derived.by(() => {
     const seen = new Set<string>();
