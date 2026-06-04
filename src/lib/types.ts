@@ -22,14 +22,21 @@ export type DayKey =
   | "saturday"
   | "sunday";
 
+export type MealSlot = "supper" | "diner";
+
+export interface DayPlan {
+  supper?: string;
+  diner?: string;
+}
+
 export interface WeeklyPlan {
-  monday?: string;
-  tuesday?: string;
-  wednesday?: string;
-  thursday?: string;
-  friday?: string;
-  saturday?: string;
-  sunday?: string;
+  monday?: DayPlan;
+  tuesday?: DayPlan;
+  wednesday?: DayPlan;
+  thursday?: DayPlan;
+  friday?: DayPlan;
+  saturday?: DayPlan;
+  sunday?: DayPlan;
 }
 
 export const DAYS: { key: DayKey; label: string }[] = [

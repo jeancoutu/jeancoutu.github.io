@@ -1,16 +1,26 @@
 <script lang="ts">
+  import type { Meal, MealSlot } from "../types";
   import { DAYS } from "../types";
   import { weeklyPlan } from "../stores/weeklyPlan";
   import { getMealById } from "../stores/meals";
 
-  let plannedMeals = $derived(
-    DAYS.map((d) => {
-      const id = $weeklyPlan[d.key];
-      if (!id) return null;
-      const meal = getMealById(id);
-      return meal ? { day: d.label, meal } : null;
-    }).filter((entry): entry is NonNullable<typeof entry> => entry !== null),
-  );
+  const slots: MealSlot[] = ["supper", "diner"];
+
+  let plannedMeals = $derived.by(() => {
+    const seen = new Set<string>();
+    const unique: Meal[] = [];
+    for (const { key } of DAYS) {
+      for (const slot of slots) {
+        const id = $weeklyPlan[key]?.[slot];
+        if (!id || seen.has(id)) continue;
+        const meal = getMealById(id);
+        if (!meal) continue;
+        seen.add(id);
+        unique.push(meal);
+      }
+    }
+    return unique;
+  });
 </script>
 
 <section class="mt-6">
@@ -24,7 +34,7 @@
     </p>
   {:else}
     <div class="space-y-4">
-      {#each plannedMeals as { meal }}
+      {#each plannedMeals as meal (meal.id)}
         <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <h3 class="font-semibold text-slate-900">{meal.name}</h3>
           <ul class="mt-2 space-y-1">
