@@ -73,6 +73,9 @@ function createWeeklyPlanStore() {
     clearWeek() {
       set({});
     },
+    importPlan(plan: WeeklyPlan) {
+      set(migratePlan(plan));
+    },
     autoFillWeek() {
       update((plan) => {
         const next = { ...plan };

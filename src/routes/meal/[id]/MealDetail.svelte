@@ -46,6 +46,17 @@
       <p class="mt-2 text-sm text-slate-600">
         Duration: {durationLabel(meal.duration)}
       </p>
+      {#if meal.url}
+        <a
+          href={meal.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-orange-600 hover:text-orange-700"
+        >
+          View recipe guide
+          <span aria-hidden="true">↗</span>
+        </a>
+      {/if}
     </header>
 
     <section>

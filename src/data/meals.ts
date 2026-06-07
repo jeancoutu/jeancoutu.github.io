@@ -5,6 +5,7 @@ export const meals: Meal[] = [  {
     name: "Sauté Thaï",
     duration: "short",
     supperDays: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+    url: "",
     ingredients: [
       { name: "Haut de cuisse de poulet", quantity: "6" },
       { name: "Légumes thaï surgelés", quantity: "1" },
@@ -31,6 +32,7 @@ export const meals: Meal[] = [  {
     name: "Gnocchi",
     duration: "medium",
     supperDays: ["wednesday", "friday", "saturday", "sunday"],
+    url: "",
     ingredients: [
       { name: "Épinard", quantity: "142g (1 paquet)" },
       { name: "Tomate en dés", quantity: "796 ml" },
@@ -58,6 +60,7 @@ export const meals: Meal[] = [  {
     name: "Sandwich",
     duration: "short",
     supperDays: [],
+    url: "",
     ingredients: [
       { name: "Viande à sandwich", quantity: "1" },
       { name: "Pain à sandwich", quantity: "1" },
@@ -72,6 +75,7 @@ export const meals: Meal[] = [  {
     name: "Casserole Mexicaine",
     duration: "medium",
     supperDays: ["wednesday", "friday", "saturday", "sunday"],
+    url: "",
     ingredients: [
       { name: "Viande hachée", quantity: "1" },
       { name: "Fromage rapé", quantity: "1/2 block" },
@@ -91,6 +95,7 @@ export const meals: Meal[] = [  {
     name: "Macaroni",
     duration: "short",
     supperDays: ["monday", "tuesday", "thursday"],
+    url: "",
     ingredients: [
       { name: "Viande hachée", quantity: "1" },
       { name: "Poiveron rouge", quantity: "1" },
@@ -107,6 +112,7 @@ export const meals: Meal[] = [  {
     name: "Pîzza",
     duration: "medium",
     supperDays: ["friday", "saturday"],
+    url: "",
     ingredients: [
       { name: "Pain pizza", quantity: "4" },
       { name: "Pepperoni", quantity: "1" },
@@ -124,6 +130,7 @@ export const meals: Meal[] = [  {
     name: "Tacos",
     duration: "medium",
     supperDays: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+    url: "",
     ingredients: [
       { name: "Pain taco", quantity: "1" },
       { name: "Viande hachée", quantity: "1" },
@@ -144,6 +151,7 @@ export const meals: Meal[] = [  {
     name: "Paté chinois",
     duration: "medium",
     supperDays: ["sunday"],
+    url: "",
     ingredients: [
       { name: "Patate", quantity: "8" },
       { name: "Viande hachée", quantity: "1" },
@@ -159,6 +167,7 @@ export const meals: Meal[] = [  {
     name: "Saumon et légume",
     duration: "short",
     supperDays: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+    url: "",
     ingredients: [
       { name: "Saumon", quantity: "1" },
       { name: "Carotte", quantity: "3" },
@@ -176,17 +185,22 @@ export const meals: Meal[] = [  {
     id: "salade-pate",
     name: "Salade de Pâte",
     duration: "medium",
-    supperDays: ["saturday", "sunday"],
+    supperDays: ["wednesday", "saturday", "sunday"],
+    url: "",
     ingredients: [
-      { name: "Macaroni", quantity: "1" },
+      { name: "Pâte courte", quantity: "1" },
       { name: "Poulet/Viande", quantity: "1" },
       { name: "Poiveron rouge", quantity: "1" },
       { name: "Fromage Feta", quantity: "1" },
       { name: "Oignon rouge", quantity: "1" },
       { name: "Concombre", quantity: "1" },
       { name: "Tomate cerise", quantity: "1" },
-      { name: "Mayonnaise", quantity: "1" },
+      { name: "Olive noir", quantity: "1" },
+      { name: "Mayonnaise", quantity: "3/4 tasse" },
       { name: "Jus de lime", quantity: "1 c. à soupe" },
+      { name: "Vinaigre de vin rouge", quantity: "2 c. à soupe" },
+      { name: "yogourt grec nature", quantity: "1/4 tasse" },
+      { name: "Ail", quantity: "1 gousse" },
     ],
     instructions: [
       "TBD",
@@ -197,6 +211,7 @@ export const meals: Meal[] = [  {
     name: "Fajitas",
     duration: "long",
     supperDays: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+    url: "",
     ingredients: [
       { name: "Poulet", quantity: "1" },
       { name: "Assaisonnement fajitas", quantity: "1" },
@@ -216,6 +231,7 @@ export const meals: Meal[] = [  {
     name: "Quesedias au Poulet",
     duration: "medium",
     supperDays: ["wednesday", "friday", "saturday", "sunday"],
+    url: "",
     ingredients: [
       { name: "Poulet", quantity: "1" },
       { name: "Oignon jaune", quantity: "1" },
@@ -237,6 +253,7 @@ export const meals: Meal[] = [  {
     name: "Hamberger",
     duration: "short",
     supperDays: ["friday", "saturday"],
+    url: "",
     ingredients: [
       { name: "Viande hachée", quantity: "1" },
       { name: "Pain hamberger", quantity: "1" },
@@ -253,6 +270,7 @@ export const meals: Meal[] = [  {
     name: "Hot dog",
     duration: "short",
     supperDays: ["friday", "saturday"],
+    url: "",
     ingredients: [
       { name: "Saucisse hot dog", quantity: "1" },
       { name: "Pain hot dog", quantity: "1" },
@@ -266,9 +284,10 @@ export const meals: Meal[] = [  {
     name: "Spaghetti",
     duration: "short",
     supperDays: ["monday", "tuesday", "thursday"],
+    url: "",
     ingredients: [
-      { name: "Saucisse hot dog", quantity: "1" },
-      { name: "Pain hot dog", quantity: "1" },
+      { name: "Pâte spaghetti", quantity: "1" },
+      { name: "Sauce spaghetti", quantity: "1" },
     ],
     instructions: [
       "TBD",
@@ -279,6 +298,7 @@ export const meals: Meal[] = [  {
     name: "Coquilles farcies",
     duration: "medium",
     supperDays: ["sunday"],
+    url: "",
     ingredients: [
       { name: "Coquilles géantes", quantity: "1" },
       { name: "Cuisse de poulet", quantity: "1" },
@@ -301,6 +321,7 @@ export const meals: Meal[] = [  {
     name: "Poulet général tao",
     duration: "long",
     supperDays: ["saturday", "sunday"],
+    url: "",
     ingredients: [
       { name: "Sauce soya", quantity: "6 c. à soupe" },
       { name: "Bouillon de poulet", quantity: "6 c. à soupe" },
@@ -326,6 +347,7 @@ export const meals: Meal[] = [  {
     name: "Jambon et patate",
     duration: "short",
     supperDays: ["wednesday", "sunday"],
+    url: "",
     ingredients: [
       { name: "Jambon", quantity: "1" },
       { name: "Patate", quantity: "6" },
@@ -343,6 +365,7 @@ export const meals: Meal[] = [  {
     name: "Saucisses et légumes",
     duration: "short",
     supperDays: ["monday", "tuesday", "wednesday", "thursday", "sunday"],
+    url: "",
     ingredients: [
       { name: "Saussice", quantity: "8" },
       { name: "Poiveron rouge", quantity: "2" },
@@ -357,6 +380,7 @@ export const meals: Meal[] = [  {
     name: "Shawarma et poulet grek",
     duration: "short",
     supperDays: ["monday", "tuesday", "wednesday", "thursday", "sunday"],
+    url: "",
     ingredients: [
       { name: "Cuisse de poulet", quantity: "1" },
       { name: "Fromage à la crème", quantity: "1" },
@@ -373,6 +397,7 @@ export const meals: Meal[] = [  {
     name: "Boulettes aux pêches",
     duration: "medium",
     supperDays: ["wednesday", "saturday", "sunday"],
+    url: "",
     ingredients: [
       { name: "Viande hachée", quantity: "1" },
       { name: "Canne pêche", quantity: "1" },
@@ -391,6 +416,7 @@ export const meals: Meal[] = [  {
     name: "Wrap poulet",
     duration: "short",
     supperDays: ["monday", "tuesday", "thursday"],
+    url: "",
     ingredients: [
       { name: "Croquette de poulet", quantity: "1" },
       { name: "Wrap", quantity: "1" },
@@ -401,5 +427,54 @@ export const meals: Meal[] = [  {
     instructions: [
       "TBD",
     ],
+  },
+  {
+    id: "tacos-carne-asade",
+    name: "Tacos Carne Asada",
+    duration: "long",
+    supperDays: ["sunday"],
+    url: "https://cocinarodriguez.com/carne-asada-tacos/",
+    ingredients: [
+      { name: "Steak mince (bavette, flanc, surlonge, hampe ou ribeye)", quantity: "2 lb" },
+      { name: "Jus de lime", quantity: "2 limes" },
+      { name: "Jus d'orange", quantity: "1 orange" },
+      { name: "Sauce soya", quantity: "1 c. à soupe" },
+      { name: "Coriandre fraîche hachée", quantity: "1/2 tasse" },
+      { name: "Sel", quantity: "2 c. à thé" },
+      { name: "Oignon blanc émincé", quantity: "1/2 oignon" },
+      { name: "Ail", quantity: "3 gousses" },
+      { name: "Cumin", quantity: "1 c. à thé" },
+      { name: "Poivron vert finement haché", quantity: "1/2 petit poivron" },
+      { name: "Origan", quantity: "1 c. à thé" },
+      { name: "Huile végétale", quantity: "1/3 tasse" },
+      { name: "Bière brune", quantity: "1/4 tasse" },
+      { name: "Tortillas de maïs", quantity: "12" },
+      { name: "Coriandre fraîche (garniture)", quantity: "Au goût" },
+      { name: "Oignon blanc en dés (garniture)", quantity: "Au goût" },
+      { name: "Salsa", quantity: "Au goût" },
+      { name: "Limes en quartiers", quantity: "Au goût" },
+    ],
+    instructions: [
+      "Dans un grand bol ou un sac de congélation, mélanger le jus de lime, le jus d'orange, la sauce soya, la coriandre hachée, le sel, l'oignon émincé, l'ail, le cumin, le poivron vert, l'origan, l'huile végétale et la bière brune.",
+      "Ajouter le steak à la marinade et bien l'enrober.",
+      "Couvrir et laisser mariner au réfrigérateur pendant au moins 1 heure, idéalement de 4 à 8 heures.",
+      "Préchauffer le BBQ ou une poêle-grill à feu élevé.",
+      "Retirer la viande de la marinade et jeter l'excédent de marinade.",
+      "Cuire le steak de 2 à 4 minutes par côté, selon son épaisseur et la cuisson désirée.",
+      "Retirer la viande du feu et la laisser reposer de 5 à 10 minutes.",
+      "Couper la viande contre le grain en fines tranches, puis la hacher grossièrement en morceaux pour les tacos.",
+      "Réchauffer les tortillas de maïs sur le BBQ ou dans une poêle sèche pendant quelques secondes de chaque côté.",
+      "Garnir chaque tortilla de viande, d'oignon blanc en dés, de coriandre fraîche et de salsa.",
+      "Servir avec des quartiers de lime et déguster immédiatement."
+    ],
+  },
+  {
+    id: "fete",
+    name: "Fête",
+    duration: "short",
+    supperDays: [],
+    url: "",
+    ingredients: [],
+    instructions: [],
   },
 ];

@@ -11,6 +11,8 @@ export interface Meal {
   duration: DurationTag;
   /** Days this meal may be picked for supper during auto fill (0–7 unique). */
   supperDays: DayKey[];
+  /** External recipe link (video, blog). Empty when not set. */
+  url: string;
   ingredients: Ingredient[];
   instructions: string[];
 }
