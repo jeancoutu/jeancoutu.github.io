@@ -1,6 +1,6 @@
 <script lang="ts">
+  import { _ } from "svelte-i18n";
   import type { DurationTag } from "../types";
-  import { durationLabel } from "../utils/duration";
 
   interface Props {
     duration: DurationTag;
@@ -20,5 +20,5 @@
     duration
   ]}"
 >
-  {durationLabel(duration)}
+  {$_("duration." + duration)}
 </span>

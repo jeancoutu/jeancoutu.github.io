@@ -32,7 +32,7 @@ export const meals: Meal[] = [  {
     name: "Gnocchi",
     duration: "medium",
     supperDays: ["wednesday", "friday", "saturday", "sunday"],
-    url: "",
+    url: "https://www.mealime.com/recipes/cheesy-one-pot-gnocchi-italian-sausage-spinach/9156",
     ingredients: [
       { name: "Épinard", quantity: "142g (1 paquet)" },
       { name: "Tomate en dés", quantity: "796 ml" },
@@ -75,7 +75,7 @@ export const meals: Meal[] = [  {
     name: "Casserole Mexicaine",
     duration: "medium",
     supperDays: ["wednesday", "friday", "saturday", "sunday"],
-    url: "",
+    url: "https://www.circulaire-en-ligne.ca/recette/casserole-mexicaine-de-riz-au-boeuf",
     ingredients: [
       { name: "Viande hachée", quantity: "1" },
       { name: "Fromage rapé", quantity: "1/2 block" },
@@ -298,7 +298,7 @@ export const meals: Meal[] = [  {
     name: "Coquilles farcies",
     duration: "medium",
     supperDays: ["sunday"],
-    url: "",
+    url: "https://www.troisfoisparjour.com/fr/recettes/plats-principaux/pates/coquilles-geantes-farcies-au-poulet-epinards-fromage/",
     ingredients: [
       { name: "Coquilles géantes", quantity: "1" },
       { name: "Cuisse de poulet", quantity: "1" },
@@ -321,7 +321,7 @@ export const meals: Meal[] = [  {
     name: "Poulet général tao",
     duration: "long",
     supperDays: ["saturday", "sunday"],
-    url: "",
+    url: "https://www.ricardocuisine.com/recettes/6076-poulet-general-tao-sans-friteuse",
     ingredients: [
       { name: "Sauce soya", quantity: "6 c. à soupe" },
       { name: "Bouillon de poulet", quantity: "6 c. à soupe" },
@@ -397,7 +397,7 @@ export const meals: Meal[] = [  {
     name: "Boulettes aux pêches",
     duration: "medium",
     supperDays: ["wednesday", "saturday", "sunday"],
-    url: "",
+    url: "https://www.recettes.qc.ca/recettes/recette/boulettes-aux-peches-1967",
     ingredients: [
       { name: "Viande hachée", quantity: "1" },
       { name: "Canne pêche", quantity: "1" },

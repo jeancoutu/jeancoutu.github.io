@@ -43,12 +43,12 @@ export interface WeeklyPlan {
   sunday?: DayPlan;
 }
 
-export const DAYS: { key: DayKey; label: string }[] = [
-  { key: "saturday", label: "Saturday" },
-  { key: "sunday", label: "Sunday" },
-  { key: "monday", label: "Monday" },
-  { key: "tuesday", label: "Tuesday" },
-  { key: "wednesday", label: "Wednesday" },
-  { key: "thursday", label: "Thursday" },
-  { key: "friday", label: "Friday" },
+export const DAYS: { key: DayKey }[] = [
+  { key: "saturday" },
+  { key: "sunday" },
+  { key: "monday" },
+  { key: "tuesday" },
+  { key: "wednesday" },
+  { key: "thursday" },
+  { key: "friday" },
 ];

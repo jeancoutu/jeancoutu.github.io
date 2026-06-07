@@ -1,12 +1,19 @@
-import { writable, get } from "svelte/store";
+import { writable, get, derived } from "svelte/store";
 import type { DayKey, DayPlan, MealSlot, WeeklyPlan } from "../types";
 import { DAYS } from "../types";
 import { meals } from "../../data/meals";
 import { previousDay } from "../utils/dayOrder";
 import { mealsEligibleForSupper } from "../utils/supperDays";
 import { shuffle } from "../utils/shuffle";
+import { getWeekSaturday, toWeekKey } from "../utils/weekDates";
 
-const STORAGE_KEY = "weekly-plan";
+const STORAGE_KEY = "weekly-plans";
+const LEGACY_STORAGE_KEY = "weekly-plan";
+
+interface StoredPlans {
+  selectedWeek: string;
+  plans: Record<string, WeeklyPlan>;
+}
 
 function migratePlan(raw: unknown): WeeklyPlan {
   if (!raw || typeof raw !== "object") return {};
@@ -25,36 +32,97 @@ function migratePlan(raw: unknown): WeeklyPlan {
   return record as WeeklyPlan;
 }
 
-function loadPlan(): WeeklyPlan {
-  if (typeof localStorage === "undefined") return {};
+function loadStoredPlans(): StoredPlans {
+  const defaultWeek = toWeekKey(getWeekSaturday());
+
+  if (typeof localStorage === "undefined") {
+    return { selectedWeek: defaultWeek, plans: {} };
+  }
+
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    return migratePlan(JSON.parse(raw));
+    if (raw) {
+      const parsed = JSON.parse(raw) as StoredPlans;
+      return {
+        selectedWeek: parsed.selectedWeek ?? defaultWeek,
+        plans: Object.fromEntries(
+          Object.entries(parsed.plans ?? {}).map(([key, plan]) => [
+            key,
+            migratePlan(plan),
+          ]),
+        ),
+      };
+    }
   } catch {
-    return {};
+    // fall through to legacy migration
   }
+
+  try {
+    const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacyRaw) {
+      const plan = migratePlan(JSON.parse(legacyRaw));
+      const stored: StoredPlans = {
+        selectedWeek: defaultWeek,
+        plans: Object.keys(plan).length > 0 ? { [defaultWeek]: plan } : {},
+      };
+      saveStoredPlans(stored);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+      return stored;
+    }
+  } catch {
+    // ignore
+  }
+
+  return { selectedWeek: defaultWeek, plans: {} };
 }
 
-function savePlan(plan: WeeklyPlan): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(plan));
+function saveStoredPlans(data: StoredPlans): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
 function dayPlan(plan: WeeklyPlan, day: DayKey): DayPlan {
   return plan[day] ?? {};
 }
 
-function createWeeklyPlanStore() {
-  const { subscribe, set, update } = writable<WeeklyPlan>(loadPlan());
+function createWeeklyPlanStore(
+  selectedWeek: ReturnType<typeof writable<string>>,
+  plans: ReturnType<typeof writable<Record<string, WeeklyPlan>>>,
+) {
 
-  subscribe((plan) => {
-    savePlan(plan);
+  const currentPlan = derived([selectedWeek, plans], ([week, allPlans]) => {
+    return allPlans[week] ?? {};
   });
 
+  function persist() {
+    saveStoredPlans({
+      selectedWeek: get(selectedWeek),
+      plans: get(plans),
+    });
+  }
+
+  selectedWeek.subscribe(() => persist());
+  plans.subscribe(() => persist());
+
+  function updateCurrentPlan(updater: (plan: WeeklyPlan) => WeeklyPlan) {
+    const week = get(selectedWeek);
+    plans.update((all) => {
+      const current = all[week] ?? {};
+      const next = updater(current);
+      if (Object.keys(next).length === 0) {
+        const { [week]: _, ...rest } = all;
+        return rest;
+      }
+      return { ...all, [week]: next };
+    });
+  }
+
   return {
-    subscribe,
+    subscribe: currentPlan.subscribe,
+    setSelectedWeek(weekKey: string) {
+      selectedWeek.set(weekKey);
+    },
     setDay(day: DayKey, slot: MealSlot, mealId: string | undefined) {
-      update((plan) => {
+      updateCurrentPlan((plan) => {
         const next = { ...plan };
         const current = { ...dayPlan(plan, day) };
         if (mealId) {
@@ -71,13 +139,22 @@ function createWeeklyPlanStore() {
       });
     },
     clearWeek() {
-      set({});
+      updateCurrentPlan(() => ({}));
     },
-    importPlan(plan: WeeklyPlan) {
-      set(migratePlan(plan));
+    importPlan(plan: WeeklyPlan, weekStart?: string) {
+      const week = weekStart ?? get(selectedWeek);
+      const migrated = migratePlan(plan);
+      plans.update((all) => {
+        if (Object.keys(migrated).length === 0) {
+          const { [week]: _, ...rest } = all;
+          return rest;
+        }
+        return { ...all, [week]: migrated };
+      });
+      selectedWeek.set(week);
     },
     autoFillWeek() {
-      update((plan) => {
+      updateCurrentPlan((plan) => {
         const next = { ...plan };
         for (const { key } of DAYS) {
           if (next[key]) {
@@ -125,9 +202,19 @@ function createWeeklyPlanStore() {
       });
     },
     getSnapshot(): WeeklyPlan {
-      return get({ subscribe });
+      return get(currentPlan);
+    },
+    getSelectedWeek(): string {
+      return get(selectedWeek);
+    },
+    getAllPlans(): Record<string, WeeklyPlan> {
+      return get(plans);
     },
   };
 }
 
-export const weeklyPlan = createWeeklyPlanStore();
+const initial = loadStoredPlans();
+export const selectedWeek = writable(initial.selectedWeek);
+const plans = writable<Record<string, WeeklyPlan>>(initial.plans);
+export const allPlans = { subscribe: plans.subscribe };
+export const weeklyPlan = createWeeklyPlanStore(selectedWeek, plans);

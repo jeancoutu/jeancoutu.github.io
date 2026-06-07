@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { _ } from "svelte-i18n";
   import type { Meal } from "../types";
   import DurationBadge from "./DurationBadge.svelte";
   import { navigate } from "../utils/router";
@@ -20,13 +21,13 @@
     <DurationBadge duration={meal.duration} />
   </div>
   <p class="mt-2 text-sm text-slate-600">
-    Duration: {meal.duration.charAt(0).toUpperCase() + meal.duration.slice(1)}
+    {$_("duration.label")} {$_("duration." + meal.duration)}
   </p>
   <button
     type="button"
     onclick={viewRecipe}
     class="mt-4 w-full rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-orange-600 active:bg-orange-700"
   >
-    View Recipe
+    {$_("mealCard.viewRecipe")}
   </button>
 </article>

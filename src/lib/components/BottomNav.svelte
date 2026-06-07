@@ -1,9 +1,10 @@
 <script lang="ts">
+  import { _ } from "svelte-i18n";
   import { route, navigate } from "../utils/router";
 
   const tabs = [
-    { id: "planner" as const, label: "Planner", path: "/planner" },
-    { id: "meals" as const, label: "Meals", path: "/meals" },
+    { id: "planner" as const, labelKey: "nav.planner", path: "/planner" },
+    { id: "meals" as const, labelKey: "nav.meals", path: "/meals" },
   ];
 
   function isActive(tabId: "planner" | "meals"): boolean {
@@ -17,7 +18,7 @@
 
 <nav
   class="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white safe-area-pb"
-  aria-label="Main navigation"
+  aria-label={$_("nav.main")}
 >
   <div class="mx-auto flex max-w-lg">
     {#each tabs as tab}
@@ -34,7 +35,7 @@
           class="h-1 w-8 rounded-full transition
             {isActive(tab.id) ? 'bg-orange-500' : 'bg-transparent'}"
         ></span>
-        {tab.label}
+        {$_(tab.labelKey)}
       </button>
     {/each}
   </div>

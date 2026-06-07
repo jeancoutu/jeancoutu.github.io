@@ -1,8 +1,8 @@
 <script lang="ts">
+  import { _ } from "svelte-i18n";
   import DurationBadge from "../../../lib/components/DurationBadge.svelte";
   import { getMealById } from "../../../lib/stores/meals";
   import { navigate } from "../../../lib/utils/router";
-  import { durationLabel } from "../../../lib/utils/duration";
 
   interface Props {
     id: string;
@@ -19,13 +19,13 @@
 
 {#if !meal}
   <div class="space-y-4 text-center">
-    <p class="text-slate-600">Meal not found.</p>
+    <p class="text-slate-600">{$_("mealDetail.notFound")}</p>
     <button
       type="button"
       onclick={goBack}
       class="text-sm font-medium text-orange-600 hover:text-orange-700"
     >
-      ← Back to Meals
+      {$_("mealDetail.back")}
     </button>
   </div>
 {:else}
@@ -35,7 +35,7 @@
       onclick={goBack}
       class="text-sm font-medium text-orange-600 hover:text-orange-700"
     >
-      ← Back to Meals
+      {$_("mealDetail.back")}
     </button>
 
     <header>
@@ -44,7 +44,7 @@
         <DurationBadge duration={meal.duration} />
       </div>
       <p class="mt-2 text-sm text-slate-600">
-        Duration: {durationLabel(meal.duration)}
+        {$_("duration.label")} {$_("duration." + meal.duration)}
       </p>
       {#if meal.url}
         <a
@@ -53,14 +53,14 @@
           rel="noopener noreferrer"
           class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-orange-600 hover:text-orange-700"
         >
-          View recipe guide
+          {$_("mealDetail.viewGuide")}
           <span aria-hidden="true">↗</span>
         </a>
       {/if}
     </header>
 
     <section>
-      <h2 class="mb-2 text-lg font-semibold text-slate-900">Ingredients</h2>
+      <h2 class="mb-2 text-lg font-semibold text-slate-900">{$_("mealDetail.ingredients")}</h2>
       <ul class="space-y-1 rounded-xl border border-slate-200 bg-white p-4">
         {#each meal.ingredients as ingredient}
           <li class="text-sm text-slate-700">
@@ -72,11 +72,11 @@
     </section>
 
     <section>
-      <h2 class="mb-2 text-lg font-semibold text-slate-900">Instructions</h2>
+      <h2 class="mb-2 text-lg font-semibold text-slate-900">{$_("mealDetail.instructions")}</h2>
       <ol class="list-decimal space-y-2 rounded-xl border border-slate-200 bg-white p-4 pl-8">
         {#each meal.instructions as step, i}
           <li class="text-sm text-slate-700">
-            <span class="sr-only">Step {i + 1}:</span>
+            <span class="sr-only">{$_("mealDetail.step", { values: { n: i + 1 } })}</span>
             {step}
           </li>
         {/each}

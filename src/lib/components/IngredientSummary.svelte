@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { _ } from "svelte-i18n";
   import type { Meal, MealSlot } from "../types";
   import { DAYS } from "../types";
   import { weeklyPlan } from "../stores/weeklyPlan";
@@ -25,12 +26,12 @@
 
 <section class="mt-6">
   <h2 class="mb-4 text-lg font-semibold text-slate-900">
-    Ingredients Needed This Week
+    {$_("ingredients.title")}
   </h2>
 
   {#if plannedMeals.length === 0}
     <p class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
-      No meals planned yet. Assign meals to days above to see ingredients.
+      {$_("ingredients.empty")}
     </p>
   {:else}
     <div class="space-y-4">

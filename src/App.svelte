@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { _ } from "svelte-i18n";
   import { route } from "./lib/utils/router";
   import BottomNav from "./lib/components/BottomNav.svelte";
   import Planner from "./routes/planner/Planner.svelte";
@@ -6,6 +7,10 @@
   import MealDetail from "./routes/meal/[id]/MealDetail.svelte";
 
   let showNav = $derived($route.name !== "meal");
+
+  $effect(() => {
+    document.title = $_(`app.title`);
+  });
 </script>
 
 <div class="mx-auto flex min-h-full w-full max-w-lg flex-col">
