@@ -11,3 +11,8 @@
 - Create a grocery list from the ingredients of the meals for the week
 - Categorise them by Vegetebles, Bakery, Meat, Rows, Fridge
 - Be able to check or remove the ingredient in the list
+
+Next prompt:
+```
+And when I share this week link, does it also shared the updated ingredients? If not, I want to share them as well
+```

@@ -1,8 +1,21 @@
 export type DurationTag = "short" | "medium" | "long";
 
+export type IngredientCategory =
+  | "vegetables"
+  | "bakery"
+  | "meat"
+  | "aisle"
+  | "fridge";
+
+export interface IngredientDefinition {
+  name: string;
+  category: IngredientCategory;
+}
+
 export interface Ingredient {
   name: string;
   quantity: string;
+  category: IngredientCategory;
 }
 
 export interface Meal {

@@ -6,7 +6,7 @@
 
   import DaySelector from "../../lib/components/DaySelector.svelte";
 
-  import IngredientSummary from "../../lib/components/IngredientSummary.svelte";
+  import GroceryList from "../../lib/components/GroceryList.svelte";
 
   import WeekPickerModal from "../../lib/components/WeekPickerModal.svelte";
 
@@ -160,7 +160,7 @@
 
 
 
-  <IngredientSummary />
+  <GroceryList />
 
 </div>
 
