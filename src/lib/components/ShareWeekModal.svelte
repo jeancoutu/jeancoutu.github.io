@@ -16,7 +16,7 @@
     copyMessage = "";
     try {
       await navigator.clipboard.writeText(url);
-      copyMessage = $_("share.copied");
+      onclose();
     } catch {
       copyMessage = $_("share.copyError");
     }
