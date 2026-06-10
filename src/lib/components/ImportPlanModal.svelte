@@ -2,6 +2,7 @@
   import { _, locale } from "svelte-i18n";
   import Modal from "./Modal.svelte";
   import { weeklyPlan } from "../stores/weeklyPlan";
+  import { importGroceryList } from "../stores/groceryList";
   import { pendingSharePlan } from "../stores/pendingSharePlan";
   import { formatWeekRange } from "../utils/weekDates";
 
@@ -20,6 +21,11 @@
   function importPlan() {
     if (!payload) return;
     weeklyPlan.importPlan(payload.plan, payload.weekStart);
+
+    if (payload.groceryList) {
+      importGroceryList(payload.weekStart, payload.groceryList);
+    }
+
     pendingSharePlan.clear();
   }
 

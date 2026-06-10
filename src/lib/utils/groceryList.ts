@@ -2,7 +2,7 @@ import {
   INGREDIENT_CATEGORY_ORDER,
 } from "../../data/ingredientCategories";
 import type { CustomGroceryItem } from "../stores/groceryList";
-import type { IngredientCategory, Meal, MealSlot } from "../types";
+import type { IngredientCategory, Meal, MealSlot, WeeklyPlan } from "../types";
 import { DAYS } from "../types";
 import { getMealById } from "../stores/meals";
 
@@ -12,9 +12,7 @@ export interface GroceryItem {
   quantities: string[];
 }
 
-export function getPlannedMeals(
-  plan: Record<string, { supper?: string; diner?: string } | undefined>,
-): Meal[] {
+export function getPlannedMeals(plan: WeeklyPlan): Meal[] {
   const slots: MealSlot[] = ["diner", "supper"];
   const seen = new Set<string>();
   const unique: Meal[] = [];

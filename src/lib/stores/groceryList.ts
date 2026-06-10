@@ -1,8 +1,10 @@
 import { derived, get, writable } from "svelte/store";
 import type { IngredientCategory } from "../types";
+import { INGREDIENT_CATEGORIES } from "../types";
 import { selectedWeek } from "./weeklyPlan";
 
 const STORAGE_KEY = "grocery-list";
+const VALID_GROCERY_CATEGORIES = new Set(INGREDIENT_CATEGORIES);
 
 export interface CustomGroceryItem {
   name: string;
@@ -45,6 +47,52 @@ function normalizeWeekState(state: Partial<WeekGroceryState>): WeekGroceryState 
   };
 }
 
+function hasState(state: WeekGroceryState): boolean {
+  return (
+    state.checked.length > 0 ||
+    state.removed.length > 0 ||
+    state.added.length > 0
+  );
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function normalizeAddedItems(value: unknown): CustomGroceryItem[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+
+      const record = item as Record<string, unknown>;
+      const name = typeof record.name === "string" ? record.name.trim() : "";
+      const quantity =
+        typeof record.quantity === "string" ? record.quantity.trim() : "1";
+
+      if (!name || !VALID_GROCERY_CATEGORIES.has(record.category as IngredientCategory)) {
+        return null;
+      }
+
+      return {
+        name,
+        category: record.category as IngredientCategory,
+        quantity: quantity || "1",
+      };
+    })
+    .filter((item): item is CustomGroceryItem => item !== null);
+}
+
+function sanitizeWeekState(state: Partial<WeekGroceryState>): WeekGroceryState {
+  return normalizeWeekState({
+    checked: normalizeStringArray(state.checked),
+    removed: normalizeStringArray(state.removed),
+    added: normalizeAddedItems(state.added),
+  });
+}
+
 const lists = writable<StoredGroceryLists>(loadStored());
 
 lists.subscribe((data) => saveStored(data));
@@ -56,11 +104,7 @@ function updateWeek(
   lists.update((all) => {
     const current = normalizeWeekState(all[weekKey] ?? emptyWeekState());
     const next = updater(current);
-    const hasState =
-      next.checked.length > 0 ||
-      next.removed.length > 0 ||
-      next.added.length > 0;
-    if (!hasState) {
+    if (!hasState(next)) {
       const { [weekKey]: _, ...rest } = all;
       return rest;
     }
@@ -72,6 +116,19 @@ export const groceryListState = derived(
   [selectedWeek, lists],
   ([weekKey, all]) => normalizeWeekState(all[weekKey] ?? emptyWeekState()),
 );
+
+export function importGroceryList(weekKey: string, state: WeekGroceryState): void {
+  const next = sanitizeWeekState(state);
+
+  lists.update((all) => {
+    if (!hasState(next)) {
+      const { [weekKey]: _, ...rest } = all;
+      return rest;
+    }
+
+    return { ...all, [weekKey]: next };
+  });
+}
 
 export function toggleGroceryChecked(name: string): void {
   const weekKey = get(selectedWeek);

@@ -15,6 +15,7 @@
   import ShareWeekModal from "../../lib/components/ShareWeekModal.svelte";
 
   import { selectedWeek, weeklyPlan } from "../../lib/stores/weeklyPlan";
+  import { groceryListState } from "../../lib/stores/groceryList";
 
   import { pendingSharePlan } from "../../lib/stores/pendingSharePlan";
 
@@ -47,6 +48,8 @@
       weeklyPlan.getSnapshot(),
 
       weeklyPlan.getSelectedWeek(),
+
+      $groceryListState,
 
     );
 

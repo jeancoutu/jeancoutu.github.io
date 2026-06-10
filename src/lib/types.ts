@@ -7,6 +7,14 @@ export type IngredientCategory =
   | "aisle"
   | "fridge";
 
+export const INGREDIENT_CATEGORIES: IngredientCategory[] = [
+  "vegetables",
+  "bakery",
+  "meat",
+  "aisle",
+  "fridge",
+];
+
 export interface IngredientDefinition {
   name: string;
   category: IngredientCategory;
