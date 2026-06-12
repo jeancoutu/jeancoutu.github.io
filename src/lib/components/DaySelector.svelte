@@ -1,7 +1,7 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
   import type { DayKey, MealSlot } from "../types";
-  import { meals } from "../../data/meals";
+  import { allMeals } from "../stores/meals";
   import { weeklyPlan } from "../stores/weeklyPlan";
 
   interface Props {
@@ -31,7 +31,7 @@
           onchange={(e) => onChange(slot, e)}
         >
           <option value="">{$_("slot.selectMeal")}</option>
-          {#each meals as meal}
+          {#each $allMeals as meal}
             <option value={meal.id}>{meal.name}</option>
           {/each}
         </select>

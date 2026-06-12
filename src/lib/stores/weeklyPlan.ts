@@ -1,7 +1,7 @@
 import { writable, get, derived } from "svelte/store";
 import type { DayKey, DayPlan, MealSlot, WeeklyPlan } from "../types";
 import { DAYS } from "../types";
-import { meals } from "../../data/meals";
+import { allMeals } from "./meals";
 import { previousDay } from "../utils/dayOrder";
 import { mealsEligibleForSupper } from "../utils/supperDays";
 import { shuffle } from "../utils/shuffle";
@@ -171,7 +171,7 @@ function createWeeklyPlanStore(
             if (day.diner) usedIds.add(day.diner);
           }
           for (const { key } of emptySuppers) {
-            const candidates = shuffle(mealsEligibleForSupper(meals, key, usedIds));
+            const candidates = shuffle(mealsEligibleForSupper(get(allMeals), key, usedIds));
             const pick = candidates[0];
             const current = dayPlan(next, key);
             next[key] = { ...current, supper: pick.id };

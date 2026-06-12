@@ -2,6 +2,7 @@
   import { _ } from "svelte-i18n";
   import type { DurationTag } from "../../lib/types";
   import MealCard from "../../lib/components/MealCard.svelte";
+  import MealFormModal from "../../lib/components/MealFormModal.svelte";
   import {
     filteredMeals,
     mealSearch,
@@ -10,15 +11,26 @@
 
   const durationValues: (DurationTag | "all")[] = ["all", "short", "medium", "long"];
 
+  let createMealOpen = $state(false);
+
   function durationOptionKey(value: DurationTag | "all"): string {
     return value === "all" ? "duration.all" : `duration.${value}`;
   }
 </script>
 
 <div class="space-y-4">
-  <header>
-    <h1 class="text-2xl font-bold text-slate-900">{$_("meals.title")}</h1>
-    <p class="mt-1 text-sm text-slate-600">{$_("meals.subtitle")}</p>
+  <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-slate-900">{$_("meals.title")}</h1>
+      <p class="mt-1 text-sm text-slate-600">{$_("meals.subtitle")}</p>
+    </div>
+    <button
+      type="button"
+      onclick={() => (createMealOpen = true)}
+      class="rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-orange-600 active:bg-orange-700"
+    >
+      {$_("meals.create")}
+    </button>
   </header>
 
   <div class="space-y-3">
@@ -51,3 +63,5 @@
     </div>
   {/if}
 </div>
+
+<MealFormModal open={createMealOpen} onclose={() => (createMealOpen = false)} />
