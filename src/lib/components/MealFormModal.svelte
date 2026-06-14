@@ -1,18 +1,21 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
   import Modal from "./Modal.svelte";
-  import { addCustomMeal } from "../stores/meals";
-  import type { DayKey, DurationTag } from "../types";
+  import { addCustomMeal, updateCustomMeal } from "../stores/meals";
+  import type { DayKey, DurationTag, Meal } from "../types";
   import { DAYS } from "../types";
 
   interface Props {
     open: boolean;
+    meal?: Meal;
     onclose: () => void;
   }
 
-  let { open, onclose }: Props = $props();
+  let { open, meal, onclose }: Props = $props();
 
   const durations: DurationTag[] = ["short", "medium", "long"];
+  const titleKey = $derived(meal ? "meals.edit.title" : "meals.create.title");
+  const submitKey = $derived(meal ? "meals.edit.submit" : "meals.create.submit");
 
   let name = $state("");
   let duration = $state<DurationTag>("short");
@@ -21,6 +24,16 @@
   let instructions = $state("");
   let selectedDays = $state<DayKey[]>(DAYS.map((day) => day.key));
   let error = $state("");
+
+  $effect(() => {
+    if (!open) return;
+
+    if (meal) {
+      loadMeal(meal);
+    } else {
+      resetForm();
+    }
+  });
 
   function resetForm() {
     name = "";
@@ -32,8 +45,23 @@
     error = "";
   }
 
+  function loadMeal(mealToEdit: Meal) {
+    name = mealToEdit.name;
+    duration = mealToEdit.duration;
+    url = mealToEdit.url;
+    ingredients = mealToEdit.ingredients
+      .map((ingredient) =>
+        ingredient.quantity
+          ? `${ingredient.quantity} - ${ingredient.name}`
+          : ingredient.name,
+      )
+      .join("\n");
+    instructions = mealToEdit.instructions.join("\n");
+    selectedDays = mealToEdit.supperDays;
+    error = "";
+  }
+
   function close() {
-    resetForm();
     onclose();
   }
 
@@ -67,7 +95,7 @@
       .filter((item): item is { name: string; quantity: string } => item !== null);
   }
 
-  function createMeal() {
+  function saveMeal() {
     const parsedIngredients = parseIngredients();
     const parsedInstructions = instructions
       .split("\n")
@@ -89,22 +117,26 @@
       return;
     }
 
-    const meal = addCustomMeal({
+    const mealInput = {
       name: name.trim(),
       duration,
       supperDays: selectedDays,
       url: url.trim(),
       ingredients: parsedIngredients,
       instructions: parsedInstructions,
-    });
+    };
+
+    if (meal) {
+      updateCustomMeal(meal.id, mealInput);
+    } else {
+      addCustomMeal(mealInput);
+    }
 
     close();
-    return meal;
   }
-
 </script>
 
-<Modal open={open} title={$_("meals.create.title")} onclose={close}>
+<Modal open={open} title={$_(titleKey)} onclose={close}>
   {#snippet footer()}
     <button
       type="button"
@@ -115,17 +147,17 @@
     </button>
     <button
       type="button"
-      onclick={createMeal}
+      onclick={saveMeal}
       class="rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-orange-600 active:bg-orange-700"
     >
-      {$_("meals.create.submit")}
+      {$_(submitKey)}
     </button>
   {/snippet}
   <form
     class="space-y-4"
     onsubmit={(event) => {
       event.preventDefault();
-      createMeal();
+      saveMeal();
     }}
   >
     {#if error}
@@ -204,6 +236,5 @@
       ></textarea>
       <p class="mt-1 text-xs text-slate-500">{$_("meals.create.instructionsHint")}</p>
     </label>
-
   </form>
 </Modal>
