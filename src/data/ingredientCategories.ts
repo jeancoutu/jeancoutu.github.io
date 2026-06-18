@@ -12,6 +12,7 @@ export const INGREDIENT_CATEGORY_ORDER: IngredientCategory[] = [
 export const ingredientCategories = {
   // Vegetables
   Ail: "vegetables",
+  "Avocat": "vegetables",
   Carotte: "vegetables",
   Champignon: "vegetables",
   Concombre: "vegetables",
@@ -22,15 +23,13 @@ export const ingredientCategories = {
   Gingembre: "vegetables",
   "Jus de citron": "vegetables",
   "Jus de lime": "vegetables",
-  "Légumes surgellés": "vegetables",
-  "Légumes thaï surgelés": "vegetables",
   "Limes en quartiers": "vegetables",
   "Oignon blanc émincé": "vegetables",
   "Oignon blanc en dés (garniture)": "vegetables",
   "Oignon jaune": "vegetables",
   "Oignon rouge": "vegetables",
-  "Oignon vert (optionel)": "vegetables",
-  Oingnon: "vegetables",
+  "Oignon vert": "vegetables",
+  Oignon: "vegetables",
   Patate: "vegetables",
   "Poiveron rouge": "vegetables",
   "Poivron vert finement haché": "vegetables",
@@ -79,12 +78,19 @@ export const ingredientCategories = {
   "Épice Italienne": "aisle",
   "Farine tout usage": "aisle",
   "Fécule de maïs": "aisle",
+  "Flocons de piment": "aisle",
   Gnocchi: "aisle",
+  "Graines de sésame": "aisle",
+  "Huile de coco": "aisle",
   "Huile de sésame": "aisle",
   "Huile de sésame grillé": "aisle",
+  "Huile d'olive": "aisle",
   "Huile végétale": "aisle",
   "Jus d'orange": "aisle",
   Ketchup: "aisle",
+  "Lait de coco": "aisle",
+  "Lentilles rouges sèches": "aisle",
+  "Linguine": "aisle",
   Macaroni: "aisle",
   "Maïs en grain": "aisle",
   "Maïs en grain/jus": "aisle",
@@ -97,15 +103,18 @@ export const ingredientCategories = {
   Paprika: "aisle",
   "Paprika doux": "aisle",
   "Pâte courte": "aisle",
+  "Pâte de curry rouge": "aisle",
   "Pâte spaghetti": "aisle",
+  "Persil séché": "aisle",
+  "Poudre d'ail": "aisle",
+  "Poudre d'oignon": "aisle",
   Relish: "aisle",
   "Riz blanc": "aisle",
   Salsa: "aisle",
   "Sambal oelek": "aisle",
   "Sauce chili": "aisle",
-  "Sauce pizze": "aisle",
+  "Sauce pizza": "aisle",
   "Sauce soya": "aisle",
-  "Sauce Soya": "aisle",
   "Sauce spaghetti": "aisle",
   "Sauce tomate et basilic": "aisle",
   Sel: "aisle",
@@ -114,11 +123,13 @@ export const ingredientCategories = {
   Srirache: "aisle",
   Sucre: "aisle",
   "Tomate en dés": "aisle",
+  "Tomates séchées": "aisle",
   "Vinaigre de cidre (ou balsamique)": "aisle",
   "Vinaigre de riz": "aisle",
   "Vinaigre de vin rouge": "aisle",
 
   // Fridge
+  "Beurre": "fridge",
   "Crème sure": "fridge",
   "Crème sure (optionnel)": "fridge",
   "Fromage à la crème": "fridge",
@@ -127,8 +138,12 @@ export const ingredientCategories = {
   "Fromage mozzarella": "fridge",
   "Fromage rapé": "fridge",
   "Fromage ricotta": "fridge",
+  "Lait 2%": "fridge", 
+  "Légumes surgellés": "fridge",
+  "Légumes thaï surgelés": "fridge",
   Mayonnaise: "fridge",
   Oeuf: "fridge",
+  "Parmesan râpé": "fridge",
   "Sauce ranch": "fridge",
   "yogourt grec nature": "fridge",
 } as const satisfies Record<string, IngredientCategory>;
@@ -136,5 +151,10 @@ export const ingredientCategories = {
 export function getIngredientCategory(
   name: string,
 ): IngredientCategory | undefined {
-  return ingredientCategories[name as keyof typeof ingredientCategories];
+  const key = Object.keys(ingredientCategories).find(
+    (k) => k.toLowerCase() === name.toLowerCase(),
+  );
+  return key
+    ? ingredientCategories[key as keyof typeof ingredientCategories]
+    : undefined;
 }
