@@ -95,7 +95,9 @@
       .filter((item): item is { name: string; quantity: string } => item !== null);
   }
 
-  function saveMeal() {
+  let saving = $state(false);
+
+  async function saveMeal() {
     const parsedIngredients = parseIngredients();
     const parsedInstructions = instructions
       .split("\n")
@@ -126,13 +128,19 @@
       instructions: parsedInstructions,
     };
 
-    if (meal) {
-      updateCustomMeal(meal.id, mealInput);
-    } else {
-      addCustomMeal(mealInput);
+    saving = true;
+    try {
+      if (meal) {
+        await updateCustomMeal(meal.id, mealInput);
+      } else {
+        await addCustomMeal(mealInput);
+      }
+      close();
+    } catch {
+      error = $_("meals.create.errors.save");
+    } finally {
+      saving = false;
     }
-
-    close();
   }
 </script>
 
@@ -148,7 +156,8 @@
     <button
       type="button"
       onclick={saveMeal}
-      class="rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-orange-600 active:bg-orange-700"
+      disabled={saving}
+      class="rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50"
     >
       {$_(submitKey)}
     </button>

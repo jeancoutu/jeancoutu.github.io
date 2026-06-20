@@ -43,7 +43,7 @@ Do not migrate any data layer yet.
 
 ---
 
-## Task 3 — Migrate the meals data layer
+## Task 3 — Migrate the meals data layer [DONE]
 
 - Create `src/lib/api/meals.ts` with these functions (all async, all scoped to the current user):
   - `getMeals(): Promise<Meal[]>` — fetch meals + their meal_ingredients in one query

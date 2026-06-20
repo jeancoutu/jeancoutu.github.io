@@ -45,6 +45,7 @@
   "meals.create.errors.name": "Please enter a meal name.",
   "meals.create.errors.ingredients": "Please add at least one ingredient.",
   "meals.create.errors.instructions": "Please add at least one instruction.",
+  "meals.create.errors.save": "Failed to save meal. Please try again.",
   "duration.all": "All durations",
   "duration.short": "Short",
   "duration.medium": "Medium",
