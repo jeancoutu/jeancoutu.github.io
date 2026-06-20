@@ -1,3 +1,4 @@
+import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from "lz-string";
 import type {
   DayKey,
   DayPlan,
@@ -18,7 +19,8 @@ export interface SharedPlanPayload {
   groceryList?: WeekGroceryState;
 }
 
-const PLAN_PARAM = "plan";
+const PLAN_PARAM = "p";
+const LEGACY_PLAN_PARAM = "plan";
 const VALID_SLOTS: MealSlot[] = ["diner", "supper"];
 const VALID_MEAL_IDS = new Set(meals.map((m) => m.id));
 const VALID_DAY_KEYS = new Set<DayKey>(DAYS.map((d) => d.key));
@@ -142,16 +144,23 @@ export function encodeSharedWeeklyPlan(
   const payload: SharedPlanPayload = groceryList
     ? { weekStart, plan, groceryList }
     : { weekStart, plan };
-  return btoa(JSON.stringify(payload));
+  return compressToEncodedURIComponent(JSON.stringify(payload));
 }
 
 export function decodeSharedWeeklyPlan(encoded: string): SharedPlanPayload | null {
   try {
-    const json = atob(encoded);
+    const json = decompressFromEncodedURIComponent(encoded);
+    if (!json) return null;
+
     const parsed: unknown = JSON.parse(json);
     return sanitizeSharedPlanPayload(parsed);
   } catch {
-    return null;
+    try {
+      const parsed: unknown = JSON.parse(atob(encoded));
+      return sanitizeSharedPlanPayload(parsed);
+    } catch {
+      return null;
+    }
   }
 }
 
@@ -169,14 +178,16 @@ export function buildPlannerShareUrl(
 }
 
 export function readPlannerShareParam(): SharedPlanPayload | null {
-  const encoded = new URLSearchParams(window.location.search).get(PLAN_PARAM);
+  const params = new URLSearchParams(window.location.search);
+  const encoded = params.get(PLAN_PARAM) ?? params.get(LEGACY_PLAN_PARAM);
   if (!encoded) return null;
   return decodeSharedWeeklyPlan(encoded);
 }
 
 export function clearPlannerShareParam(): void {
   const url = new URL(window.location.href);
-  if (!url.searchParams.has(PLAN_PARAM)) return;
+  if (!url.searchParams.has(PLAN_PARAM) && !url.searchParams.has(LEGACY_PLAN_PARAM)) return;
   url.searchParams.delete(PLAN_PARAM);
+  url.searchParams.delete(LEGACY_PLAN_PARAM);
   window.history.replaceState({}, "", url.href);
 }
