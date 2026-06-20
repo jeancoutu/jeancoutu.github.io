@@ -5,6 +5,7 @@
   import Planner from "./routes/planner/Planner.svelte";
   import Meals from "./routes/meals/Meals.svelte";
   import MealDetail from "./routes/meal/[id]/MealDetail.svelte";
+  import AuthGate from "./lib/components/AuthGate.svelte";
 
   let showNav = $derived($route.name !== "meal");
 
@@ -13,18 +14,20 @@
   });
 </script>
 
-<div class="mx-auto flex min-h-full w-full max-w-lg flex-col">
-  <main class="flex-1 px-4 pt-4 {showNav ? 'pb-24' : 'pb-4'}">
-    {#if $route.name === "planner"}
-      <Planner />
-    {:else if $route.name === "meals"}
-      <Meals />
-    {:else if $route.name === "meal"}
-      <MealDetail id={$route.id} />
-    {/if}
-  </main>
+<AuthGate>
+  <div class="mx-auto flex min-h-full w-full max-w-lg flex-col">
+    <main class="flex-1 px-4 pt-4 {showNav ? 'pb-24' : 'pb-4'}">
+      {#if $route.name === "planner"}
+        <Planner />
+      {:else if $route.name === "meals"}
+        <Meals />
+      {:else if $route.name === "meal"}
+        <MealDetail id={$route.id} />
+      {/if}
+    </main>
 
-  {#if showNav}
-    <BottomNav />
-  {/if}
-</div>
+    {#if showNav}
+      <BottomNav />
+    {/if}
+  </div>
+</AuthGate>

@@ -31,7 +31,7 @@ Do not touch any other file.
 
 ---
 
-## Task 2 — Add authentication (login/logout)
+## Task 2 — Add authentication (login/logout) [DONE]
 
 - Create `src/lib/auth.ts` with helpers: `signInWithMagicLink(email)`, `signOut()`, `getSession()`
 - Create `src/lib/stores/auth.ts` with a Svelte store that holds the current session/user
