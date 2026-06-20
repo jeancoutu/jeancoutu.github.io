@@ -1,6 +1,7 @@
 import { derived, get, writable } from "svelte/store";
 import { meals as defaultMeals } from "../../data/meals";
 import { getIngredientCategory } from "../../data/ingredientCategories";
+import { resolveIngredientCategory } from "./ingredients";
 import type { DayKey, DurationTag, Meal } from "../types";
 import { DAYS, INGREDIENT_CATEGORIES } from "../types";
 import {
@@ -45,7 +46,7 @@ function buildMealInput(input: CustomMealInput): Omit<Meal, "id"> {
       return {
         name,
         quantity: ingredient.quantity.trim() || "1",
-        category: getIngredientCategory(name) ?? "aisle",
+        category: resolveIngredientCategory(name) ?? getIngredientCategory(name) ?? "aisle",
       };
     }),
     instructions: input.instructions.map((i) => i.trim()).filter(Boolean),

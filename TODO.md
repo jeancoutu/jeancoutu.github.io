@@ -57,7 +57,7 @@ Do not migrate any data layer yet.
 
 ---
 
-## Task 4 — Migrate the ingredient definitions data layer
+## Task 4 — Migrate the ingredient definitions data layer [DONE]
 
 - Create `src/lib/api/ingredients.ts` with:
   - `getIngredientDefinitions(): Promise<IngredientDefinition[]>`
