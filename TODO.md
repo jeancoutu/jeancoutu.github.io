@@ -68,7 +68,7 @@ Do not migrate any data layer yet.
 
 ---
 
-## Task 5 — Migrate the weekly plan data layer
+## Task 5 — Migrate the weekly plan data layer [DONE]
 
 - Create `src/lib/api/plan.ts` with:
   - `getWeeklyPlan(weekStart: string): Promise<WeeklyPlan>` — fetch weekly_plans row + all day_plans rows for that week

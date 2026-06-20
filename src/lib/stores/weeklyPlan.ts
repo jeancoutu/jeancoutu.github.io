@@ -1,205 +1,159 @@
 import { writable, get, derived } from "svelte/store";
-import type { DayKey, DayPlan, MealSlot, WeeklyPlan } from "../types";
+import type { DayKey, MealSlot, WeeklyPlan } from "../types";
 import { DAYS } from "../types";
 import { allMeals } from "./meals";
 import { previousDay } from "../utils/dayOrder";
 import { mealsEligibleForSupper } from "../utils/supperDays";
 import { shuffle } from "../utils/shuffle";
 import { getWeekSaturday, toWeekKey } from "../utils/weekDates";
+import { session } from "./auth";
+import {
+  getWeeklyPlan,
+  setMealSlot,
+  clearPlan,
+} from "../api/plan";
 
-const STORAGE_KEY = "weekly-plans";
-const LEGACY_STORAGE_KEY = "weekly-plan";
+const defaultWeek = toWeekKey(getWeekSaturday());
 
-interface StoredPlans {
-  selectedWeek: string;
-  plans: Record<string, WeeklyPlan>;
+export const selectedWeek = writable<string>(defaultWeek);
+const plans = writable<Record<string, WeeklyPlan>>({});
+
+const currentPlan = derived([selectedWeek, plans], ([week, allPlans]) => {
+  return allPlans[week] ?? {};
+});
+
+export const allPlans = { subscribe: plans.subscribe };
+
+async function loadWeek(week: string): Promise<void> {
+  const plan = await getWeeklyPlan(week);
+  plans.update((all) => ({ ...all, [week]: plan }));
 }
 
-function migratePlan(raw: unknown): WeeklyPlan {
-  if (!raw || typeof raw !== "object") return {};
-  const record = raw as Record<string, unknown>;
-  const sample = record[DAYS[0].key];
-  if (typeof sample === "string") {
-    const migrated: WeeklyPlan = {};
-    for (const { key } of DAYS) {
-      const mealId = record[key];
-      if (typeof mealId === "string") {
-        migrated[key] = { supper: mealId };
-      }
-    }
-    return migrated;
+session.subscribe(async ($session) => {
+  if ($session) {
+    await loadWeek(get(selectedWeek));
+  } else {
+    plans.set({});
+    selectedWeek.set(toWeekKey(getWeekSaturday()));
   }
-  return record as WeeklyPlan;
-}
+});
 
-function loadStoredPlans(): StoredPlans {
-  const defaultWeek = toWeekKey(getWeekSaturday());
-
-  if (typeof localStorage === "undefined") {
-    return { selectedWeek: defaultWeek, plans: {} };
-  }
-
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as StoredPlans;
-      return {
-        selectedWeek: parsed.selectedWeek ?? defaultWeek,
-        plans: Object.fromEntries(
-          Object.entries(parsed.plans ?? {}).map(([key, plan]) => [
-            key,
-            migratePlan(plan),
-          ]),
-        ),
-      };
-    }
-  } catch {
-    // fall through to legacy migration
-  }
-
-  try {
-    const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (legacyRaw) {
-      const plan = migratePlan(JSON.parse(legacyRaw));
-      const stored: StoredPlans = {
-        selectedWeek: defaultWeek,
-        plans: Object.keys(plan).length > 0 ? { [defaultWeek]: plan } : {},
-      };
-      saveStoredPlans(stored);
-      localStorage.removeItem(LEGACY_STORAGE_KEY);
-      return stored;
-    }
-  } catch {
-    // ignore
-  }
-
-  return { selectedWeek: defaultWeek, plans: {} };
-}
-
-function saveStoredPlans(data: StoredPlans): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
-function dayPlan(plan: WeeklyPlan, day: DayKey): DayPlan {
-  return plan[day] ?? {};
-}
-
-function createWeeklyPlanStore(
-  selectedWeek: ReturnType<typeof writable<string>>,
-  plans: ReturnType<typeof writable<Record<string, WeeklyPlan>>>,
-) {
-
-  const currentPlan = derived([selectedWeek, plans], ([week, allPlans]) => {
-    return allPlans[week] ?? {};
-  });
-
-  function persist() {
-    saveStoredPlans({
-      selectedWeek: get(selectedWeek),
-      plans: get(plans),
-    });
-  }
-
-  selectedWeek.subscribe(() => persist());
-  plans.subscribe(() => persist());
-
-  function updateCurrentPlan(updater: (plan: WeeklyPlan) => WeeklyPlan) {
+function createWeeklyPlanStore() {
+  async function updateSlot(
+    day: DayKey,
+    slot: MealSlot,
+    mealId: string | undefined,
+  ) {
     const week = get(selectedWeek);
+    const id = mealId ?? null;
+    await setMealSlot(week, day, slot, id);
     plans.update((all) => {
-      const current = all[week] ?? {};
-      const next = updater(current);
-      if (Object.keys(next).length === 0) {
-        const { [week]: _, ...rest } = all;
-        return rest;
+      const current = { ...(all[week] ?? {}) };
+      const dayEntry = { ...(current[day] ?? {}) };
+      if (id) {
+        dayEntry[slot] = id;
+      } else {
+        delete dayEntry[slot];
       }
-      return { ...all, [week]: next };
+      if (dayEntry.supper || dayEntry.diner) {
+        current[day] = dayEntry;
+      } else {
+        delete current[day];
+      }
+      return { ...all, [week]: current };
     });
   }
 
   return {
     subscribe: currentPlan.subscribe,
-    setSelectedWeek(weekKey: string) {
+    async setSelectedWeek(weekKey: string) {
       selectedWeek.set(weekKey);
+      const cached = get(plans)[weekKey];
+      if (!cached) {
+        await loadWeek(weekKey);
+      }
     },
-    setDay(day: DayKey, slot: MealSlot, mealId: string | undefined) {
-      updateCurrentPlan((plan) => {
-        const next = { ...plan };
-        const current = { ...dayPlan(plan, day) };
-        if (mealId) {
-          current[slot] = mealId;
-        } else {
-          delete current[slot];
-        }
-        if (current.supper || current.diner) {
-          next[day] = current;
-        } else {
-          delete next[day];
-        }
-        return next;
-      });
+    async setDay(day: DayKey, slot: MealSlot, mealId: string | undefined) {
+      await updateSlot(day, slot, mealId);
     },
-    clearWeek() {
-      updateCurrentPlan(() => ({}));
-    },
-    importPlan(plan: WeeklyPlan, weekStart?: string) {
-      const week = weekStart ?? get(selectedWeek);
-      const migrated = migratePlan(plan);
+    async clearWeek() {
+      const week = get(selectedWeek);
+      await clearPlan(week);
       plans.update((all) => {
-        if (Object.keys(migrated).length === 0) {
-          const { [week]: _, ...rest } = all;
-          return rest;
-        }
-        return { ...all, [week]: migrated };
+        const { [week]: _, ...rest } = all;
+        return rest;
       });
-      selectedWeek.set(week);
     },
-    autoFillWeek() {
-      updateCurrentPlan((plan) => {
-        const next = { ...plan };
+    async importPlan(plan: WeeklyPlan, weekStart?: string) {
+      const week = weekStart ?? get(selectedWeek);
+      selectedWeek.set(week);
+
+      await clearPlan(week);
+
+      for (const [dayKey, dayPlan] of Object.entries(plan)) {
+        if (!dayPlan) continue;
+        const day = dayKey as DayKey;
+        if (dayPlan.supper) await setMealSlot(week, day, "supper", dayPlan.supper);
+        if (dayPlan.diner) await setMealSlot(week, day, "diner", dayPlan.diner);
+      }
+
+      plans.update((all) => ({ ...all, [week]: plan }));
+    },
+    async autoFillWeek() {
+      const week = get(selectedWeek);
+      const current = { ...(get(plans)[week] ?? {}) };
+
+      for (const { key } of DAYS) {
+        if (current[key]) current[key] = { ...current[key] };
+      }
+
+      const emptySuppers = DAYS.filter(({ key }) => !current[key]?.supper);
+      if (emptySuppers.length > 0) {
+        const usedIds = new Set<string>();
         for (const { key } of DAYS) {
-          if (next[key]) {
-            next[key] = { ...next[key] };
-          }
+          const day = current[key];
+          if (day?.supper) usedIds.add(day.supper);
+          if (day?.diner) usedIds.add(day.diner);
+        }
+        for (const { key } of emptySuppers) {
+          const candidates = shuffle(mealsEligibleForSupper(get(allMeals), key, usedIds));
+          const pick = candidates[0];
+          const entry = { ...(current[key] ?? {}) };
+          entry.supper = pick.id;
+          current[key] = entry;
+          usedIds.add(pick.id);
+        }
+      }
+
+      for (const { key } of DAYS) {
+        const entry = { ...(current[key] ?? {}) };
+
+        if (key === "saturday") {
+          delete entry.diner;
+          if (entry.supper) current[key] = entry;
+          else delete current[key];
+          continue;
         }
 
-        const emptySuppers = DAYS.filter(({ key }) => !dayPlan(next, key).supper);
-        if (emptySuppers.length > 0) {
-          const usedIds = new Set<string>();
-          for (const { key } of DAYS) {
-            const day = dayPlan(next, key);
-            if (day.supper) usedIds.add(day.supper);
-            if (day.diner) usedIds.add(day.diner);
-          }
-          for (const { key } of emptySuppers) {
-            const candidates = shuffle(mealsEligibleForSupper(get(allMeals), key, usedIds));
-            const pick = candidates[0];
-            const current = dayPlan(next, key);
-            next[key] = { ...current, supper: pick.id };
-            usedIds.add(pick.id);
-          }
+        if (!entry.diner) {
+          const prevKey = previousDay(key);
+          const prevSupper = current[prevKey]?.supper;
+          if (prevSupper) entry.diner = prevSupper;
         }
 
-        for (const { key } of DAYS) {
-          const current = { ...dayPlan(next, key) };
+        if (entry.supper || entry.diner) current[key] = entry;
+        else delete current[key];
+      }
 
-          if (key === "saturday") {
-            delete current.diner;
-            if (current.supper) next[key] = current;
-            else delete next[key];
-            continue;
-          }
-
-          if (!current.diner) {
-            const prevSupper = dayPlan(next, previousDay(key)).supper;
-            if (prevSupper) current.diner = prevSupper;
-          }
-
-          if (current.supper || current.diner) next[key] = current;
-          else delete next[key];
+      for (const { key } of DAYS) {
+        const entry = current[key];
+        await setMealSlot(week, key, "supper", entry?.supper ?? null);
+        if (key !== "saturday") {
+          await setMealSlot(week, key, "diner", entry?.diner ?? null);
         }
+      }
 
-        return next;
-      });
+      plans.update((all) => ({ ...all, [week]: current }));
     },
     getSnapshot(): WeeklyPlan {
       return get(currentPlan);
@@ -213,8 +167,4 @@ function createWeeklyPlanStore(
   };
 }
 
-const initial = loadStoredPlans();
-export const selectedWeek = writable(initial.selectedWeek);
-const plans = writable<Record<string, WeeklyPlan>>(initial.plans);
-export const allPlans = { subscribe: plans.subscribe };
-export const weeklyPlan = createWeeklyPlanStore(selectedWeek, plans);
+export const weeklyPlan = createWeeklyPlanStore();
