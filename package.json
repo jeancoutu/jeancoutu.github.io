@@ -21,6 +21,7 @@
     "vite-plugin-pwa": "^0.21.2"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
     "lz-string": "^1.5.0",
     "svelte-i18n": "^4.0.1"
   }
