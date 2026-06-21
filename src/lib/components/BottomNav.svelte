@@ -5,14 +5,18 @@
   const tabs = [
     { id: "planner" as const, labelKey: "nav.planner", path: "/planner" },
     { id: "meals" as const, labelKey: "nav.meals", path: "/meals" },
+    { id: "settings" as const, labelKey: "nav.settings", path: "/settings" },
   ];
 
-  function isActive(tabId: "planner" | "meals"): boolean {
+  function isActive(tabId: "planner" | "meals" | "settings"): boolean {
     const current = $route;
     if (tabId === "planner") {
       return current.name === "planner";
     }
-    return current.name === "meals" || current.name === "meal";
+    if (tabId === "meals") {
+      return current.name === "meals" || current.name === "meal";
+    }
+    return current.name === "settings";
   }
 </script>
 

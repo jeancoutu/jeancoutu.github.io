@@ -4,7 +4,8 @@ import {appPath, isAppRoot, stripBase} from "./paths";
 export type Route =
   | { name: "planner" }
   | { name: "meals" }
-  | { name: "meal"; id: string };
+  | { name: "meal"; id: string }
+  | { name: "settings" };
 
 function parseLogicalPath(pathname: string): Route {
   const path = stripBase(pathname).replace(/\/$/, "") || "/";
@@ -14,6 +15,9 @@ function parseLogicalPath(pathname: string): Route {
   }
   if (path === "/meals") {
     return { name: "meals" };
+  }
+  if (path === "/settings") {
+    return { name: "settings" };
   }
   const mealMatch = path.match(/^\/meal\/([^/]+)$/);
   if (mealMatch) {
@@ -45,6 +49,8 @@ export function pathFor(r: Route): string {
       return appPath("/meals");
     case "meal":
       return appPath(`/meal/${encodeURIComponent(r.id)}`);
+    case "settings":
+      return appPath("/settings");
   }
 }
 

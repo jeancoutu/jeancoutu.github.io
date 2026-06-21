@@ -75,5 +75,20 @@
   "mealDetail.instructions": "Instructions",
   "mealDetail.step": "Step {n}:",
   "mealCard.viewRecipe": "View Recipe",
-  "modal.close": "Close"
+  "modal.close": "Close",
+  "household.inviteBanner": "{email} invited you to share their meal plan.",
+  "household.accept": "Accept",
+  "household.dismiss": "Dismiss",
+  "household.settings.myHousehold": "My household",
+  "household.settings.noMembers": "No members yet.",
+  "household.settings.emailPlaceholder": "Email address",
+  "household.settings.invite": "Invite",
+  "household.settings.inviteError": "Failed to send invite.",
+  "household.settings.remove": "Remove",
+  "household.settings.pending": "Pending",
+  "household.settings.sharedWith": "Shared plans",
+  "household.settings.memberOf": "You share {email}'s meal plan.",
+  "household.settings.leave": "Leave",
+  "nav.settings": "Settings",
+  "settings.title": "Settings"
 }

@@ -75,5 +75,20 @@
   "mealDetail.instructions": "Instructions",
   "mealDetail.step": "Étape {n} :",
   "mealCard.viewRecipe": "Voir la recette",
-  "modal.close": "Fermer"
+  "modal.close": "Fermer",
+  "household.inviteBanner": "{email} t'a invité à partager son meal plan.",
+  "household.accept": "Accepter",
+  "household.dismiss": "Ignorer",
+  "household.settings.myHousehold": "Mon foyer",
+  "household.settings.noMembers": "Aucun membre pour l'instant.",
+  "household.settings.emailPlaceholder": "Adresse courriel",
+  "household.settings.invite": "Inviter",
+  "household.settings.inviteError": "Impossible d'envoyer l'invitation.",
+  "household.settings.remove": "Retirer",
+  "household.settings.pending": "En attente",
+  "household.settings.sharedWith": "Plans partagés",
+  "household.settings.memberOf": "Tu partages le meal plan de {email}.",
+  "household.settings.leave": "Quitter",
+  "nav.settings": "Paramètres",
+  "settings.title": "Paramètres"
 }
