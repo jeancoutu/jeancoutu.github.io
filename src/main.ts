@@ -4,11 +4,6 @@ import "./app.css";
 import App from "./App.svelte";
 import { setupI18n } from "./lib/i18n";
 import { initRouter, route, isAppRoot, pathFor } from "./lib/utils/router";
-import {
-  clearPlannerShareParam,
-  readPlannerShareParam,
-} from "./lib/utils/planShare";
-import { pendingSharePlan } from "./lib/stores/pendingSharePlan";
 
 async function bootstrap() {
   await setupI18n();
@@ -21,12 +16,6 @@ async function bootstrap() {
     url.search = window.location.search;
     window.history.replaceState({}, "", url.href);
     route.set({ name: "planner" });
-  }
-
-  const sharedPlan = readPlannerShareParam();
-  if (sharedPlan) {
-    pendingSharePlan.setPending(sharedPlan);
-    clearPlannerShareParam();
   }
 
   mount(App, {

@@ -79,7 +79,7 @@ Do not migrate any data layer yet.
 
 ---
 
-## Task 6 — Remove the share URL feature
+## Task 6 — Remove the share URL feature [DONE]
 
 - Find and delete all code related to generating or parsing a share URL (look for base64, `btoa`, `atob`, URL params, share link components/routes)
 - Remove the share button from the UI

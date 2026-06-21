@@ -10,16 +10,7 @@
 
   import WeekPickerModal from "../../lib/components/WeekPickerModal.svelte";
 
-  import ImportPlanModal from "../../lib/components/ImportPlanModal.svelte";
-
-  import ShareWeekModal from "../../lib/components/ShareWeekModal.svelte";
-
   import { selectedWeek, weeklyPlan } from "../../lib/stores/weeklyPlan";
-  import { groceryListState } from "../../lib/stores/groceryList";
-
-  import { pendingSharePlan } from "../../lib/stores/pendingSharePlan";
-
-  import { buildPlannerShareUrl } from "../../lib/utils/planShare";
 
   import { formatWeekRange, isCurrentWeek } from "../../lib/utils/weekDates";
 
@@ -27,35 +18,9 @@
 
   let weekPickerOpen = $state(false);
 
-  let shareModalOpen = $state(false);
-
-  let shareUrl = $state("");
-
-
-
   let activeWeek = $derived($selectedWeek);
 
   let weekLabel = $derived(formatWeekRange(activeWeek, $locale ?? "en"));
-
-  let importModalOpen = $derived(!!$pendingSharePlan);
-
-
-
-  function openShareModal() {
-
-    shareUrl = buildPlannerShareUrl(
-
-      weeklyPlan.getSnapshot(),
-
-      weeklyPlan.getSelectedWeek(),
-
-      $groceryListState,
-
-    );
-
-    shareModalOpen = true;
-
-  }
 
 </script>
 
@@ -133,20 +98,6 @@
 
     </button>
 
-    <button
-
-      type="button"
-
-      onclick={openShareModal}
-
-      class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
-
-    >
-
-      {$_("planner.share")}
-
-    </button>
-
   </div>
 
 
@@ -170,16 +121,3 @@
 
 
 <WeekPickerModal open={weekPickerOpen} onclose={() => (weekPickerOpen = false)} />
-
-<ImportPlanModal open={importModalOpen} />
-
-<ShareWeekModal
-
-  open={shareModalOpen}
-
-  url={shareUrl}
-
-  onclose={() => (shareModalOpen = false)}
-
-/>
-
