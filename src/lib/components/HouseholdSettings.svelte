@@ -6,11 +6,14 @@
     inviteMember,
     removeMember,
     getAcceptedMemberships,
+    getPendingInvites,
+    acceptInvite,
     type HouseholdMember,
   } from "../api/household";
 
   let members = $state<HouseholdMember[]>([]);
   let memberships = $state<HouseholdMember[]>([]);
+  let pendingInvites = $state<HouseholdMember[]>([]);
   let emailInput = $state("");
   let inviting = $state(false);
   let inviteError = $state("");
@@ -20,7 +23,11 @@
   });
 
   async function reload() {
-    [members, memberships] = await Promise.all([getMembers(), getAcceptedMemberships()]);
+    [members, memberships, pendingInvites] = await Promise.all([
+      getMembers(),
+      getAcceptedMemberships(),
+      getPendingInvites(),
+    ]);
   }
 
   async function handleInvite() {
@@ -47,6 +54,16 @@
   async function handleLeave(id: string) {
     await removeMember(id);
     window.location.reload();
+  }
+
+  async function handleAccept(id: string) {
+    try {
+      await acceptInvite(id);
+      await reload();
+    } catch (e) {
+      console.error("handleAccept failed:", e);
+      alert(e instanceof Error ? e.message : "Failed to accept invite");
+    }
   }
 
   let accepted = $derived(members.filter((m) => m.status === "accepted"));
@@ -109,6 +126,28 @@
       <p class="text-xs text-red-600">{inviteError}</p>
     {/if}
   </div>
+
+  <!-- Pending invites for the current user -->
+  {#if pendingInvites.length > 0}
+    <div class="flex flex-col gap-3">
+      <h2 class="text-base font-semibold text-slate-800">{$_("household.settings.pendingInvites")}</h2>
+      <ul class="flex flex-col gap-2">
+        {#each pendingInvites as m (m.id)}
+          <li class="flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm">
+            <span class="text-slate-700">
+              {$_("household.settings.invitedBy", { values: { email: m.owner_email ?? m.owner_id } })}
+            </span>
+            <button
+              onclick={() => handleAccept(m.id)}
+              class="text-xs font-medium text-orange-600 hover:underline"
+            >
+              {$_("household.settings.accept")}
+            </button>
+          </li>
+        {/each}
+      </ul>
+    </div>
+  {/if}
 
   <!-- Member section: households I belong to -->
   {#if memberships.length > 0}

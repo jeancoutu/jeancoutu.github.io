@@ -1,11 +1,13 @@
 <script lang="ts">
-  import { session } from '../stores/auth';
-  import { signInWithGoogle } from '../auth';
+  import { session, sessionLoading } from '../stores/auth';
+  import { signInWithGoogle, signInWithPassword } from '../auth';
 
   let { children } = $props();
 
   let error = $state('');
   let loading = $state(false);
+  let devEmail = $state('');
+  let devPassword = $state('');
 
   async function handleSignIn() {
     error = '';
@@ -17,9 +19,25 @@
       loading = false;
     }
   }
+
+  async function handleDevSignIn() {
+    error = '';
+    loading = true;
+    try {
+      await signInWithPassword(devEmail, devPassword);
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Unknown error';
+    } finally {
+      loading = false;
+    }
+  }
 </script>
 
-{#if $session}
+{#if $sessionLoading}
+  <div class="flex min-h-screen items-center justify-center">
+    <div class="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-800"></div>
+  </div>
+{:else if $session}
   {@render children()}
 {:else}
   <div class="flex min-h-screen items-center justify-center px-4">
@@ -40,6 +58,30 @@
       </button>
       {#if error}
         <p class="text-center text-sm text-red-600">{error}</p>
+      {/if}
+      {#if import.meta.env.DEV}
+        <div class="mt-4 flex flex-col gap-2 border-t pt-4">
+          <p class="text-center text-xs text-gray-400">Dev login</p>
+          <input
+            bind:value={devEmail}
+            type="email"
+            placeholder="Email"
+            class="rounded border border-gray-300 px-3 py-2 text-sm"
+          />
+          <input
+            bind:value={devPassword}
+            type="password"
+            placeholder="Password"
+            class="rounded border border-gray-300 px-3 py-2 text-sm"
+          />
+          <button
+            onclick={handleDevSignIn}
+            disabled={loading}
+            class="rounded bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+          >
+            Sign in with email
+          </button>
+        </div>
       {/if}
     </div>
   </div>

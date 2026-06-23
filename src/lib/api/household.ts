@@ -45,8 +45,8 @@ export async function getPendingInvites(): Promise<HouseholdMember[]> {
 
   const { data, error } = await supabase
     .from("household_members")
-    .select("id, owner_id, member_id, invite_email, status")
-    .eq("member_id", user.id)
+    .select("id, owner_id, member_id, invite_email, owner_email, status")
+    .eq("invite_email", user.email)
     .eq("status", "pending");
   if (error) throw error;
   return data as HouseholdMember[];
