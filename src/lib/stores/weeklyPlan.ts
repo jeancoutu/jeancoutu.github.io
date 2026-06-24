@@ -145,15 +145,18 @@ function createWeeklyPlanStore() {
         else delete current[key];
       }
 
-      for (const { key } of DAYS) {
-        const entry = current[key];
-        await setMealSlot(week, key, "supper", entry?.supper ?? null);
-        if (key !== "saturday") {
-          await setMealSlot(week, key, "diner", entry?.diner ?? null);
-        }
-      }
-
       plans.update((all) => ({ ...all, [week]: current }));
+
+      (async () => {
+        await Promise.all(
+          DAYS.map(({ key }) => setMealSlot(week, key, "supper", current[key]?.supper ?? null))
+        );
+        await Promise.all(
+          DAYS.filter(({ key }) => key !== "saturday").map(({ key }) =>
+            setMealSlot(week, key, "diner", current[key]?.diner ?? null)
+          )
+        );
+      })();
     },
     getSnapshot(): WeeklyPlan {
       return get(currentPlan);
