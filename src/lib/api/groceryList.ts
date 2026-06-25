@@ -91,10 +91,11 @@ export async function deleteAllGroceryItems(weekStart: string): Promise<void> {
 export async function applyGroceryAdjustments(
   weekStart: string,
   adjustments: GroceryAdjustment[],
-): Promise<void> {
-  if (adjustments.length === 0) return;
+  existingWeeklyPlanId?: string,
+): Promise<GroceryDBItem[] | null> {
+  if (adjustments.length === 0) return null;
 
-  const weeklyPlanId = await getOrCreateWeeklyPlanId(weekStart);
+  const weeklyPlanId = existingWeeklyPlanId ?? await getOrCreateWeeklyPlanId(weekStart);
 
   const { data: currentItems, error: fetchError } = await supabase
     .from("grocery_items")
@@ -103,9 +104,8 @@ export async function applyGroceryAdjustments(
 
   if (fetchError) throw fetchError;
 
-  const dbByName = new Map(
-    (currentItems ?? []).map((i) => [i.name, i as GroceryDBItem]),
-  );
+  const existing = (currentItems ?? []) as GroceryDBItem[];
+  const dbByName = new Map(existing.map((i) => [i.name, i]));
 
   const toDelete: string[] = [];
   const toUpdate: Array<{ id: string; quantity: string }> = [];
@@ -118,18 +118,18 @@ export async function applyGroceryAdjustments(
   }> = [];
 
   for (const adj of adjustments) {
-    const existing = dbByName.get(adj.name);
+    const row = dbByName.get(adj.name);
     const newQty = adjustQuantityString(
-      existing?.quantity ?? null,
+      row?.quantity ?? null,
       adj.addQuantities,
       adj.removeQuantities,
     );
 
-    if (existing) {
+    if (row) {
       if (newQty === null) {
-        toDelete.push(existing.id);
+        toDelete.push(row.id);
       } else {
-        toUpdate.push({ id: existing.id, quantity: newQty });
+        toUpdate.push({ id: row.id, quantity: newQty });
       }
     } else if (newQty !== null) {
       toInsert.push({
@@ -142,28 +142,41 @@ export async function applyGroceryAdjustments(
     }
   }
 
-  await Promise.all([
-    toDelete.length > 0
-      ? supabase
+  const [, insertedItems] = await Promise.all([
+    Promise.all([
+      toDelete.length > 0
+        ? supabase
+            .from("grocery_items")
+            .delete()
+            .in("id", toDelete)
+            .then(({ error }) => { if (error) throw error; })
+        : Promise.resolve(),
+      ...toUpdate.map(({ id, quantity }) =>
+        supabase
           .from("grocery_items")
-          .delete()
-          .in("id", toDelete)
-          .then(({ error }) => { if (error) throw error; })
-      : Promise.resolve(),
-    ...toUpdate.map(({ id, quantity }) =>
-      supabase
-        .from("grocery_items")
-        .update({ quantity })
-        .eq("id", id)
-        .then(({ error }) => { if (error) throw error; }),
-    ),
+          .update({ quantity })
+          .eq("id", id)
+          .then(({ error }) => { if (error) throw error; }),
+      ),
+    ]),
     toInsert.length > 0
       ? supabase
           .from("grocery_items")
           .insert(toInsert)
-          .then(({ error }) => { if (error) throw error; })
-      : Promise.resolve(),
+          .select("id, name, quantity, category, checked")
+          .then(({ data, error }) => { if (error) throw error; return (data ?? []) as GroceryDBItem[]; })
+      : Promise.resolve([] as GroceryDBItem[]),
   ]);
+
+  const deletedIds = new Set(toDelete);
+  const updatedQty = new Map(toUpdate.map(({ id, quantity }) => [id, quantity]));
+
+  return [
+    ...existing
+      .filter((i) => !deletedIds.has(i.id))
+      .map((i) => updatedQty.has(i.id) ? { ...i, quantity: updatedQty.get(i.id)! } : i),
+    ...insertedItems,
+  ];
 }
 
 export async function bulkReplaceGroceryItems(

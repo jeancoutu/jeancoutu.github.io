@@ -20,6 +20,10 @@ export async function reloadGroceryItemsForWeek(weekKey: string): Promise<void> 
   await loadWeek(weekKey);
 }
 
+export function setGroceryItemsForWeek(weekKey: string, items: GroceryDBItem[]): void {
+  weekItems.update((all) => ({ ...all, [weekKey]: items }));
+}
+
 export function clearGroceryItemsForWeek(weekKey: string): void {
   weekItems.update((all) => ({ ...all, [weekKey]: [] }));
 }

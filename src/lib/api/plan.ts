@@ -64,7 +64,7 @@ export async function setMealSlot(
   day: DayKey,
   slot: MealSlot,
   mealId: string | null,
-): Promise<void> {
+): Promise<string> {
   const weeklyPlanId = await getOrCreateWeeklyPlanId(weekStart);
   const column = slot === "supper" ? "supper_meal_id" : "diner_meal_id";
   const otherColumn = slot === "supper" ? "diner_meal_id" : "supper_meal_id";
@@ -112,6 +112,7 @@ export async function setMealSlot(
       if (error) throw error;
     }
   }
+  return weeklyPlanId;
 }
 
 export async function clearPlan(weekStart: string): Promise<void> {
@@ -130,6 +131,31 @@ export async function clearPlan(weekStart: string): Promise<void> {
     .eq("weekly_plan_id", wp.id);
 
   if (error) throw error;
+}
+
+export async function bulkSetWeekPlan(weekStart: string, plan: WeeklyPlan): Promise<void> {
+  const weeklyPlanId = await getOrCreateWeeklyPlanId(weekStart);
+
+  const { error: deleteError } = await supabase
+    .from("day_plans")
+    .delete()
+    .eq("weekly_plan_id", weeklyPlanId);
+
+  if (deleteError) throw deleteError;
+
+  const rows = (Object.entries(plan) as [DayKey, WeeklyPlan[DayKey]][])
+    .filter(([, entry]) => entry?.supper || entry?.diner)
+    .map(([day, entry]) => ({
+      weekly_plan_id: weeklyPlanId,
+      day_key: day,
+      supper_meal_id: entry?.supper ?? null,
+      diner_meal_id: entry?.diner ?? null,
+    }));
+
+  if (rows.length === 0) return;
+
+  const { error: insertError } = await supabase.from("day_plans").insert(rows);
+  if (insertError) throw insertError;
 }
 
 export async function clearWeekData(weekStart: string): Promise<void> {

@@ -3,7 +3,7 @@
   import type { DayKey, MealSlot } from "../types";
   import { allMeals } from "../stores/meals";
   import { selectedWeek, weeklyPlan } from "../stores/weeklyPlan";
-  import { reloadGroceryItemsForWeek } from "../stores/groceryList";
+  import { setGroceryItemsForWeek } from "../stores/groceryList";
 
   interface Props {
     day: DayKey;
@@ -15,8 +15,10 @@
 
   async function onChange(slot: MealSlot, e: Event) {
     const value = (e.currentTarget as HTMLSelectElement).value;
-    await weeklyPlan.setDay(day, slot, value || undefined);
-    await reloadGroceryItemsForWeek($selectedWeek);
+    const updatedGroceries = await weeklyPlan.setDay(day, slot, value || undefined);
+    if (updatedGroceries !== null) {
+      setGroceryItemsForWeek($selectedWeek, updatedGroceries);
+    }
   }
 </script>
 

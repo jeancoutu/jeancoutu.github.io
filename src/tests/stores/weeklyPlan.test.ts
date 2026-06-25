@@ -3,8 +3,9 @@ import { get } from "svelte/store";
 
 vi.mock("../../lib/api/plan", () => ({
   getWeeklyPlan: vi.fn().mockResolvedValue({}),
-  setMealSlot: vi.fn().mockResolvedValue(undefined),
-  clearPlan: vi.fn().mockResolvedValue(undefined),
+  setMealSlot: vi.fn().mockResolvedValue("mock-weekly-plan-id"),
+  clearWeekData: vi.fn().mockResolvedValue(undefined),
+  bulkSetWeekPlan: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("../../lib/api/meals", () => ({
@@ -21,8 +22,8 @@ describe("weeklyPlan store", () => {
 
   async function importStore() {
     const { weeklyPlan, selectedWeek, allPlans } = await import("../../lib/stores/weeklyPlan");
-    const { setMealSlot, clearPlan, getWeeklyPlan } = await import("../../lib/api/plan");
-    return { weeklyPlan, selectedWeek, allPlans, setMealSlot, clearPlan, getWeeklyPlan };
+    const { setMealSlot, clearWeekData, getWeeklyPlan, bulkSetWeekPlan } = await import("../../lib/api/plan");
+    return { weeklyPlan, selectedWeek, allPlans, setMealSlot, clearWeekData, getWeeklyPlan, bulkSetWeekPlan };
   }
 
   it("starts with empty plan for current week", async () => {
@@ -52,11 +53,11 @@ describe("weeklyPlan store", () => {
     expect(get(weeklyPlan).monday).toBeUndefined();
   });
 
-  it("clearWeek calls clearPlan and empties the plan", async () => {
-    const { weeklyPlan, clearPlan } = await importStore();
+  it("clearWeek calls clearWeekData and empties the plan", async () => {
+    const { weeklyPlan, clearWeekData } = await importStore();
     await weeklyPlan.setDay("monday", "supper", "meal-1");
     await weeklyPlan.clearWeek();
-    expect(clearPlan).toHaveBeenCalled();
+    expect(clearWeekData).toHaveBeenCalled();
     expect(get(weeklyPlan)).toEqual({});
   });
 
@@ -68,14 +69,11 @@ describe("weeklyPlan store", () => {
     expect(get(weeklyPlan).monday?.supper).toBe("meal-x");
   });
 
-  it("importPlan calls setMealSlot for each day/slot in the plan", async () => {
-    const { weeklyPlan, setMealSlot } = await importStore();
-    vi.mocked(setMealSlot).mockClear();
+  it("importPlan calls bulkSetWeekPlan with the given plan", async () => {
+    const { weeklyPlan, bulkSetWeekPlan } = await importStore();
     const plan = { monday: { supper: "meal-a" }, tuesday: { diner: "meal-b" } };
     await weeklyPlan.importPlan(plan, "2025-W02");
-    const calls = vi.mocked(setMealSlot).mock.calls;
-    expect(calls.some((c) => c[1] === "monday" && c[2] === "supper" && c[3] === "meal-a")).toBe(true);
-    expect(calls.some((c) => c[1] === "tuesday" && c[2] === "diner" && c[3] === "meal-b")).toBe(true);
+    expect(bulkSetWeekPlan).toHaveBeenCalledWith("2025-W02", plan);
   });
 
   it("setSelectedWeek switches the active week and loads it if not cached", async () => {
