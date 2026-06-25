@@ -4,13 +4,10 @@
   import { weeklyPlan } from "../stores/weeklyPlan";
   import {
     addGroceryItem,
-    groceryListState,
-    isGroceryChecked,
-    isGroceryRemoved,
+    editGroceryItem,
+    groceryItemsForWeek,
     removeGroceryItem,
-    restoreAllGroceryItems,
-    restoreGroceryItem,
-    toggleGroceryChecked,
+    toggleGroceryItemChecked,
   } from "../stores/groceryList";
   import {
     buildGroceryList,
@@ -19,19 +16,41 @@
     groupGroceryByCategory,
   } from "../utils/groceryList";
 
+  interface DisplayItem {
+    dbId?: string;
+    name: string;
+    category: IngredientCategory;
+    quantities: string[];
+    checked: boolean;
+  }
+
   let plannedMeals = $derived(getPlannedMeals($weeklyPlan));
-  let groceryItems = $derived(
-    buildGroceryList(plannedMeals, $groceryListState.added),
+  let mealPlanItems = $derived(buildGroceryList(plannedMeals));
+  let dbItems = $derived($groceryItemsForWeek);
+
+  // Index DB items by name for quick lookup
+  let dbByName = $derived(new Map(dbItems.map((i) => [i.name, i])));
+
+  // Names that already exist in the meal plan
+  let mealPlanNames = $derived(new Set(mealPlanItems.map((i) => i.name)));
+
+  // Meal plan items enriched with DB state (checked, dbId)
+  let mealPlanDisplayItems = $derived<DisplayItem[]>(
+    mealPlanItems.map((item) => {
+      const dbItem = dbByName.get(item.name);
+      return { name: item.name, category: item.category, quantities: item.quantities, dbId: dbItem?.id, checked: dbItem?.checked ?? false };
+    }),
   );
-  let visibleItems = $derived(
-    groceryItems.filter((item) => !isGroceryRemoved(item.name, $groceryListState)),
+
+  // Custom items: DB rows not derived from the current meal plan
+  let customDisplayItems = $derived<DisplayItem[]>(
+    dbItems
+      .filter((i) => !mealPlanNames.has(i.name))
+      .map((i) => ({ dbId: i.id, name: i.name, category: i.category, quantities: [i.quantity], checked: i.checked })),
   );
-  let groupedItems = $derived(groupGroceryByCategory(visibleItems));
-  let removedItems = $derived(
-    groceryItems
-      .filter((item) => isGroceryRemoved(item.name, $groceryListState))
-      .sort((a, b) => a.name.localeCompare(b.name, "fr")),
-  );
+
+  let allDisplayItems = $derived<DisplayItem[]>([...mealPlanDisplayItems, ...customDisplayItems]);
+  let groupedItems = $derived(groupGroceryByCategory(allDisplayItems));
 
   let addingCategory = $state<IngredientCategory | null>(null);
   let newItemName = $state("");
@@ -63,6 +82,76 @@
       cancelAdding();
     }
   }
+
+  let editingItem = $state<DisplayItem | null>(null);
+  let editName = $state("");
+  let editQuantity = $state("");
+
+  let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  let longPressStartX = 0;
+  let longPressStartY = 0;
+  const LONG_PRESS_MS = 500;
+  const LONG_PRESS_MOVE_PX = 10;
+
+  function handleItemPointerDown(event: PointerEvent, item: DisplayItem) {
+    longPressStartX = event.clientX;
+    longPressStartY = event.clientY;
+    longPressTimer = setTimeout(() => {
+      longPressTimer = null;
+      // Only allow editing items that have a DB row
+      if (!item.dbId) return;
+      editingItem = item;
+      editName = item.name;
+      editQuantity = formatGroceryQuantities(item.quantities);
+    }, LONG_PRESS_MS);
+  }
+
+  function handleItemPointerMove(event: PointerEvent) {
+    if (longPressTimer === null) return;
+    const dx = event.clientX - longPressStartX;
+    const dy = event.clientY - longPressStartY;
+    if (dx * dx + dy * dy > LONG_PRESS_MOVE_PX * LONG_PRESS_MOVE_PX) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  }
+
+  function handleItemPointerUp() {
+    if (longPressTimer !== null) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  }
+
+  function cancelEditing() {
+    editingItem = null;
+  }
+
+  function submitEdit() {
+    if (!editingItem?.dbId || !editName.trim()) return;
+    editGroceryItem(editingItem.dbId, editName, editingItem.category, editQuantity);
+    cancelEditing();
+  }
+
+  function handleEditKeydown(event: KeyboardEvent) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      submitEdit();
+    } else if (event.key === "Escape") {
+      cancelEditing();
+    }
+  }
+
+  function handleToggleChecked(item: DisplayItem) {
+    const qty = formatGroceryQuantities(item.quantities);
+    toggleGroceryItemChecked(item.name, qty, item.category, !item.checked);
+  }
+
+  function handleRemove(item: DisplayItem) {
+    if (item.dbId) {
+      removeGroceryItem(item.dbId);
+    }
+  }
 </script>
 
 <section class="mt-6">
@@ -70,7 +159,7 @@
     {$_("grocery.title")}
   </h2>
 
-  {#if visibleItems.length === 0}
+  {#if allDisplayItems.length === 0}
     <p class="mb-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
       {$_("grocery.empty")}
     </p>
@@ -145,36 +234,86 @@
         {#if group.items.length > 0}
           <ul class="mt-3 space-y-2">
             {#each group.items as item (item.name)}
-              {@const checked = isGroceryChecked(item.name, $groceryListState)}
+              {@const isEditing = editingItem?.name === item.name}
               <li class="flex items-start gap-3">
-                <label class="flex min-w-0 flex-1 cursor-pointer items-start gap-3">
-                  <input
-                    type="checkbox"
-                    class="mt-0.5 size-4 shrink-0 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
-                    checked={checked}
-                    onchange={() => toggleGroceryChecked(item.name)}
-                  />
-                  <span
-                    class="text-sm text-slate-700 {checked
-                      ? 'line-through text-slate-400'
-                      : ''}"
+                {#if isEditing}
+                  <form
+                    class="flex min-w-0 flex-1 flex-wrap items-end gap-2"
+                    onsubmit={(event) => { event.preventDefault(); submitEdit(); }}
                   >
-                    <span class="text-slate-500">{formatGroceryQuantities(item.quantities)}</span>
-                    {item.name}
-                  </span>
-                </label>
-                <button
-                  type="button"
-                  class="shrink-0 rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-                  aria-label={$_("grocery.remove")}
-                  onclick={() => removeGroceryItem(item.name)}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
-                    <path
-                      d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
+                    <label class="min-w-0 flex-1">
+                      <span class="sr-only">{$_("grocery.addName")}</span>
+                      <input
+                        type="text"
+                        bind:value={editName}
+                        placeholder={$_("grocery.addName")}
+                        class="w-full rounded-lg border border-orange-400 px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                        onkeydown={handleEditKeydown}
+                      />
+                    </label>
+                    <label class="w-24 shrink-0">
+                      <span class="sr-only">{$_("grocery.addQuantity")}</span>
+                      <input
+                        type="text"
+                        bind:value={editQuantity}
+                        placeholder={$_("grocery.addQuantity")}
+                        class="w-full rounded-lg border border-orange-400 px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                        onkeydown={handleEditKeydown}
+                      />
+                    </label>
+                    <button
+                      type="submit"
+                      class="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-orange-600 disabled:opacity-50"
+                      disabled={!editName.trim()}
+                    >
+                      {$_("grocery.editConfirm")}
+                    </button>
+                    <button
+                      type="button"
+                      class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                      onclick={cancelEditing}
+                    >
+                      {$_("grocery.addCancel")}
+                    </button>
+                  </form>
+                {:else}
+                  <label
+                    class="flex min-w-0 flex-1 cursor-pointer select-none items-start gap-3"
+                    onpointerdown={(e) => handleItemPointerDown(e, item as DisplayItem)}
+                    onpointermove={handleItemPointerMove}
+                    onpointerup={handleItemPointerUp}
+                    onpointercancel={handleItemPointerUp}
+                  >
+                    <input
+                      type="checkbox"
+                      class="mt-0.5 size-4 shrink-0 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
+                      checked={item.checked}
+                      onchange={() => handleToggleChecked(item as DisplayItem)}
                     />
-                  </svg>
-                </button>
+                    <span
+                      class="text-sm text-slate-700 {item.checked
+                        ? 'line-through text-slate-400'
+                        : ''}"
+                    >
+                      <span class="text-slate-500">{formatGroceryQuantities(item.quantities)}</span>
+                      {item.name}
+                    </span>
+                  </label>
+                  {#if (item as DisplayItem).dbId}
+                    <button
+                      type="button"
+                      class="shrink-0 rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                      aria-label={$_("grocery.remove")}
+                      onclick={() => handleRemove(item as DisplayItem)}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
+                        <path
+                          d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
+                        />
+                      </svg>
+                    </button>
+                  {/if}
+                {/if}
               </li>
             {/each}
           </ul>
@@ -182,38 +321,4 @@
       </div>
     {/each}
   </div>
-
-  {#if removedItems.length > 0}
-    <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-      <div class="flex items-center justify-between gap-2">
-        <h3 class="text-sm font-medium text-slate-600">
-          {$_("grocery.removed")}
-        </h3>
-        <button
-          type="button"
-          class="text-sm font-medium text-orange-600 transition hover:text-orange-700"
-          onclick={restoreAllGroceryItems}
-        >
-          {$_("grocery.restoreAll")}
-        </button>
-      </div>
-      <ul class="mt-2 space-y-2">
-        {#each removedItems as item (item.name)}
-          <li class="flex items-center justify-between gap-3">
-            <span class="min-w-0 truncate text-sm text-slate-500">
-              <span class="text-slate-400">{formatGroceryQuantities(item.quantities)}</span>
-              {item.name}
-            </span>
-            <button
-              type="button"
-              class="shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-              onclick={() => restoreGroceryItem(item.name)}
-            >
-              {$_("grocery.undo")}
-            </button>
-          </li>
-        {/each}
-      </ul>
-    </div>
-  {/if}
 </section>

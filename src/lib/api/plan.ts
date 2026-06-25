@@ -20,7 +20,7 @@ function rowsToPlan(rows: DayPlanRow[]): WeeklyPlan {
   return plan;
 }
 
-async function getOrCreateWeeklyPlanId(weekStart: string): Promise<string> {
+export async function getOrCreateWeeklyPlanId(weekStart: string): Promise<string> {
   const { data: existing, error: selectError } = await supabase
     .from("weekly_plans")
     .select("id")
@@ -130,4 +130,23 @@ export async function clearPlan(weekStart: string): Promise<void> {
     .eq("weekly_plan_id", wp.id);
 
   if (error) throw error;
+}
+
+export async function clearWeekData(weekStart: string): Promise<void> {
+  const { data: wp, error: wpError } = await supabase
+    .from("weekly_plans")
+    .select("id")
+    .eq("week_start", weekStart)
+    .maybeSingle();
+
+  if (wpError) throw wpError;
+  if (!wp) return;
+
+  const [dpResult, giResult] = await Promise.all([
+    supabase.from("day_plans").delete().eq("weekly_plan_id", wp.id),
+    supabase.from("grocery_items").delete().eq("weekly_plan_id", wp.id),
+  ]);
+
+  if (dpResult.error) throw dpResult.error;
+  if (giResult.error) throw giResult.error;
 }

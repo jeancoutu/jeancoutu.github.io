@@ -2,7 +2,8 @@
   import { _ } from "svelte-i18n";
   import type { DayKey, MealSlot } from "../types";
   import { allMeals } from "../stores/meals";
-  import { weeklyPlan } from "../stores/weeklyPlan";
+  import { selectedWeek, weeklyPlan } from "../stores/weeklyPlan";
+  import { reloadGroceryItemsForWeek } from "../stores/groceryList";
 
   interface Props {
     day: DayKey;
@@ -12,9 +13,10 @@
 
   const slots: MealSlot[] = ["diner", "supper"];
 
-  function onChange(slot: MealSlot, e: Event) {
+  async function onChange(slot: MealSlot, e: Event) {
     const value = (e.currentTarget as HTMLSelectElement).value;
-    weeklyPlan.setDay(day, slot, value || undefined);
+    await weeklyPlan.setDay(day, slot, value || undefined);
+    await reloadGroceryItemsForWeek($selectedWeek);
   }
 </script>
 

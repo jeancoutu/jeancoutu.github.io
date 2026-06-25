@@ -11,7 +11,10 @@ import {
   getWeeklyPlan,
   setMealSlot,
   clearPlan,
+  clearWeekData,
 } from "../api/plan";
+import { bulkReplaceGroceryItems, applyGroceryAdjustments } from "../api/groceryList";
+import { getPlannedMeals, buildGroceryList, formatGroceryQuantities, computeGroceryAdjustments } from "../utils/groceryList";
 
 const defaultWeek = toWeekKey(getWeekSaturday());
 
@@ -29,7 +32,11 @@ async function loadWeek(week: string): Promise<void> {
   plans.update((all) => ({ ...all, [week]: plan }));
 }
 
+let prevPlanUserId: string | null = null;
 session.subscribe(async ($session) => {
+  const userId = $session?.user?.id ?? null;
+  if (userId === prevPlanUserId) return;
+  prevPlanUserId = userId;
   if ($session) {
     await loadWeek(get(selectedWeek));
   } else {
@@ -46,6 +53,8 @@ function createWeeklyPlanStore() {
   ) {
     const week = get(selectedWeek);
     const id = mealId ?? null;
+    const oldPlan = get(plans)[week] ?? {};
+
     await setMealSlot(week, day, slot, id);
     plans.update((all) => {
       const current = { ...(all[week] ?? {}) };
@@ -62,6 +71,10 @@ function createWeeklyPlanStore() {
       }
       return { ...all, [week]: current };
     });
+
+    const newPlan = get(plans)[week] ?? {};
+    const adjustments = computeGroceryAdjustments(oldPlan, newPlan);
+    await applyGroceryAdjustments(week, adjustments);
   }
 
   return {
@@ -78,7 +91,7 @@ function createWeeklyPlanStore() {
     },
     async clearWeek() {
       const week = get(selectedWeek);
-      await clearPlan(week);
+      await clearWeekData(week);
       plans.update((all) => {
         const { [week]: _, ...rest } = all;
         return rest;
@@ -147,16 +160,26 @@ function createWeeklyPlanStore() {
 
       plans.update((all) => ({ ...all, [week]: current }));
 
-      (async () => {
-        await Promise.all(
-          DAYS.map(({ key }) => setMealSlot(week, key, "supper", current[key]?.supper ?? null))
-        );
-        await Promise.all(
-          DAYS.filter(({ key }) => key !== "saturday").map(({ key }) =>
-            setMealSlot(week, key, "diner", current[key]?.diner ?? null)
-          )
-        );
-      })();
+      await Promise.all(
+        DAYS.map(({ key }) => setMealSlot(week, key, "supper", current[key]?.supper ?? null))
+      );
+      await Promise.all(
+        DAYS.filter(({ key }) => key !== "saturday").map(({ key }) =>
+          setMealSlot(week, key, "diner", current[key]?.diner ?? null)
+        )
+      );
+
+      const meals = getPlannedMeals(current);
+      const groceries = buildGroceryList(meals);
+      await bulkReplaceGroceryItems(
+        week,
+        groceries.map((item) => ({
+          name: item.name,
+          category: item.category,
+          quantity: formatGroceryQuantities(item.quantities),
+          checked: false,
+        })),
+      );
     },
     getSnapshot(): WeeklyPlan {
       return get(currentPlan);

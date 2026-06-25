@@ -9,7 +9,11 @@ import { session } from "./auth";
 
 export const ingredientDefinitions = writable<IngredientDefinition[]>([]);
 
+let prevIngredientsUserId: string | null = null;
 session.subscribe(async ($session) => {
+  const userId = $session?.user?.id ?? null;
+  if (userId === prevIngredientsUserId) return;
+  prevIngredientsUserId = userId;
   if ($session) {
     ingredientDefinitions.set(await getIngredientDefinitions());
   } else {

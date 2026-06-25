@@ -11,6 +11,7 @@
   import WeekPickerModal from "../../lib/components/WeekPickerModal.svelte";
 
   import { selectedWeek, weeklyPlan } from "../../lib/stores/weeklyPlan";
+  import { reloadGroceryItemsForWeek, clearGroceryItemsForWeek } from "../../lib/stores/groceryList";
 
   import { formatWeekRange, isCurrentWeek } from "../../lib/utils/weekDates";
 
@@ -74,7 +75,7 @@
 
       type="button"
 
-      onclick={() => weeklyPlan.autoFillWeek()}
+      onclick={async () => { await weeklyPlan.autoFillWeek(); await reloadGroceryItemsForWeek($selectedWeek); }}
 
       class="rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-orange-600 active:bg-orange-700"
 
@@ -88,7 +89,7 @@
 
       type="button"
 
-      onclick={() => weeklyPlan.clearWeek()}
+      onclick={async () => { await weeklyPlan.clearWeek(); clearGroceryItemsForWeek($selectedWeek); }}
 
       class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
 

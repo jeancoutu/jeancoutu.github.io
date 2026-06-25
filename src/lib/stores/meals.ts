@@ -55,7 +55,11 @@ function buildMealInput(input: CustomMealInput): Omit<Meal, "id"> {
 
 export const customMeals = writable<Meal[]>([]);
 
+let prevMealsUserId: string | null = null;
 session.subscribe(async ($session) => {
+  const userId = $session?.user?.id ?? null;
+  if (userId === prevMealsUserId) return;
+  prevMealsUserId = userId;
   if ($session) {
     customMeals.set(await getMeals());
   } else {

@@ -1,7 +1,6 @@
 import {
   INGREDIENT_CATEGORY_ORDER,
 } from "../../data/ingredientCategories";
-import type { CustomGroceryItem } from "../stores/groceryList";
 import type { IngredientCategory, Meal, MealSlot, WeeklyPlan } from "../types";
 import { DAYS } from "../types";
 import { getMealById } from "../stores/meals";
@@ -45,10 +44,7 @@ function addToGroceryMap(
   }
 }
 
-export function buildGroceryList(
-  meals: Meal[],
-  added: CustomGroceryItem[] = [],
-): GroceryItem[] {
+export function buildGroceryList(meals: Meal[]): GroceryItem[] {
   const map = new Map<string, GroceryItem>();
 
   for (const meal of meals) {
@@ -60,10 +56,6 @@ export function buildGroceryList(
         ingredient.quantity,
       );
     }
-  }
-
-  for (const item of added) {
-    addToGroceryMap(map, item.name, item.category, item.quantity);
   }
 
   return [...map.values()].sort((a, b) => {
@@ -90,6 +82,95 @@ export function groupGroceryByCategory(
     category,
     items: groups.get(category)!,
   }));
+}
+
+export interface GroceryAdjustment {
+  name: string;
+  category: IngredientCategory;
+  addQuantities: string[];
+  removeQuantities: string[];
+}
+
+export function computeGroceryAdjustments(
+  oldPlan: WeeklyPlan,
+  newPlan: WeeklyPlan,
+): GroceryAdjustment[] {
+  const oldItems = buildGroceryList(getPlannedMeals(oldPlan));
+  const newItems = buildGroceryList(getPlannedMeals(newPlan));
+
+  const oldMap = new Map(oldItems.map((i) => [i.name, i]));
+  const newMap = new Map(newItems.map((i) => [i.name, i]));
+  const allNames = new Set([...oldMap.keys(), ...newMap.keys()]);
+
+  const adjustments: GroceryAdjustment[] = [];
+  for (const name of allNames) {
+    const oldItem = oldMap.get(name);
+    const newItem = newMap.get(name);
+    const oldQty = oldItem?.quantities ?? [];
+    const newQty = newItem?.quantities ?? [];
+    if (formatGroceryQuantities(oldQty) === formatGroceryQuantities(newQty)) continue;
+    adjustments.push({
+      name,
+      category: newItem?.category ?? oldItem!.category,
+      addQuantities: newQty,
+      removeQuantities: oldQty,
+    });
+  }
+  return adjustments;
+}
+
+// Adjusts a formatted quantity string by adding and subtracting individual quantity strings.
+// Returns null if the net result drops to zero or below.
+export function adjustQuantityString(
+  base: string | null,
+  add: string[],
+  remove: string[],
+): string | null {
+  const groups: Array<{ total: number; unit: string }> = [];
+  const unparsed: string[] = [];
+
+  if (base) {
+    for (const part of base.split(/,\s*/)) {
+      const p = parseQuantity(part.trim());
+      if (!p) unparsed.push(part.trim());
+      else groups.push({ total: p.value, unit: p.unit });
+    }
+  }
+
+  for (const q of add) {
+    const p = parseQuantity(q);
+    if (!p) { unparsed.push(q); continue; }
+    let merged = false;
+    for (const g of groups) {
+      if (levenshtein(p.unit.toLowerCase(), g.unit.toLowerCase()) <= 2) {
+        g.total += p.value;
+        if (p.unit.length > g.unit.length) g.unit = p.unit;
+        merged = true;
+        break;
+      }
+    }
+    if (!merged) groups.push({ total: p.value, unit: p.unit });
+  }
+
+  for (const q of remove) {
+    const p = parseQuantity(q);
+    if (!p) continue;
+    for (const g of groups) {
+      if (levenshtein(p.unit.toLowerCase(), g.unit.toLowerCase()) <= 2) {
+        g.total -= p.value;
+        break;
+      }
+    }
+  }
+
+  const validGroups = groups.filter((g) => g.total > 0.001);
+  if (validGroups.length === 0 && unparsed.length === 0) return null;
+
+  const results = validGroups.map(({ total, unit }) => {
+    const num = formatNumber(total);
+    return unit ? `${num} ${unit}` : num;
+  });
+  return [...results, ...unparsed].join(", ");
 }
 
 function levenshtein(a: string, b: string): number {
