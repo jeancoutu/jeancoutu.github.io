@@ -1,7 +1,7 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
   import Modal from "./Modal.svelte";
-  import { addCustomMeal, updateCustomMeal } from "../stores/meals";
+  import { addMeal, updateMealById } from "../stores/meals";
   import type { DayKey, DurationTag, Meal } from "../types";
   import { DAYS } from "../types";
 
@@ -131,9 +131,9 @@
     saving = true;
     try {
       if (meal) {
-        await updateCustomMeal(meal.id, mealInput);
+        await updateMealById(meal.id, mealInput);
       } else {
-        await addCustomMeal(mealInput);
+        await addMeal(mealInput);
       }
       close();
     } catch {
