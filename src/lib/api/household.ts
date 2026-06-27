@@ -1,77 +1,109 @@
 import { supabase } from "../supabase";
 
 export interface HouseholdMember {
+  user_id: string;
+  email: string;
+  joined_at: string;
+}
+
+export interface HouseholdInvite {
   id: string;
-  owner_id: string;
-  member_id: string | null;
+  household_id: string;
+  invited_by: string;
+  invited_by_email: string;
   invite_email: string;
-  owner_email?: string;
-  status: 'pending' | 'accepted';
+  status: "pending" | "accepted";
+  created_at: string;
+}
+
+export async function getMyHouseholdId(): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { data, error } = await supabase
+    .from("household_memberships")
+    .select("household_id")
+    .eq("user_id", user.id)
+    .single();
+  if (error) throw error;
+  return (data as { household_id: string }).household_id;
+}
+
+/** All members of the current user's household (includes the current user). */
+export async function getHouseholdMembers(): Promise<HouseholdMember[]> {
+  const { data, error } = await supabase
+    .from("household_memberships")
+    .select("user_id, email, joined_at");
+  if (error) throw error;
+  return data as HouseholdMember[];
+}
+
+/** Pending invites sent FROM the current user's household. */
+export async function getHouseholdInvites(): Promise<HouseholdInvite[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { data, error } = await supabase
+    .from("household_invites")
+    .select("id, household_id, invited_by, invited_by_email, invite_email, status, created_at")
+    .eq("status", "pending")
+    .neq("invite_email", user.email!);
+  if (error) throw error;
+  return data as HouseholdInvite[];
+}
+
+/** Pending invites sent TO the current user's email. */
+export async function getPendingInvites(): Promise<HouseholdInvite[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  const { data, error } = await supabase
+    .from("household_invites")
+    .select("id, household_id, invited_by, invited_by_email, invite_email, status, created_at")
+    .eq("invite_email", user.email!)
+    .eq("status", "pending");
+  if (error) throw error;
+  return data as HouseholdInvite[];
 }
 
 export async function inviteMember(email: string): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const { error } = await supabase.from("household_members").insert({
-    owner_id: user.id,
+  const { data: membership, error: membershipError } = await supabase
+    .from("household_memberships")
+    .select("household_id, email")
+    .eq("user_id", user.id)
+    .single();
+  if (membershipError) throw membershipError;
+
+  const { error } = await supabase.from("household_invites").insert({
+    household_id: (membership as { household_id: string; email: string }).household_id,
+    invited_by: user.id,
+    invited_by_email: (membership as { household_id: string; email: string }).email,
     invite_email: email,
-    owner_email: user.email,
-    status: 'pending',
+    status: "pending",
   });
   if (error) throw error;
 }
 
-export async function getMembers(): Promise<HouseholdMember[]> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
-  const { data, error } = await supabase
-    .from("household_members")
-    .select("id, owner_id, member_id, invite_email, status")
-    .eq("owner_id", user.id);
+export async function cancelInvite(id: string): Promise<void> {
+  const { error } = await supabase.from("household_invites").delete().eq("id", id);
   if (error) throw error;
-  return data as HouseholdMember[];
-}
-
-export async function removeMember(id: string): Promise<void> {
-  const { error } = await supabase.from("household_members").delete().eq("id", id);
-  if (error) throw error;
-}
-
-export async function getPendingInvites(): Promise<HouseholdMember[]> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
-  const { data, error } = await supabase
-    .from("household_members")
-    .select("id, owner_id, member_id, invite_email, owner_email, status")
-    .eq("invite_email", user.email)
-    .eq("status", "pending");
-  if (error) throw error;
-  return data as HouseholdMember[];
-}
-
-export async function getAcceptedMemberships(): Promise<HouseholdMember[]> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
-  const { data, error } = await supabase
-    .from("household_members")
-    .select("id, owner_id, member_id, invite_email, owner_email, status")
-    .eq("member_id", user.id)
-    .eq("status", "accepted");
-  if (error) throw error;
-  return data as HouseholdMember[];
 }
 
 export async function acceptInvite(id: string): Promise<void> {
+  const { error } = await supabase.rpc("accept_household_invite", { invite_id: id });
+  if (error) throw error;
+}
+
+/** Remove another member from the shared household (they go back to a solo household). */
+export async function removeMember(userId: string): Promise<void> {
+  const { error } = await supabase.rpc("remove_from_household", { target_user_id: userId });
+  if (error) throw error;
+}
+
+/** Leave the current shared household and go back to a solo household. */
+export async function leaveHousehold(): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
-
-  const { error } = await supabase
-    .from("household_members")
-    .update({ status: 'accepted', member_id: user.id })
-    .eq("id", id);
+  const { error } = await supabase.rpc("remove_from_household", { target_user_id: user.id });
   if (error) throw error;
 }

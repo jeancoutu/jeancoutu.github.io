@@ -1,20 +1,20 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { _ } from "svelte-i18n";
-  import { getPendingInvites, acceptInvite, type HouseholdMember } from "../api/household";
+  import { getPendingInvites, acceptInvite, type HouseholdInvite } from "../api/household";
 
-  let invites = $state<HouseholdMember[]>([]);
+  let invites = $state<HouseholdInvite[]>([]);
   let dismissed = $state<Set<string>>(new Set());
 
   onMount(async () => {
     try {
       invites = await getPendingInvites();
     } catch {
-      // silently ignore — user may not be in any household
+      // silently ignore — user may not be authenticated yet
     }
   });
 
-  async function accept(invite: HouseholdMember) {
+  async function accept(invite: HouseholdInvite) {
     await acceptInvite(invite.id);
     window.location.reload();
   }
@@ -28,7 +28,7 @@
 
 {#each visible as invite (invite.id)}
   <div class="flex items-center justify-between gap-3 bg-blue-50 px-4 py-3 text-sm text-blue-900 border-b border-blue-200">
-    <span>{$_("household.inviteBanner", { values: { email: invite.invite_email } })}</span>
+    <span>{$_("household.inviteBanner", { values: { email: invite.invited_by_email } })}</span>
     <div class="flex shrink-0 gap-2">
       <button
         onclick={() => accept(invite)}

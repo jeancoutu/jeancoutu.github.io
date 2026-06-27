@@ -1,31 +1,38 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { _ } from "svelte-i18n";
+  import { supabase } from "../supabase";
   import {
-    getMembers,
-    inviteMember,
-    removeMember,
-    getAcceptedMemberships,
+    getHouseholdMembers,
+    getHouseholdInvites,
     getPendingInvites,
+    inviteMember,
+    cancelInvite,
     acceptInvite,
+    removeMember,
+    leaveHousehold,
     type HouseholdMember,
+    type HouseholdInvite,
   } from "../api/household";
 
-  let members = $state<HouseholdMember[]>([]);
-  let memberships = $state<HouseholdMember[]>([]);
-  let pendingInvites = $state<HouseholdMember[]>([]);
+  let allMembers = $state<HouseholdMember[]>([]);
+  let outgoingInvites = $state<HouseholdInvite[]>([]);
+  let incomingInvites = $state<HouseholdInvite[]>([]);
+  let myUserId = $state<string | null>(null);
   let emailInput = $state("");
   let inviting = $state(false);
   let inviteError = $state("");
 
   onMount(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    myUserId = user?.id ?? null;
     await reload();
   });
 
   async function reload() {
-    [members, memberships, pendingInvites] = await Promise.all([
-      getMembers(),
-      getAcceptedMemberships(),
+    [allMembers, outgoingInvites, incomingInvites] = await Promise.all([
+      getHouseholdMembers(),
+      getHouseholdInvites(),
       getPendingInvites(),
     ]);
   }
@@ -38,7 +45,7 @@
     try {
       await inviteMember(email);
       emailInput = "";
-      members = await getMembers();
+      outgoingInvites = await getHouseholdInvites();
     } catch (e) {
       inviteError = e instanceof Error ? e.message : $_("household.settings.inviteError");
     } finally {
@@ -46,42 +53,60 @@
     }
   }
 
-  async function handleRemove(id: string) {
-    await removeMember(id);
-    members = await getMembers();
+  async function handleCancelInvite(id: string) {
+    await cancelInvite(id);
+    outgoingInvites = await getHouseholdInvites();
   }
 
-  async function handleLeave(id: string) {
-    await removeMember(id);
-    window.location.reload();
+  async function handleRemoveMember(userId: string) {
+    await removeMember(userId);
+    allMembers = await getHouseholdMembers();
+  }
+
+  async function handleLeave() {
+    try {
+      await leaveHousehold();
+      window.location.reload();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to leave household");
+    }
   }
 
   async function handleAccept(id: string) {
     try {
       await acceptInvite(id);
-      await reload();
+      window.location.reload();
     } catch (e) {
-      console.error("handleAccept failed:", e);
       alert(e instanceof Error ? e.message : "Failed to accept invite");
     }
   }
 
-  let accepted = $derived(members.filter((m) => m.status === "accepted"));
-  let pending = $derived(members.filter((m) => m.status === "pending"));
+  let otherMembers = $derived(allMembers.filter((m) => m.user_id !== myUserId));
+  let isShared = $derived(allMembers.length > 1);
 </script>
 
 <section class="flex flex-col gap-6">
-  <!-- Owner section: manage my household -->
+  <!-- My household: other members -->
   <div class="flex flex-col gap-4">
-    <h2 class="text-base font-semibold text-slate-800">{$_("household.settings.myHousehold")}</h2>
+    <div class="flex items-center justify-between">
+      <h2 class="text-base font-semibold text-slate-800">{$_("household.settings.myHousehold")}</h2>
+      {#if isShared}
+        <button
+          onclick={handleLeave}
+          class="text-xs font-medium text-red-600 hover:underline"
+        >
+          {$_("household.settings.leave")}
+        </button>
+      {/if}
+    </div>
 
-    {#if accepted.length > 0}
+    {#if otherMembers.length > 0}
       <ul class="flex flex-col gap-2">
-        {#each accepted as m (m.id)}
+        {#each otherMembers as m (m.user_id)}
           <li class="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
-            <span class="text-slate-700">{m.invite_email}</span>
+            <span class="text-slate-700">{m.email}</span>
             <button
-              onclick={() => handleRemove(m.id)}
+              onclick={() => handleRemoveMember(m.user_id)}
               class="text-xs font-medium text-red-600 hover:underline"
             >
               {$_("household.settings.remove")}
@@ -91,18 +116,26 @@
       </ul>
     {/if}
 
-    {#if pending.length > 0}
+    {#if outgoingInvites.length > 0}
       <ul class="flex flex-col gap-2">
-        {#each pending as m (m.id)}
+        {#each outgoingInvites as inv (inv.id)}
           <li class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-            <span class="text-slate-500">{m.invite_email}</span>
-            <span class="text-xs text-slate-400">{$_("household.settings.pending")}</span>
+            <span class="text-slate-500">{inv.invite_email}</span>
+            <div class="flex items-center gap-3">
+              <span class="text-xs text-slate-400">{$_("household.settings.pending")}</span>
+              <button
+                onclick={() => handleCancelInvite(inv.id)}
+                class="text-xs font-medium text-slate-500 hover:underline"
+              >
+                {$_("household.settings.cancelInvite")}
+              </button>
+            </div>
           </li>
         {/each}
       </ul>
     {/if}
 
-    {#if accepted.length === 0 && pending.length === 0}
+    {#if otherMembers.length === 0 && outgoingInvites.length === 0}
       <p class="text-sm text-slate-400">{$_("household.settings.noMembers")}</p>
     {/if}
 
@@ -127,43 +160,21 @@
     {/if}
   </div>
 
-  <!-- Pending invites for the current user -->
-  {#if pendingInvites.length > 0}
+  <!-- Incoming invites for the current user -->
+  {#if incomingInvites.length > 0}
     <div class="flex flex-col gap-3">
       <h2 class="text-base font-semibold text-slate-800">{$_("household.settings.pendingInvites")}</h2>
       <ul class="flex flex-col gap-2">
-        {#each pendingInvites as m (m.id)}
+        {#each incomingInvites as inv (inv.id)}
           <li class="flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm">
             <span class="text-slate-700">
-              {$_("household.settings.invitedBy", { values: { email: m.owner_email ?? m.owner_id } })}
+              {$_("household.settings.invitedBy", { values: { email: inv.invited_by_email } })}
             </span>
             <button
-              onclick={() => handleAccept(m.id)}
+              onclick={() => handleAccept(inv.id)}
               class="text-xs font-medium text-orange-600 hover:underline"
             >
               {$_("household.settings.accept")}
-            </button>
-          </li>
-        {/each}
-      </ul>
-    </div>
-  {/if}
-
-  <!-- Member section: households I belong to -->
-  {#if memberships.length > 0}
-    <div class="flex flex-col gap-3">
-      <h2 class="text-base font-semibold text-slate-800">{$_("household.settings.sharedWith")}</h2>
-      <ul class="flex flex-col gap-2">
-        {#each memberships as m (m.id)}
-          <li class="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
-            <span class="text-slate-700">
-              {$_("household.settings.memberOf", { values: { email: m.owner_email ?? m.owner_id } })}
-            </span>
-            <button
-              onclick={() => handleLeave(m.id)}
-              class="text-xs font-medium text-red-600 hover:underline"
-            >
-              {$_("household.settings.leave")}
             </button>
           </li>
         {/each}

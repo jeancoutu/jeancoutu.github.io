@@ -25,7 +25,7 @@ if (!env.SUPABASE_SERVICE_ROLE_KEY) {
 }
 
 const supabase = createClient(env.VITE_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
-const userId = env.USER_ID;
+const householdId = env.HOUSEHOLD_ID;
 const meals = [
   {
     name: "Sauté Thaï",
@@ -542,7 +542,7 @@ async function seed() {
     const { data: inserted, error: mealError } = await supabase
       .from("meals")
       .insert({
-        user_id: userId,
+        household_id: householdId,
         name: meal.name,
         duration: meal.duration,
         url: meal.url,

@@ -90,6 +90,7 @@
   "household.settings.sharedWith": "Plans partagés",
   "household.settings.memberOf": "Tu partages le meal plan de {email}.",
   "household.settings.leave": "Quitter",
+  "household.settings.cancelInvite": "Annuler",
   "nav.settings": "Paramètres",
   "settings.title": "Paramètres"
 }

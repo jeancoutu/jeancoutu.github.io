@@ -1,5 +1,6 @@
 import { supabase } from "../supabase";
 import type { IngredientCategory, IngredientDefinition } from "../types";
+import { getMyHouseholdId } from "./household";
 
 export async function getIngredientDefinitions(): Promise<IngredientDefinition[]> {
   const { data, error } = await supabase
@@ -14,9 +15,13 @@ export async function getIngredientDefinitions(): Promise<IngredientDefinition[]
 }
 
 export async function upsertIngredientDefinition(def: IngredientDefinition): Promise<void> {
+  const householdId = await getMyHouseholdId();
   const { error } = await supabase
     .from("ingredient_definitions")
-    .upsert({ name: def.name, category: def.category }, { onConflict: "name" });
+    .upsert(
+      { household_id: householdId, name: def.name, category: def.category },
+      { onConflict: "household_id,name" },
+    );
 
   if (error) throw error;
 }
