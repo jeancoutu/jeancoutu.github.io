@@ -170,6 +170,9 @@ function createWeeklyPlanStore() {
     getSnapshot(): WeeklyPlan {
       return get(currentPlan);
     },
+    async reloadWeek(): Promise<void> {
+      await loadWeek(get(selectedWeek));
+    },
     getSelectedWeek(): string {
       return get(selectedWeek);
     },

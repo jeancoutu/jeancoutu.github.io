@@ -22,6 +22,7 @@
     category: IngredientCategory;
     quantities: string[];
     checked: boolean;
+    isCustom: boolean;
   }
 
   let plannedMeals = $derived(getPlannedMeals($weeklyPlan));
@@ -38,7 +39,7 @@
   let mealPlanDisplayItems = $derived<DisplayItem[]>(
     mealPlanItems.map((item) => {
       const dbItem = dbByName.get(item.name);
-      return { name: item.name, category: item.category, quantities: item.quantities, dbId: dbItem?.id, checked: dbItem?.checked ?? false };
+      return { name: item.name, category: item.category, quantities: item.quantities, dbId: dbItem?.id, checked: dbItem?.checked ?? false, isCustom: false };
     }),
   );
 
@@ -46,7 +47,7 @@
   let customDisplayItems = $derived<DisplayItem[]>(
     dbItems
       .filter((i) => !mealPlanNames.has(i.name))
-      .map((i) => ({ dbId: i.id, name: i.name, category: i.category, quantities: [i.quantity], checked: i.checked })),
+      .map((i) => ({ dbId: i.id, name: i.name, category: i.category, quantities: [i.quantity], checked: i.checked, isCustom: true })),
   );
 
   let allDisplayItems = $derived<DisplayItem[]>([...mealPlanDisplayItems, ...customDisplayItems]);
@@ -299,7 +300,7 @@
                       {item.name}
                     </span>
                   </label>
-                  {#if (item as DisplayItem).dbId}
+                  {#if (item as DisplayItem).isCustom}
                     <button
                       type="button"
                       class="shrink-0 rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
