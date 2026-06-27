@@ -69,7 +69,7 @@
 
 
 
-  <div class="flex flex-wrap items-center gap-2">
+  <div class="flex gap-2">
 
     <button
 
@@ -77,7 +77,7 @@
 
       onclick={async () => { await weeklyPlan.autoFillWeek(); await reloadGroceryItemsForWeek($selectedWeek); }}
 
-      class="rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-orange-600 active:bg-orange-700"
+      class="min-w-0 flex-1 truncate rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-orange-600 active:bg-orange-700"
 
     >
 
@@ -91,7 +91,7 @@
 
       onclick={async () => { await weeklyPlan.clearWeek(); clearGroceryItemsForWeek($selectedWeek); }}
 
-      class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
+      class="min-w-0 flex-1 truncate rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
 
     >
 
@@ -105,7 +105,7 @@
 
       onclick={async () => { await weeklyPlan.reloadWeek(); await reloadGroceryItemsForWeek($selectedWeek); }}
 
-      class="ml-auto rounded-lg border border-slate-300 bg-white p-2.5 text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
+      class="shrink-0 rounded-lg border border-slate-300 bg-white p-2.5 text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
 
       title={$_("planner.refresh")}
 
