@@ -1,5 +1,5 @@
 import { derived, get, writable } from "svelte/store";
-import type { DayKey, DurationTag, Meal } from "../types";
+import type { DayKey, DurationTag, IngredientCategory, Meal } from "../types";
 import { DAYS, INGREDIENT_CATEGORIES } from "../types";
 import {
   createMeal,
@@ -15,6 +15,7 @@ const VALID_CATEGORIES = new Set(INGREDIENT_CATEGORIES);
 export interface CustomMealIngredient {
   name: string;
   quantity: string;
+  category: IngredientCategory;
 }
 
 export interface CustomMealInput {
@@ -41,7 +42,7 @@ function buildMealInput(input: CustomMealInput): Omit<Meal, "id"> {
       return {
         name,
         quantity: ingredient.quantity.trim() || "1",
-        category: "aisle",
+        category: ingredient.category,
       };
     }),
     instructions: input.instructions.map((i) => i.trim()).filter(Boolean),
@@ -69,12 +70,14 @@ export const filteredMeals = derived(
   [mealSearch, durationFilter, allMeals],
   ([$search, $duration, $allMeals]) => {
     const query = $search.trim().toLowerCase();
-    return $allMeals.filter((meal) => {
-      const matchesSearch = !query || meal.name.toLowerCase().includes(query);
-      const matchesDuration =
-        $duration === "all" || meal.duration === $duration;
-      return matchesSearch && matchesDuration;
-    });
+    return $allMeals
+      .filter((meal) => {
+        const matchesSearch = !query || meal.name.toLowerCase().includes(query);
+        const matchesDuration =
+          $duration === "all" || meal.duration === $duration;
+        return matchesSearch && matchesDuration;
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
   },
 );
 
