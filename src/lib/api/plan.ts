@@ -101,7 +101,7 @@ export async function setMealSlot(
       .maybeSingle();
 
     if (selectError) throw selectError;
-    if (!existing) return;
+    if (!existing) return weeklyPlanId;
 
     const otherValue = existing[otherColumn as keyof typeof existing];
     if (!otherValue) {

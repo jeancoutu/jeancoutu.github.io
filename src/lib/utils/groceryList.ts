@@ -67,10 +67,10 @@ export function buildGroceryList(meals: Meal[]): GroceryItem[] {
   });
 }
 
-export function groupGroceryByCategory(
-  items: GroceryItem[],
-): { category: IngredientCategory; items: GroceryItem[] }[] {
-  const groups = new Map<IngredientCategory, GroceryItem[]>(
+export function groupGroceryByCategory<T extends GroceryItem>(
+  items: T[],
+): { category: IngredientCategory; items: T[] }[] {
+  const groups = new Map<IngredientCategory, T[]>(
     INGREDIENT_CATEGORY_ORDER.map((category) => [category, []]),
   );
 

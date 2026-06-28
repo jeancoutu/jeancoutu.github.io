@@ -2,16 +2,16 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { get } from "svelte/store";
 import type { GroceryDBItem } from "../../lib/stores/groceryList";
 
-const mockFetchGroceryItems = vi.fn<() => Promise<GroceryDBItem[]>>();
-const mockUpsertGroceryItem = vi.fn<() => Promise<GroceryDBItem>>();
-const mockUpdateGroceryItem = vi.fn<() => Promise<void>>();
-const mockDeleteGroceryItem = vi.fn<() => Promise<void>>();
+const mockFetchGroceryItems = vi.fn<(weekStart: string) => Promise<GroceryDBItem[]>>();
+const mockUpsertGroceryItem = vi.fn<(weekStart: string, item: Omit<GroceryDBItem, "id">) => Promise<GroceryDBItem>>();
+const mockUpdateGroceryItem = vi.fn<(id: string, changes: Partial<Omit<GroceryDBItem, "id">>) => Promise<void>>();
+const mockDeleteGroceryItem = vi.fn<(id: string) => Promise<void>>();
 
 vi.mock("../../lib/api/groceryList", () => ({
-  fetchGroceryItems: (...args: unknown[]) => mockFetchGroceryItems(...args),
-  upsertGroceryItem: (...args: unknown[]) => mockUpsertGroceryItem(...args),
-  updateGroceryItem: (...args: unknown[]) => mockUpdateGroceryItem(...args),
-  deleteGroceryItem: (...args: unknown[]) => mockDeleteGroceryItem(...args),
+  fetchGroceryItems: (weekStart: string) => mockFetchGroceryItems(weekStart),
+  upsertGroceryItem: (weekStart: string, item: Omit<GroceryDBItem, "id">) => mockUpsertGroceryItem(weekStart, item),
+  updateGroceryItem: (id: string, changes: Partial<Omit<GroceryDBItem, "id">>) => mockUpdateGroceryItem(id, changes),
+  deleteGroceryItem: (id: string) => mockDeleteGroceryItem(id),
 }));
 
 describe("groceryList store", () => {
@@ -19,7 +19,7 @@ describe("groceryList store", () => {
     vi.resetModules();
     vi.clearAllMocks();
     mockFetchGroceryItems.mockResolvedValue([]);
-    mockUpsertGroceryItem.mockImplementation(async (_week, item) => ({
+    mockUpsertGroceryItem.mockImplementation(async (_week: string, item: Omit<GroceryDBItem, "id">) => ({
       id: `id-${item.name}`,
       ...item,
     }));
