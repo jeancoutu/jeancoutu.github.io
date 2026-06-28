@@ -15,11 +15,6 @@ export const INGREDIENT_CATEGORIES: IngredientCategory[] = [
   "fridge",
 ];
 
-export interface IngredientDefinition {
-  name: string;
-  category: IngredientCategory;
-}
-
 export interface Ingredient {
   name: string;
   quantity: string;
