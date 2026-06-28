@@ -1,7 +1,7 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
   import type { IngredientCategory } from "../types";
-  import { weeklyPlan } from "../stores/weeklyPlan";
+  import { weeklyPlan, dismissedIngredientsForWeek } from "../stores/weeklyPlan";
   import {
     addGroceryItem,
     editGroceryItem,
@@ -35,12 +35,16 @@
   // Names that already exist in the meal plan
   let mealPlanNames = $derived(new Set(mealPlanItems.map((i) => i.name)));
 
-  // Meal plan items enriched with DB state (checked, dbId)
+  let dismissed = $derived(new Set($dismissedIngredientsForWeek));
+
+  // Meal plan items enriched with DB state (checked, dbId), excluding dismissed
   let mealPlanDisplayItems = $derived<DisplayItem[]>(
-    mealPlanItems.map((item) => {
-      const dbItem = dbByName.get(item.name);
-      return { name: item.name, category: item.category, quantities: item.quantities, dbId: dbItem?.id, checked: dbItem?.checked ?? false, isCustom: false };
-    }),
+    mealPlanItems
+      .filter((item) => !dismissed.has(item.name))
+      .map((item) => {
+        const dbItem = dbByName.get(item.name);
+        return { name: item.name, category: item.category, quantities: item.quantities, dbId: dbItem?.id, checked: dbItem?.checked ?? false, isCustom: false };
+      }),
   );
 
   // Custom items: DB rows not derived from the current meal plan
@@ -149,8 +153,10 @@
   }
 
   function handleRemove(item: DisplayItem) {
-    if (item.dbId) {
-      removeGroceryItem(item.dbId);
+    if (item.isCustom) {
+      if (item.dbId) removeGroceryItem(item.dbId);
+    } else {
+      weeklyPlan.dismissIngredient(item.name, item.dbId);
     }
   }
 </script>
@@ -300,20 +306,18 @@
                       {item.name}
                     </span>
                   </label>
-                  {#if (item as DisplayItem).isCustom}
-                    <button
-                      type="button"
-                      class="shrink-0 rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-                      aria-label={$_("grocery.remove")}
-                      onclick={() => handleRemove(item as DisplayItem)}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
-                        <path
-                          d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
-                        />
-                      </svg>
-                    </button>
-                  {/if}
+                  <button
+                    type="button"
+                    class="shrink-0 rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                    aria-label={$_("grocery.remove")}
+                    onclick={() => handleRemove(item as DisplayItem)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
+                      <path
+                        d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
+                      />
+                    </svg>
+                  </button>
                 {/if}
               </li>
             {/each}

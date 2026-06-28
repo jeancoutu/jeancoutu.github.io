@@ -12,24 +12,33 @@ import {
   setMealSlot,
   clearWeekData,
   bulkSetWeekPlan,
+  dismissIngredient as apiDismissIngredient,
+  undismissIngredient as apiUndismissIngredient,
 } from "../api/plan";
-import { bulkReplaceGroceryItems, applyGroceryAdjustments, type GroceryDBItem } from "../api/groceryList";
+import { bulkReplaceGroceryItems, applyGroceryAdjustments, deleteGroceryItem, type GroceryDBItem } from "../api/groceryList";
 import { getPlannedMeals, buildGroceryList, formatGroceryQuantities, computeGroceryAdjustments } from "../utils/groceryList";
 
 const defaultWeek = toWeekKey(getWeekSaturday());
 
 export const selectedWeek = writable<string>(defaultWeek);
 const plans = writable<Record<string, WeeklyPlan>>({});
+const dismissedNamesPerWeek = writable<Record<string, string[]>>({});
 
 const currentPlan = derived([selectedWeek, plans], ([week, allPlans]) => {
   return allPlans[week] ?? {};
 });
 
+export const dismissedIngredientsForWeek = derived(
+  [selectedWeek, dismissedNamesPerWeek],
+  ([week, allDismissed]) => allDismissed[week] ?? [],
+);
+
 export const allPlans = { subscribe: plans.subscribe };
 
 async function loadWeek(week: string): Promise<void> {
-  const plan = await getWeeklyPlan(week);
+  const { plan, dismissedNames } = await getWeeklyPlan(week);
   plans.update((all) => ({ ...all, [week]: plan }));
+  dismissedNamesPerWeek.update((all) => ({ ...all, [week]: dismissedNames }));
 }
 
 let prevPlanUserId: string | null = null;
@@ -41,6 +50,7 @@ session.subscribe(async ($session) => {
     await loadWeek(get(selectedWeek));
   } else {
     plans.set({});
+    dismissedNamesPerWeek.set({});
     selectedWeek.set(toWeekKey(getWeekSaturday()));
   }
 });
@@ -74,7 +84,8 @@ function createWeeklyPlanStore() {
 
     const newPlan = get(plans)[week] ?? {};
     const adjustments = computeGroceryAdjustments(oldPlan, newPlan);
-    return applyGroceryAdjustments(week, adjustments, weeklyPlanId);
+    const dismissedNames = get(dismissedNamesPerWeek)[week] ?? [];
+    return applyGroceryAdjustments(week, adjustments, weeklyPlanId, dismissedNames);
   }
 
   return {
@@ -178,6 +189,26 @@ function createWeeklyPlanStore() {
     },
     getAllPlans(): Record<string, WeeklyPlan> {
       return get(plans);
+    },
+    async dismissIngredient(name: string, dbId?: string): Promise<void> {
+      const week = get(selectedWeek);
+      dismissedNamesPerWeek.update((all) => {
+        const current = all[week] ?? [];
+        if (current.includes(name)) return all;
+        return { ...all, [week]: [...current, name] };
+      });
+      await apiDismissIngredient(week, name);
+      if (dbId) {
+        await deleteGroceryItem(dbId);
+      }
+    },
+    async undismissIngredient(name: string): Promise<void> {
+      const week = get(selectedWeek);
+      dismissedNamesPerWeek.update((all) => ({
+        ...all,
+        [week]: (all[week] ?? []).filter((n) => n !== name),
+      }));
+      await apiUndismissIngredient(week, name);
     },
   };
 }

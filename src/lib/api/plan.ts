@@ -40,15 +40,17 @@ export async function getOrCreateWeeklyPlanId(weekStart: string): Promise<string
   return (created as { id: string }).id;
 }
 
-export async function getWeeklyPlan(weekStart: string): Promise<WeeklyPlan> {
+export async function getWeeklyPlan(
+  weekStart: string,
+): Promise<{ plan: WeeklyPlan; dismissedNames: string[] }> {
   const { data: wp, error: wpError } = await supabase
     .from("weekly_plans")
-    .select("id")
+    .select("id, dismissed_ingredient_names")
     .eq("week_start", weekStart)
     .maybeSingle();
 
   if (wpError) throw wpError;
-  if (!wp) return {};
+  if (!wp) return { plan: {}, dismissedNames: [] };
 
   const { data: rows, error: dpError } = await supabase
     .from("day_plans")
@@ -56,7 +58,53 @@ export async function getWeeklyPlan(weekStart: string): Promise<WeeklyPlan> {
     .eq("weekly_plan_id", wp.id);
 
   if (dpError) throw dpError;
-  return rowsToPlan((rows ?? []) as DayPlanRow[]);
+  return {
+    plan: rowsToPlan((rows ?? []) as DayPlanRow[]),
+    dismissedNames: (wp as { id: string; dismissed_ingredient_names: string[] }).dismissed_ingredient_names ?? [],
+  };
+}
+
+export async function dismissIngredient(weekStart: string, name: string): Promise<void> {
+  const { data: wp, error: wpError } = await supabase
+    .from("weekly_plans")
+    .select("id, dismissed_ingredient_names")
+    .eq("week_start", weekStart)
+    .maybeSingle();
+
+  if (wpError) throw wpError;
+  if (!wp) return;
+
+  const current = (wp as { id: string; dismissed_ingredient_names: string[] }).dismissed_ingredient_names ?? [];
+  if (current.includes(name)) return;
+
+  const { error } = await supabase
+    .from("weekly_plans")
+    .update({ dismissed_ingredient_names: [...current, name] })
+    .eq("week_start", weekStart);
+
+  if (error) throw error;
+}
+
+export async function undismissIngredient(weekStart: string, name: string): Promise<void> {
+  const { data: wp, error: wpError } = await supabase
+    .from("weekly_plans")
+    .select("id, dismissed_ingredient_names")
+    .eq("week_start", weekStart)
+    .maybeSingle();
+
+  if (wpError) throw wpError;
+  if (!wp) return;
+
+  const current = (wp as { id: string; dismissed_ingredient_names: string[] }).dismissed_ingredient_names ?? [];
+  const updated = current.filter((n) => n !== name);
+  if (updated.length === current.length) return;
+
+  const { error } = await supabase
+    .from("weekly_plans")
+    .update({ dismissed_ingredient_names: updated })
+    .eq("week_start", weekStart);
+
+  if (error) throw error;
 }
 
 export async function setMealSlot(

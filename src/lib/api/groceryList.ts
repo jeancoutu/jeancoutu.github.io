@@ -92,6 +92,7 @@ export async function applyGroceryAdjustments(
   weekStart: string,
   adjustments: GroceryAdjustment[],
   existingWeeklyPlanId?: string,
+  dismissedNames?: string[],
 ): Promise<GroceryDBItem[] | null> {
   if (adjustments.length === 0) return null;
 
@@ -117,7 +118,9 @@ export async function applyGroceryAdjustments(
     checked: boolean;
   }> = [];
 
+  const dismissed = dismissedNames ? new Set(dismissedNames) : null;
   for (const adj of adjustments) {
+    if (dismissed?.has(adj.name)) continue;
     const row = dbByName.get(adj.name);
     const newQty = adjustQuantityString(
       row?.quantity ?? null,

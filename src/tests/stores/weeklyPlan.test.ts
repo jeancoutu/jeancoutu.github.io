@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { get } from "svelte/store";
 
 vi.mock("../../lib/api/plan", () => ({
-  getWeeklyPlan: vi.fn().mockResolvedValue({}),
+  getWeeklyPlan: vi.fn().mockResolvedValue({ plan: {}, dismissedNames: [] }),
   setMealSlot: vi.fn().mockResolvedValue("mock-weekly-plan-id"),
   clearWeekData: vi.fn().mockResolvedValue(undefined),
   bulkSetWeekPlan: vi.fn().mockResolvedValue(undefined),
@@ -78,7 +78,7 @@ describe("weeklyPlan store", () => {
 
   it("setSelectedWeek switches the active week and loads it if not cached", async () => {
     const { weeklyPlan, selectedWeek, getWeeklyPlan } = await importStore();
-    vi.mocked(getWeeklyPlan).mockResolvedValue({ friday: { supper: "meal-z" } });
+    vi.mocked(getWeeklyPlan).mockResolvedValue({ plan: { friday: { supper: "meal-z" } }, dismissedNames: [] });
     await weeklyPlan.setSelectedWeek("2025-W10");
     expect(get(selectedWeek)).toBe("2025-W10");
     expect(getWeeklyPlan).toHaveBeenCalledWith("2025-W10");

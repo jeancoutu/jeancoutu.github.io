@@ -1,6 +1,6 @@
 import { derived, get, writable } from "svelte/store";
 import type { IngredientCategory } from "../types";
-import { selectedWeek } from "./weeklyPlan";
+import { selectedWeek, dismissedIngredientsForWeek, weeklyPlan } from "./weeklyPlan";
 import { session } from "./auth";
 import {
   fetchGroceryItems,
@@ -82,31 +82,37 @@ export function toggleGroceryItemChecked(
     .catch(console.error);
 }
 
-export function addGroceryItem(
+export async function addGroceryItem(
   category: IngredientCategory,
   name: string,
   quantity = "1",
-): void {
+): Promise<void> {
   const trimmedName = name.trim();
   if (!trimmedName) return;
   const weekKey = get(selectedWeek);
-  upsertGroceryItem(weekKey, {
-    name: trimmedName,
-    quantity: quantity.trim() || "1",
-    category,
-    checked: false,
-  })
-    .then((item) => {
-      weekItems.update((all) => {
-        const items = all[weekKey] ?? [];
-        const idx = items.findIndex((i) => i.id === item.id);
-        return {
-          ...all,
-          [weekKey]: idx >= 0 ? items.map((i, j) => (j === idx ? item : i)) : [...items, item],
-        };
-      });
-    })
-    .catch(console.error);
+
+  if (get(dismissedIngredientsForWeek).includes(trimmedName)) {
+    await weeklyPlan.undismissIngredient(trimmedName);
+  }
+
+  try {
+    const item = await upsertGroceryItem(weekKey, {
+      name: trimmedName,
+      quantity: quantity.trim() || "1",
+      category,
+      checked: false,
+    });
+    weekItems.update((all) => {
+      const items = all[weekKey] ?? [];
+      const idx = items.findIndex((i) => i.id === item.id);
+      return {
+        ...all,
+        [weekKey]: idx >= 0 ? items.map((i, j) => (j === idx ? item : i)) : [...items, item],
+      };
+    });
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 export function removeGroceryItem(id: string): void {
