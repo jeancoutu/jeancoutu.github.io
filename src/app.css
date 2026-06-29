@@ -23,3 +23,10 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+/* Prevent iOS Safari from auto-zooming on input focus */
+input,
+textarea,
+select {
+  font-size: 16px;
+}
