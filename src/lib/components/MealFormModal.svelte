@@ -6,17 +6,19 @@
   import type { DayKey, DurationTag, IngredientCategory, Meal } from "../types";
   import { DAYS } from "../types";
   import { getIngredientCategory } from "../../data/ingredientCategories";
+  import { buildDuplicateName } from "../utils/duplicateMeal";
 
   interface Props {
     open: boolean;
     meal?: Meal;
+    duplicateOf?: Meal;
     onclose: () => void;
   }
 
-  let { open, meal, onclose }: Props = $props();
+  let { open, meal, duplicateOf, onclose }: Props = $props();
 
   const durations: DurationTag[] = ["short", "medium", "long"];
-  const titleKey = $derived(meal ? "meals.edit.title" : "meals.create.title");
+  const titleKey = $derived(meal ? "meals.edit.title" : duplicateOf ? "meals.duplicate.title" : "meals.create.title");
   const submitKey = $derived(meal ? "meals.edit.submit" : "meals.create.submit");
 
   let name = $state("");
@@ -32,6 +34,9 @@
 
     if (meal) {
       loadMeal(meal);
+    } else if (duplicateOf) {
+      loadMeal(duplicateOf);
+      name = buildDuplicateName(duplicateOf.name, $_("meals.duplicate.suffix"));
     } else {
       resetForm();
     }

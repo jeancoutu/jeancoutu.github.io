@@ -14,6 +14,7 @@
   let meals = $derived($allMeals);
   let meal = $derived(meals.find((candidate) => candidate.id === id));
   let editMealOpen = $state(false);
+  let duplicateMealOpen = $state(false);
 
   function goBack() {
     if (hasNavigatedInApp()) {
@@ -55,6 +56,13 @@
           class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
         >
           {$_("mealDetail.edit")}
+        </button>
+        <button
+          type="button"
+          onclick={() => (duplicateMealOpen = true)}
+          class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
+        >
+          {$_("mealDetail.duplicate")}
         </button>
       </div>
       <p class="mt-2 text-sm text-slate-600">
@@ -100,7 +108,11 @@
 {/if}
 
 <MealFormModal
-  open={editMealOpen}
-  meal={meal}
-  onclose={() => (editMealOpen = false)}
+  open={editMealOpen || duplicateMealOpen}
+  meal={editMealOpen ? meal : undefined}
+  duplicateOf={duplicateMealOpen ? meal : undefined}
+  onclose={() => {
+    editMealOpen = false;
+    duplicateMealOpen = false;
+  }}
 />
