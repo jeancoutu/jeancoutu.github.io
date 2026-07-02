@@ -3,7 +3,7 @@
   import DurationBadge from "../../../lib/components/DurationBadge.svelte";
   import MealFormModal from "../../../lib/components/MealFormModal.svelte";
   import { allMeals } from "../../../lib/stores/meals";
-  import { navigate } from "../../../lib/utils/router";
+  import { navigate, hasNavigatedInApp } from "../../../lib/utils/router";
 
   interface Props {
     id: string;
@@ -16,7 +16,11 @@
   let editMealOpen = $state(false);
 
   function goBack() {
-    navigate("/meals");
+    if (hasNavigatedInApp()) {
+      window.history.back();
+    } else {
+      navigate("/meals");
+    }
   }
 </script>
 

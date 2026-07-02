@@ -28,11 +28,20 @@ function parseLogicalPath(pathname: string): Route {
 
 export const route = writable<Route>(parseLogicalPath(window.location.pathname));
 
+let navigatedWithinApp = false;
+
 export function navigate(logicalPath: string): void {
   const segment = logicalPath.replace(/^\//, "");
   const href = appPath(segment);
   window.history.pushState({}, "", href);
   route.set(parseLogicalPath(href));
+  navigatedWithinApp = true;
+}
+
+// True once the app has pushed at least one route since load, meaning
+// there's in-app history to return to via window.history.back().
+export function hasNavigatedInApp(): boolean {
+  return navigatedWithinApp;
 }
 
 export function initRouter(): void {

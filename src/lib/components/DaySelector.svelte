@@ -4,6 +4,7 @@
   import { allMeals } from "../stores/meals";
   import { selectedWeek, weeklyPlan } from "../stores/weeklyPlan";
   import { setGroceryItemsForWeek } from "../stores/groceryList";
+  import { navigate } from "../utils/router";
 
   interface Props {
     day: DayKey;
@@ -20,6 +21,10 @@
       setGroceryItemsForWeek($selectedWeek, updatedGroceries);
     }
   }
+
+  function viewRecipe(mealId: string) {
+    navigate(`/meal/${encodeURIComponent(mealId)}`);
+  }
 </script>
 
 <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -28,17 +33,33 @@
     {#each slots as slot}
       <label class="block" for="day-{day}-{slot}">
         <span class="mb-1 block text-xs font-medium text-slate-600">{$_(`slot.${slot}`)}</span>
-        <select
-          id="day-{day}-{slot}"
-          class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
-          value={$weeklyPlan[day]?.[slot] ?? ""}
-          onchange={(e) => onChange(slot, e)}
-        >
-          <option value="">{$_("slot.selectMeal")}</option>
-          {#each $allMeals as meal}
-            <option value={meal.id}>{meal.name}</option>
-          {/each}
-        </select>
+        <div class="flex gap-2">
+          <select
+            id="day-{day}-{slot}"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+            value={$weeklyPlan[day]?.[slot] ?? ""}
+            onchange={(e) => onChange(slot, e)}
+          >
+            <option value="">{$_("slot.selectMeal")}</option>
+            {#each $allMeals as meal}
+              <option value={meal.id}>{meal.name}</option>
+            {/each}
+          </select>
+          {#if $weeklyPlan[day]?.[slot]}
+            <button
+              type="button"
+              onclick={() => viewRecipe($weeklyPlan[day]?.[slot] as string)}
+              class="flex size-[46px] shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
+              title={$_("mealCard.viewRecipe")}
+              aria-label={$_("mealCard.viewRecipe")}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4" aria-hidden="true">
+                <path d="M10 3.5c-4.29 0-7.86 2.64-9.32 6.34a.75.75 0 0 0 0 .32C2.14 13.86 5.71 16.5 10 16.5s7.86-2.64 9.32-6.34a.75.75 0 0 0 0-.32C17.86 6.14 14.29 3.5 10 3.5Zm0 11a4.17 4.17 0 1 1 0-8.34 4.17 4.17 0 0 1 0 8.34Z" />
+                <path d="M10 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
+              </svg>
+            </button>
+          {/if}
+        </div>
       </label>
     {/each}
   </div>
