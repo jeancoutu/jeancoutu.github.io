@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { _ } from "svelte-i18n";
+  import { supabase } from "../supabase";
   import { getPendingInvites, acceptInvite, type HouseholdInvite } from "../api/household";
 
   let invites = $state<HouseholdInvite[]>([]);
@@ -8,7 +9,9 @@
 
   onMount(async () => {
     try {
-      invites = await getPendingInvites();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) return;
+      invites = await getPendingInvites(user.email);
     } catch {
       // silently ignore — user may not be authenticated yet
     }

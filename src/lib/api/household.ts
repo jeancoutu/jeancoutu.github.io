@@ -38,26 +38,22 @@ export async function getHouseholdMembers(): Promise<HouseholdMember[]> {
 }
 
 /** Pending invites sent FROM the current user's household. */
-export async function getHouseholdInvites(): Promise<HouseholdInvite[]> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+export async function getHouseholdInvites(userEmail: string): Promise<HouseholdInvite[]> {
   const { data, error } = await supabase
     .from("household_invites")
     .select("id, household_id, invited_by, invited_by_email, invite_email, status, created_at")
     .eq("status", "pending")
-    .neq("invite_email", user.email!);
+    .neq("invite_email", userEmail);
   if (error) throw error;
   return data as HouseholdInvite[];
 }
 
 /** Pending invites sent TO the current user's email. */
-export async function getPendingInvites(): Promise<HouseholdInvite[]> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
+export async function getPendingInvites(userEmail: string): Promise<HouseholdInvite[]> {
   const { data, error } = await supabase
     .from("household_invites")
     .select("id, household_id, invited_by, invited_by_email, invite_email, status, created_at")
-    .eq("invite_email", user.email!)
+    .eq("invite_email", userEmail)
     .eq("status", "pending");
   if (error) throw error;
   return data as HouseholdInvite[];

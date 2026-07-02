@@ -19,6 +19,7 @@
   let outgoingInvites = $state<HouseholdInvite[]>([]);
   let incomingInvites = $state<HouseholdInvite[]>([]);
   let myUserId = $state<string | null>(null);
+  let myEmail = $state<string | null>(null);
   let emailInput = $state("");
   let inviting = $state(false);
   let inviteError = $state("");
@@ -26,14 +27,16 @@
   onMount(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     myUserId = user?.id ?? null;
+    myEmail = user?.email ?? null;
     await reload();
   });
 
   async function reload() {
+    if (!myEmail) return;
     [allMembers, outgoingInvites, incomingInvites] = await Promise.all([
       getHouseholdMembers(),
-      getHouseholdInvites(),
-      getPendingInvites(),
+      getHouseholdInvites(myEmail),
+      getPendingInvites(myEmail),
     ]);
   }
 
@@ -45,7 +48,7 @@
     try {
       await inviteMember(email);
       emailInput = "";
-      outgoingInvites = await getHouseholdInvites();
+      if (myEmail) outgoingInvites = await getHouseholdInvites(myEmail);
     } catch (e) {
       inviteError = e instanceof Error ? e.message : $_("household.settings.inviteError");
     } finally {
@@ -55,7 +58,7 @@
 
   async function handleCancelInvite(id: string) {
     await cancelInvite(id);
-    outgoingInvites = await getHouseholdInvites();
+    if (myEmail) outgoingInvites = await getHouseholdInvites(myEmail);
   }
 
   async function handleRemoveMember(userId: string) {
