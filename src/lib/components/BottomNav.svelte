@@ -1,6 +1,6 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
-  import { route, navigate } from "../utils/router";
+  import { router, navigate } from "../utils/router.svelte";
 
   const tabs = [
     { id: "planner" as const, labelKey: "nav.planner", path: "/planner" },
@@ -9,7 +9,7 @@
   ];
 
   function isActive(tabId: "planner" | "meals" | "settings"): boolean {
-    const current = $route;
+    const current = router.current;
     if (tabId === "planner") {
       return current.name === "planner";
     }

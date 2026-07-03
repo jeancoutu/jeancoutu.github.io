@@ -1,6 +1,6 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
-  import { session } from "../stores/auth";
+  import { auth } from "../stores/auth.svelte";
   import {
     getHouseholdMembers,
     getHouseholdInvites,
@@ -17,8 +17,8 @@
   let allMembers = $state<HouseholdMember[]>([]);
   let outgoingInvites = $state<HouseholdInvite[]>([]);
   let incomingInvites = $state<HouseholdInvite[]>([]);
-  let myUserId = $derived($session?.user?.id ?? null);
-  let myEmail = $derived($session?.user?.email ?? null);
+  let myUserId = $derived(auth.session?.user?.id ?? null);
+  let myEmail = $derived(auth.session?.user?.email ?? null);
   let emailInput = $state("");
   let inviting = $state(false);
   let inviteError = $state("");

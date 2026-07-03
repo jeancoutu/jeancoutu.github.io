@@ -2,8 +2,8 @@
   import { _ } from "svelte-i18n";
   import DurationBadge from "../../../lib/components/DurationBadge.svelte";
   import MealFormModal from "../../../lib/components/MealFormModal.svelte";
-  import { allMeals } from "../../../lib/stores/meals";
-  import { navigate, hasNavigatedInApp } from "../../../lib/utils/router";
+  import { meals } from "../../../lib/stores/meals.svelte";
+  import { navigate, hasNavigatedInApp } from "../../../lib/utils/router.svelte";
 
   interface Props {
     id: string;
@@ -11,8 +11,7 @@
 
   let { id }: Props = $props();
 
-  let meals = $derived($allMeals);
-  let meal = $derived(meals.find((candidate) => candidate.id === id));
+  let meal = $derived(meals.all.find((candidate) => candidate.id === id));
   let editMealOpen = $state(false);
   let duplicateMealOpen = $state(false);
 
@@ -108,12 +107,16 @@
   </div>
 {/if}
 
-<MealFormModal
-  open={editMealOpen || duplicateMealOpen}
-  meal={editMealOpen ? meal : undefined}
-  duplicateOf={duplicateMealOpen ? meal : undefined}
-  onclose={() => {
-    editMealOpen = false;
-    duplicateMealOpen = false;
-  }}
-/>
+{#if (editMealOpen || duplicateMealOpen) && meal}
+  {#key (editMealOpen ? "edit-" : "dup-") + meal.id}
+    <MealFormModal
+      open={true}
+      meal={editMealOpen ? meal : undefined}
+      duplicateOf={duplicateMealOpen ? meal : undefined}
+      onclose={() => {
+        editMealOpen = false;
+        duplicateMealOpen = false;
+      }}
+    />
+  {/key}
+{/if}

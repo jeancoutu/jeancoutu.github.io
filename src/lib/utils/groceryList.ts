@@ -183,28 +183,28 @@ function levenshtein(a: string, b: string): number {
   );
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
-      dp[i][j] =
+      dp[i]![j] =
         a[i - 1] === b[j - 1]
-          ? dp[i - 1][j - 1]
-          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+          ? dp[i - 1]![j - 1]!
+          : 1 + Math.min(dp[i - 1]![j]!, dp[i]![j - 1]!, dp[i - 1]![j - 1]!);
     }
   }
-  return dp[m][n];
+  return dp[m]![n]!;
 }
 
 function parseQuantity(q: string): { value: number; unit: string } | null {
   const match = q.trim().match(/^(\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?)\s*(.*)$/);
   if (!match) return null;
-  const numStr = match[1].replace(",", ".");
+  const numStr = match[1]!.replace(",", ".");
   let value: number;
   if (numStr.includes("/")) {
     const [num, den] = numStr.split("/");
-    value = parseFloat(num) / parseFloat(den);
+    value = parseFloat(num!) / parseFloat(den!);
   } else {
     value = parseFloat(numStr);
   }
   if (isNaN(value)) return null;
-  return { value, unit: match[2].trim() };
+  return { value, unit: match[2]!.trim() };
 }
 
 function gcd(a: number, b: number): number {

@@ -1,4 +1,3 @@
-import { derived, get, writable } from "svelte/store";
 import type { DayKey, DurationTag, Ingredient, Meal } from "../types";
 import { DAYS, INGREDIENT_CATEGORIES } from "../types";
 import {
@@ -7,7 +6,7 @@ import {
   getMeals,
   updateMeal,
 } from "../api/meals";
-import { onUserChange } from "./auth";
+import { onUserChange } from "./auth.svelte";
 
 const VALID_DAYS = new Set<DayKey>(DAYS.map((day) => day.key));
 const VALID_CATEGORIES = new Set(INGREDIENT_CATEGORIES);
@@ -43,41 +42,37 @@ function buildMealInput(input: CustomMealInput): Omit<Meal, "id"> {
   };
 }
 
-export const allMeals = writable<Meal[]>([]);
+class MealsStore {
+  all = $state<Meal[]>([]);
+  search = $state("");
+  durationFilter = $state<DurationTag | "all">("all");
 
-onUserChange(async ($session) => {
-  if ($session) {
-    allMeals.set(await getMeals());
-  } else {
-    allMeals.set([]);
-  }
-});
-
-export const mealSearch = writable("");
-export const durationFilter = writable<DurationTag | "all">("all");
-
-export const filteredMeals = derived(
-  [mealSearch, durationFilter, allMeals],
-  ([$search, $duration, $allMeals]) => {
-    const query = $search.trim().toLowerCase();
-    return $allMeals
+  filtered = $derived.by(() => {
+    const query = this.search.trim().toLowerCase();
+    return this.all
       .filter((meal) => {
         const matchesSearch = !query || meal.name.toLowerCase().includes(query);
         const matchesDuration =
-          $duration === "all" || meal.duration === $duration;
+          this.durationFilter === "all" || meal.duration === this.durationFilter;
         return matchesSearch && matchesDuration;
       })
       .sort((a, b) => a.name.localeCompare(b.name));
-  },
-);
+  });
+}
+
+export const meals = new MealsStore();
+
+onUserChange(async ($session) => {
+  meals.all = $session ? await getMeals() : [];
+});
 
 export function getMealById(id: string): Meal | undefined {
-  return get(allMeals).find((m) => m.id === id);
+  return meals.all.find((m) => m.id === id);
 }
 
 export async function addMeal(input: CustomMealInput): Promise<Meal> {
   const meal = await createMeal(buildMealInput(input));
-  allMeals.update((meals) => [...meals, meal]);
+  meals.all = [...meals.all, meal];
   return meal;
 }
 
@@ -86,11 +81,11 @@ export async function updateMealById(
   input: CustomMealInput,
 ): Promise<Meal> {
   const meal = await updateMeal(id, buildMealInput(input));
-  allMeals.update((meals) => meals.map((m) => (m.id === id ? meal : m)));
+  meals.all = meals.all.map((m) => (m.id === id ? meal : m));
   return meal;
 }
 
 export async function deleteMealById(id: string): Promise<void> {
   await deleteMeal(id);
-  allMeals.update((meals) => meals.filter((m) => m.id !== id));
+  meals.all = meals.all.filter((m) => m.id !== id);
 }

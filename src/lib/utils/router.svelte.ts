@@ -1,4 +1,3 @@
-import { writable } from "svelte/store";
 import {appPath, isAppRoot, stripBase} from "./paths";
 
 export type Route =
@@ -21,12 +20,16 @@ function parseLogicalPath(pathname: string): Route {
   }
   const mealMatch = path.match(/^\/meal\/([^/]+)$/);
   if (mealMatch) {
-    return { name: "meal", id: decodeURIComponent(mealMatch[1]) };
+    return { name: "meal", id: decodeURIComponent(mealMatch[1]!) };
   }
   return { name: "planner" };
 }
 
-export const route = writable<Route>(parseLogicalPath(window.location.pathname));
+class RouterStore {
+  current = $state<Route>(parseLogicalPath(window.location.pathname));
+}
+
+export const router = new RouterStore();
 
 let navigatedWithinApp = false;
 
@@ -34,7 +37,7 @@ export function navigate(logicalPath: string): void {
   const segment = logicalPath.replace(/^\//, "");
   const href = appPath(segment);
   window.history.pushState({}, "", href);
-  route.set(parseLogicalPath(href));
+  router.current = parseLogicalPath(href);
   navigatedWithinApp = true;
 }
 
@@ -46,7 +49,7 @@ export function hasNavigatedInApp(): boolean {
 
 export function initRouter(): void {
   window.addEventListener("popstate", () => {
-    route.set(parseLogicalPath(window.location.pathname));
+    router.current = parseLogicalPath(window.location.pathname);
   });
 }
 

@@ -1,10 +1,10 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
   import type { DayKey, MealSlot } from "../types";
-  import { allMeals } from "../stores/meals";
-  import { selectedWeek, weeklyPlan } from "../stores/weeklyPlan";
-  import { setGroceryItemsForWeek } from "../stores/groceryList";
-  import { navigate } from "../utils/router";
+  import { meals } from "../stores/meals.svelte";
+  import { weeklyPlan } from "../stores/weeklyPlan.svelte";
+  import { setGroceryItemsForWeek } from "../stores/groceryList.svelte";
+  import { navigate } from "../utils/router.svelte";
 
   interface Props {
     day: DayKey;
@@ -18,7 +18,7 @@
     const value = (e.currentTarget as HTMLSelectElement).value;
     const updatedGroceries = await weeklyPlan.setDay(day, slot, value || undefined);
     if (updatedGroceries !== null) {
-      setGroceryItemsForWeek($selectedWeek, updatedGroceries);
+      setGroceryItemsForWeek(weeklyPlan.selectedWeek, updatedGroceries);
     }
   }
 
@@ -37,18 +37,18 @@
           <select
             id="day-{day}-{slot}"
             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
-            value={$weeklyPlan[day]?.[slot] ?? ""}
+            value={weeklyPlan.current[day]?.[slot] ?? ""}
             onchange={(e) => onChange(slot, e)}
           >
             <option value="">{$_("slot.selectMeal")}</option>
-            {#each $allMeals as meal}
+            {#each meals.all as meal}
               <option value={meal.id}>{meal.name}</option>
             {/each}
           </select>
-          {#if $weeklyPlan[day]?.[slot]}
+          {#if weeklyPlan.current[day]?.[slot]}
             <button
               type="button"
-              onclick={() => viewRecipe($weeklyPlan[day]?.[slot] as string)}
+              onclick={() => viewRecipe(weeklyPlan.current[day]?.[slot] as string)}
               class="flex size-[46px] shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
               title={$_("mealCard.viewRecipe")}
               aria-label={$_("mealCard.viewRecipe")}

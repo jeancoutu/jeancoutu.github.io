@@ -10,8 +10,8 @@
 
   import WeekPickerModal from "../../lib/components/WeekPickerModal.svelte";
 
-  import { selectedWeek, weeklyPlan } from "../../lib/stores/weeklyPlan";
-  import { reloadGroceryItemsForWeek, clearGroceryItemsForWeek } from "../../lib/stores/groceryList";
+  import { weeklyPlan } from "../../lib/stores/weeklyPlan.svelte";
+  import { reloadGroceryItemsForWeek, clearGroceryItemsForWeek } from "../../lib/stores/groceryList.svelte";
 
   import { formatWeekRange, isCurrentWeek } from "../../lib/utils/weekDates";
 
@@ -19,7 +19,7 @@
 
   let weekPickerOpen = $state(false);
 
-  let activeWeek = $derived($selectedWeek);
+  let activeWeek = $derived(weeklyPlan.selectedWeek);
 
   let weekLabel = $derived(formatWeekRange(activeWeek, $locale ?? "en"));
 
@@ -75,7 +75,7 @@
 
       type="button"
 
-      onclick={async () => { await weeklyPlan.autoFillWeek(); await reloadGroceryItemsForWeek($selectedWeek); }}
+      onclick={async () => { await weeklyPlan.autoFillWeek(); await reloadGroceryItemsForWeek(weeklyPlan.selectedWeek); }}
 
       class="min-w-0 flex-1 truncate rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-orange-600 active:bg-orange-700"
 
@@ -89,7 +89,7 @@
 
       type="button"
 
-      onclick={async () => { await weeklyPlan.clearWeek(); clearGroceryItemsForWeek($selectedWeek); }}
+      onclick={async () => { await weeklyPlan.clearWeek(); clearGroceryItemsForWeek(weeklyPlan.selectedWeek); }}
 
       class="min-w-0 flex-1 truncate rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
 
@@ -103,7 +103,7 @@
 
       type="button"
 
-      onclick={async () => { await weeklyPlan.reloadWeek(); await reloadGroceryItemsForWeek($selectedWeek); }}
+      onclick={async () => { await weeklyPlan.reloadWeek(); await reloadGroceryItemsForWeek(weeklyPlan.selectedWeek); }}
 
       class="shrink-0 rounded-lg border border-slate-300 bg-white p-2.5 text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
 

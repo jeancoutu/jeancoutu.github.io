@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { get } from "svelte/store";
-import type { GroceryDBItem } from "../../lib/stores/groceryList";
+import type { GroceryDBItem } from "../../lib/stores/groceryList.svelte";
 
 const mockFetchGroceryItems = vi.fn<(weekStart: string) => Promise<GroceryDBItem[]>>();
 const mockUpsertGroceryItem = vi.fn<(weekStart: string, item: Omit<GroceryDBItem, "id">) => Promise<GroceryDBItem>>();
@@ -28,27 +27,27 @@ describe("groceryList store", () => {
   });
 
   async function importStore() {
-    const { selectedWeek } = await import("../../lib/stores/weeklyPlan");
+    const { weeklyPlan } = await import("../../lib/stores/weeklyPlan.svelte");
     const {
-      groceryItemsForWeek,
+      groceryList,
       toggleGroceryItemChecked,
       addGroceryItem,
       removeGroceryItem,
       editGroceryItem,
-    } = await import("../../lib/stores/groceryList");
-    return { selectedWeek, groceryItemsForWeek, toggleGroceryItemChecked, addGroceryItem, removeGroceryItem, editGroceryItem };
+    } = await import("../../lib/stores/groceryList.svelte");
+    return { weeklyPlan, groceryList, toggleGroceryItemChecked, addGroceryItem, removeGroceryItem, editGroceryItem };
   }
 
   it("starts with empty item list", async () => {
-    const { groceryItemsForWeek } = await importStore();
-    expect(get(groceryItemsForWeek)).toEqual([]);
+    const { groceryList } = await importStore();
+    expect(groceryList.itemsForWeek).toEqual([]);
   });
 
   it("addGroceryItem inserts via API and updates store", async () => {
-    const { groceryItemsForWeek, addGroceryItem } = await importStore();
+    const { groceryList, addGroceryItem } = await importStore();
     addGroceryItem("vegetables", "Spinach", "1 bag");
-    await vi.waitFor(() => expect(get(groceryItemsForWeek)).toHaveLength(1));
-    const item = get(groceryItemsForWeek)[0];
+    await vi.waitFor(() => expect(groceryList.itemsForWeek).toHaveLength(1));
+    const item = groceryList.itemsForWeek[0]!;
     expect(item.name).toBe("Spinach");
     expect(item.category).toBe("vegetables");
     expect(item.quantity).toBe("1 bag");
@@ -60,22 +59,22 @@ describe("groceryList store", () => {
   });
 
   it("addGroceryItem ignores empty names", async () => {
-    const { groceryItemsForWeek, addGroceryItem } = await importStore();
+    const { groceryList, addGroceryItem } = await importStore();
     addGroceryItem("vegetables", "   ", "1");
     await new Promise((r) => setTimeout(r, 10));
-    expect(get(groceryItemsForWeek)).toHaveLength(0);
+    expect(groceryList.itemsForWeek).toHaveLength(0);
     expect(mockUpsertGroceryItem).not.toHaveBeenCalled();
   });
 
   it("addGroceryItem defaults quantity to '1' when blank", async () => {
-    const { groceryItemsForWeek, addGroceryItem } = await importStore();
+    const { groceryList, addGroceryItem } = await importStore();
     addGroceryItem("vegetables", "Carrots", "  ");
-    await vi.waitFor(() => expect(get(groceryItemsForWeek)).toHaveLength(1));
-    expect(get(groceryItemsForWeek)[0].quantity).toBe("1");
+    await vi.waitFor(() => expect(groceryList.itemsForWeek).toHaveLength(1));
+    expect(groceryList.itemsForWeek[0]!.quantity).toBe("1");
   });
 
   it("toggleGroceryItemChecked upserts via API and updates store", async () => {
-    const { groceryItemsForWeek, toggleGroceryItemChecked } = await importStore();
+    const { groceryList, toggleGroceryItemChecked } = await importStore();
     mockUpsertGroceryItem.mockResolvedValueOnce({
       id: "id-Milk",
       name: "Milk",
@@ -84,8 +83,8 @@ describe("groceryList store", () => {
       checked: true,
     });
     toggleGroceryItemChecked("Milk", "1 L", "fridge", true);
-    await vi.waitFor(() => expect(get(groceryItemsForWeek)).toHaveLength(1));
-    expect(get(groceryItemsForWeek)[0].checked).toBe(true);
+    await vi.waitFor(() => expect(groceryList.itemsForWeek).toHaveLength(1));
+    expect(groceryList.itemsForWeek[0]!.checked).toBe(true);
     expect(mockUpsertGroceryItem).toHaveBeenCalledWith(
       expect.any(String),
       { name: "Milk", quantity: "1 L", category: "fridge", checked: true },
@@ -93,22 +92,22 @@ describe("groceryList store", () => {
   });
 
   it("removeGroceryItem deletes via API and removes from store", async () => {
-    const { groceryItemsForWeek, addGroceryItem, removeGroceryItem } = await importStore();
+    const { groceryList, addGroceryItem, removeGroceryItem } = await importStore();
     addGroceryItem("vegetables", "Spinach", "1 bag");
-    await vi.waitFor(() => expect(get(groceryItemsForWeek)).toHaveLength(1));
-    const id = get(groceryItemsForWeek)[0].id;
+    await vi.waitFor(() => expect(groceryList.itemsForWeek).toHaveLength(1));
+    const id = groceryList.itemsForWeek[0]!.id;
     removeGroceryItem(id);
-    expect(get(groceryItemsForWeek)).toHaveLength(0);
+    expect(groceryList.itemsForWeek).toHaveLength(0);
     expect(mockDeleteGroceryItem).toHaveBeenCalledWith(id);
   });
 
   it("editGroceryItem updates via API and updates store", async () => {
-    const { groceryItemsForWeek, addGroceryItem, editGroceryItem } = await importStore();
+    const { groceryList, addGroceryItem, editGroceryItem } = await importStore();
     addGroceryItem("vegetables", "Spinach", "1 bag");
-    await vi.waitFor(() => expect(get(groceryItemsForWeek)).toHaveLength(1));
-    const id = get(groceryItemsForWeek)[0].id;
+    await vi.waitFor(() => expect(groceryList.itemsForWeek).toHaveLength(1));
+    const id = groceryList.itemsForWeek[0]!.id;
     editGroceryItem(id, "Baby Spinach", "vegetables", "2 bags");
-    const updated = get(groceryItemsForWeek)[0];
+    const updated = groceryList.itemsForWeek[0]!;
     expect(updated.name).toBe("Baby Spinach");
     expect(updated.quantity).toBe("2 bags");
     expect(mockUpdateGroceryItem).toHaveBeenCalledWith(

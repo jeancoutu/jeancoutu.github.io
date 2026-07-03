@@ -10,6 +10,9 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "strict": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
     "noEmit": true
   },
   "include": ["src/**/*.ts", "src/**/*.svelte"]

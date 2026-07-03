@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { session, sessionLoading } from '../stores/auth';
+  import { auth } from '../stores/auth.svelte';
   import { signInWithGoogle, signInWithPassword } from '../auth';
 
   let { children } = $props();
@@ -33,11 +33,11 @@
   }
 </script>
 
-{#if $sessionLoading}
+{#if auth.loading}
   <div class="flex min-h-screen items-center justify-center">
     <div class="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-800"></div>
   </div>
-{:else if $session}
+{:else if auth.session}
   {@render children()}
 {:else}
   <div class="flex min-h-screen items-center justify-center px-4">

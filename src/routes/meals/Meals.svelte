@@ -3,11 +3,7 @@
   import type { DurationTag } from "../../lib/types";
   import MealCard from "../../lib/components/MealCard.svelte";
   import MealFormModal from "../../lib/components/MealFormModal.svelte";
-  import {
-    filteredMeals,
-    mealSearch,
-    durationFilter,
-  } from "../../lib/stores/meals";
+  import { meals } from "../../lib/stores/meals.svelte";
 
   const durationValues: (DurationTag | "all")[] = ["all", "short", "medium", "long"];
 
@@ -38,12 +34,12 @@
       type="search"
       placeholder={$_("meals.searchPlaceholder")}
       class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
-      bind:value={$mealSearch}
+      bind:value={meals.search}
     />
 
     <select
       class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
-      bind:value={$durationFilter}
+      bind:value={meals.durationFilter}
     >
       {#each durationValues as value}
         <option {value}>{$_(durationOptionKey(value))}</option>
@@ -51,17 +47,19 @@
     </select>
   </div>
 
-  {#if $filteredMeals.length === 0}
+  {#if meals.filtered.length === 0}
     <p class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
       {$_("meals.noResults")}
     </p>
   {:else}
     <div class="space-y-3">
-      {#each $filteredMeals as meal (meal.id)}
+      {#each meals.filtered as meal (meal.id)}
         <MealCard {meal} />
       {/each}
     </div>
   {/if}
 </div>
 
-<MealFormModal open={createMealOpen} onclose={() => (createMealOpen = false)} />
+{#if createMealOpen}
+  <MealFormModal open={true} onclose={() => (createMealOpen = false)} />
+{/if}

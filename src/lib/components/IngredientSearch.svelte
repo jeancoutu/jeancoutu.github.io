@@ -1,7 +1,7 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
   import Modal from "./Modal.svelte";
-  import { allMeals } from "../stores/meals";
+  import { meals } from "../stores/meals.svelte";
   import { ingredientCategories } from "../../data/ingredientCategories";
   import { INGREDIENT_CATEGORIES } from "../types";
   import type { IngredientCategory } from "../types";
@@ -25,7 +25,7 @@
     const combined = new Map<string, { name: string; category: IngredientCategory }>();
 
     // allMeals first (lower priority — can be overwritten by dict)
-    for (const meal of $allMeals) {
+    for (const meal of meals.all) {
       for (const ing of meal.ingredients) {
         const key = ing.name.toLowerCase();
         if (!combined.has(key)) {

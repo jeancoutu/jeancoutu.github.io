@@ -16,7 +16,8 @@ export function toWeekKey(date: Date): string {
 }
 
 export function parseWeekKey(key: string): Date {
-  const [y, m, d] = key.split("-").map(Number);
+  const parts = key.split("-").map(Number);
+  const [y, m, d] = [parts[0]!, parts[1]!, parts[2]!];
   const date = new Date(y, m - 1, d);
   date.setHours(0, 0, 0, 0);
   return date;

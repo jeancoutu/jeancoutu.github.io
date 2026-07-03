@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { get } from "svelte/store";
 
 vi.mock("../../lib/api/plan", () => ({
   getWeeklyPlan: vi.fn().mockResolvedValue({ plan: {}, dismissedNames: [] }),
@@ -21,36 +20,36 @@ describe("weeklyPlan store", () => {
   });
 
   async function importStore() {
-    const { weeklyPlan, selectedWeek, allPlans } = await import("../../lib/stores/weeklyPlan");
+    const { weeklyPlan } = await import("../../lib/stores/weeklyPlan.svelte");
     const { setMealSlot, clearWeekData, getWeeklyPlan, bulkSetWeekPlan } = await import("../../lib/api/plan");
-    return { weeklyPlan, selectedWeek, allPlans, setMealSlot, clearWeekData, getWeeklyPlan, bulkSetWeekPlan };
+    return { weeklyPlan, setMealSlot, clearWeekData, getWeeklyPlan, bulkSetWeekPlan };
   }
 
   it("starts with empty plan for current week", async () => {
     const { weeklyPlan } = await importStore();
-    expect(get(weeklyPlan)).toEqual({});
+    expect(weeklyPlan.current).toEqual({});
   });
 
   it("setDay calls setMealSlot API and updates the plan", async () => {
-    const { weeklyPlan, selectedWeek, setMealSlot } = await importStore();
-    const week = get(selectedWeek);
+    const { weeklyPlan, setMealSlot } = await importStore();
+    const week = weeklyPlan.selectedWeek;
     await weeklyPlan.setDay("monday", "supper", "meal-abc");
     expect(setMealSlot).toHaveBeenCalledWith(week, "monday", "supper", "meal-abc");
-    expect(get(weeklyPlan).monday?.supper).toBe("meal-abc");
+    expect(weeklyPlan.current.monday?.supper).toBe("meal-abc");
   });
 
   it("setDay removes the slot when mealId is undefined", async () => {
     const { weeklyPlan } = await importStore();
     await weeklyPlan.setDay("monday", "supper", "meal-abc");
     await weeklyPlan.setDay("monday", "supper", undefined);
-    expect(get(weeklyPlan).monday?.supper).toBeUndefined();
+    expect(weeklyPlan.current.monday?.supper).toBeUndefined();
   });
 
   it("setDay removes the day entry when all slots cleared", async () => {
     const { weeklyPlan } = await importStore();
     await weeklyPlan.setDay("monday", "supper", "meal-abc");
     await weeklyPlan.setDay("monday", "supper", undefined);
-    expect(get(weeklyPlan).monday).toBeUndefined();
+    expect(weeklyPlan.current.monday).toBeUndefined();
   });
 
   it("clearWeek calls clearWeekData and empties the plan", async () => {
@@ -58,15 +57,15 @@ describe("weeklyPlan store", () => {
     await weeklyPlan.setDay("monday", "supper", "meal-1");
     await weeklyPlan.clearWeek();
     expect(clearWeekData).toHaveBeenCalled();
-    expect(get(weeklyPlan)).toEqual({});
+    expect(weeklyPlan.current).toEqual({});
   });
 
   it("importPlan sets the weekly plan and switches to the given week", async () => {
-    const { weeklyPlan, selectedWeek } = await importStore();
+    const { weeklyPlan } = await importStore();
     const plan = { monday: { supper: "meal-x" } };
     await weeklyPlan.importPlan(plan, "2025-W01");
-    expect(get(selectedWeek)).toBe("2025-W01");
-    expect(get(weeklyPlan).monday?.supper).toBe("meal-x");
+    expect(weeklyPlan.selectedWeek).toBe("2025-W01");
+    expect(weeklyPlan.current.monday?.supper).toBe("meal-x");
   });
 
   it("importPlan calls bulkSetWeekPlan with the given plan", async () => {
@@ -77,10 +76,10 @@ describe("weeklyPlan store", () => {
   });
 
   it("setSelectedWeek switches the active week and loads it if not cached", async () => {
-    const { weeklyPlan, selectedWeek, getWeeklyPlan } = await importStore();
+    const { weeklyPlan, getWeeklyPlan } = await importStore();
     vi.mocked(getWeeklyPlan).mockResolvedValue({ plan: { friday: { supper: "meal-z" } }, dismissedNames: [] });
     await weeklyPlan.setSelectedWeek("2025-W10");
-    expect(get(selectedWeek)).toBe("2025-W10");
+    expect(weeklyPlan.selectedWeek).toBe("2025-W10");
     expect(getWeeklyPlan).toHaveBeenCalledWith("2025-W10");
   });
 
@@ -101,15 +100,15 @@ describe("weeklyPlan store", () => {
   });
 
   it("getSelectedWeek returns the current week key", async () => {
-    const { weeklyPlan, selectedWeek } = await importStore();
-    const week = get(selectedWeek);
+    const { weeklyPlan } = await importStore();
+    const week = weeklyPlan.selectedWeek;
     expect(weeklyPlan.getSelectedWeek()).toBe(week);
   });
 
   it("getAllPlans returns the full plans map", async () => {
-    const { weeklyPlan, selectedWeek } = await importStore();
+    const { weeklyPlan } = await importStore();
     await weeklyPlan.setDay("thursday", "supper", "meal-all");
-    const week = get(selectedWeek);
+    const week = weeklyPlan.selectedWeek;
     const all = weeklyPlan.getAllPlans();
     expect(all[week]?.thursday?.supper).toBe("meal-all");
   });

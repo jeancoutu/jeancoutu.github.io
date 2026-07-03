@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { get } from "svelte/store";
 import type { Meal } from "../../lib/types";
 
 vi.mock("../../lib/api/meals", () => ({
@@ -30,60 +29,60 @@ describe("meals store", () => {
   });
 
   async function importMeals() {
-    const mod = await import("../../lib/stores/meals");
+    const mod = await import("../../lib/stores/meals.svelte");
     return mod;
   }
 
   it("allMeals starts empty (no session)", async () => {
-    const { allMeals } = await importMeals();
-    expect(get(allMeals).length).toBe(0);
+    const { meals } = await importMeals();
+    expect(meals.all.length).toBe(0);
   });
 
   it("filteredMeals returns all meals when search is empty", async () => {
-    const { allMeals, filteredMeals, mealSearch } = await importMeals();
-    allMeals.set([makeMeal({ id: "c1" }), makeMeal({ id: "c2" })]);
-    mealSearch.set("");
-    expect(get(filteredMeals).length).toBe(get(allMeals).length);
+    const { meals } = await importMeals();
+    meals.all = [makeMeal({ id: "c1" }), makeMeal({ id: "c2" })];
+    meals.search = "";
+    expect(meals.filtered.length).toBe(meals.all.length);
   });
 
   it("filteredMeals filters by name search (case-insensitive)", async () => {
-    const { allMeals, filteredMeals, mealSearch } = await importMeals();
-    allMeals.set([
+    const { meals } = await importMeals();
+    meals.all = [
       makeMeal({ id: "c1", name: "Chicken Soup" }),
       makeMeal({ id: "c2", name: "Beef Stew" }),
-    ]);
-    mealSearch.set("chicken");
-    const results = get(filteredMeals);
+    ];
+    meals.search = "chicken";
+    const results = meals.filtered;
     expect(results.some((m) => m.name === "Chicken Soup")).toBe(true);
     expect(results.some((m) => m.name === "Beef Stew")).toBe(false);
   });
 
   it("filteredMeals filters by duration", async () => {
-    const { allMeals, filteredMeals, mealSearch, durationFilter } = await importMeals();
-    allMeals.set([
+    const { meals } = await importMeals();
+    meals.all = [
       makeMeal({ id: "c1", name: "Quick Dish", duration: "short" }),
       makeMeal({ id: "c2", name: "Slow Roast", duration: "long" }),
-    ]);
-    mealSearch.set("");
-    durationFilter.set("short");
-    const results = get(filteredMeals);
+    ];
+    meals.search = "";
+    meals.durationFilter = "short";
+    const results = meals.filtered;
     expect(results.every((m) => m.duration === "short")).toBe(true);
   });
 
   it("filteredMeals returns all durations when filter is 'all'", async () => {
-    const { allMeals, filteredMeals, mealSearch, durationFilter } = await importMeals();
-    allMeals.set([
+    const { meals } = await importMeals();
+    meals.all = [
       makeMeal({ id: "c1", name: "Short Dish", duration: "short" }),
       makeMeal({ id: "c2", name: "Long Dish", duration: "long" }),
-    ]);
-    mealSearch.set("");
-    durationFilter.set("all");
-    expect(get(filteredMeals).length).toBe(get(allMeals).length);
+    ];
+    meals.search = "";
+    meals.durationFilter = "all";
+    expect(meals.filtered.length).toBe(meals.all.length);
   });
 
   it("getMealById finds a meal by id", async () => {
-    const { allMeals, getMealById } = await importMeals();
-    allMeals.set([makeMeal({ id: "find-me" })]);
+    const { meals, getMealById } = await importMeals();
+    meals.all = [makeMeal({ id: "find-me" })];
     expect(getMealById("find-me")?.id).toBe("find-me");
   });
 
@@ -93,9 +92,9 @@ describe("meals store", () => {
   });
 
   it("addMeal calls API and adds to store", async () => {
-    const { allMeals, addMeal } = await importMeals();
+    const { meals, addMeal } = await importMeals();
     const { createMeal } = await import("../../lib/api/meals");
-    allMeals.set([]);
+    meals.all = [];
     await addMeal({
       name: "New Dish",
       duration: "medium",
@@ -105,22 +104,22 @@ describe("meals store", () => {
       instructions: [],
     });
     expect(createMeal).toHaveBeenCalled();
-    expect(get(allMeals).some((m) => m.id === "custom-1")).toBe(true);
+    expect(meals.all.some((m) => m.id === "custom-1")).toBe(true);
   });
 
   it("deleteMealById calls API and removes from store", async () => {
-    const { allMeals, deleteMealById } = await importMeals();
+    const { meals, deleteMealById } = await importMeals();
     const { deleteMeal } = await import("../../lib/api/meals");
-    allMeals.set([makeMeal({ id: "to-delete" })]);
+    meals.all = [makeMeal({ id: "to-delete" })];
     await deleteMealById("to-delete");
     expect(deleteMeal).toHaveBeenCalledWith("to-delete");
-    expect(get(allMeals).some((m) => m.id === "to-delete")).toBe(false);
+    expect(meals.all.some((m) => m.id === "to-delete")).toBe(false);
   });
 
   it("updateMealById calls API and updates meal in store", async () => {
-    const { allMeals, updateMealById } = await importMeals();
+    const { meals, updateMealById } = await importMeals();
     const { updateMeal } = await import("../../lib/api/meals");
-    allMeals.set([makeMeal({ id: "c-existing", name: "Old Name" })]);
+    meals.all = [makeMeal({ id: "c-existing", name: "Old Name" })];
     await updateMealById("c-existing", {
       name: "New Name",
       duration: "short",
@@ -130,6 +129,6 @@ describe("meals store", () => {
       instructions: [],
     });
     expect(updateMeal).toHaveBeenCalledWith("c-existing", expect.objectContaining({ name: "New Name" }));
-    expect(get(allMeals).find((m) => m.id === "c-existing")?.name).toBe("New Name");
+    expect(meals.all.find((m) => m.id === "c-existing")?.name).toBe("New Name");
   });
 });

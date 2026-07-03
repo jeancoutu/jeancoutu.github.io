@@ -1,61 +1,30 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
   import type { IngredientCategory } from "../types";
-  import { weeklyPlan, dismissedIngredientsForWeek } from "../stores/weeklyPlan";
-  import { getMealById } from "../stores/meals";
+  import { weeklyPlan } from "../stores/weeklyPlan.svelte";
+  import { getMealById } from "../stores/meals.svelte";
   import {
     addGroceryItem,
     editGroceryItem,
-    groceryItemsForWeek,
+    groceryList,
     removeGroceryItem,
     toggleGroceryItemChecked,
-  } from "../stores/groceryList";
+  } from "../stores/groceryList.svelte";
   import {
     buildGroceryList,
     formatGroceryQuantities,
     getPlannedMeals,
     groupGroceryByCategory,
   } from "../utils/groceryList";
+  import { buildDisplayItems, type DisplayItem } from "../utils/groceryDisplay";
+  import { longpress } from "../utils/longpress";
 
-  interface DisplayItem {
-    dbId?: string;
-    name: string;
-    category: IngredientCategory;
-    quantities: string[];
-    checked: boolean;
-    isCustom: boolean;
-  }
-
-  let plannedMeals = $derived(getPlannedMeals($weeklyPlan, getMealById));
+  let plannedMeals = $derived(getPlannedMeals(weeklyPlan.current, getMealById));
   let mealPlanItems = $derived(buildGroceryList(plannedMeals));
-  let dbItems = $derived($groceryItemsForWeek);
+  let dbItems = $derived(groceryList.itemsForWeek);
+  let dismissed = $derived(new Set(weeklyPlan.dismissedIngredients));
 
-  // Index DB items by name for quick lookup
-  let dbByName = $derived(new Map(dbItems.map((i) => [i.name, i])));
-
-  // Names that already exist in the meal plan
-  let mealPlanNames = $derived(new Set(mealPlanItems.map((i) => i.name)));
-
-  let dismissed = $derived(new Set($dismissedIngredientsForWeek));
-
-  // Meal plan items enriched with DB state (checked, dbId), excluding dismissed
-  let mealPlanDisplayItems = $derived<DisplayItem[]>(
-    mealPlanItems
-      .filter((item) => !dismissed.has(item.name))
-      .map((item) => {
-        const dbItem = dbByName.get(item.name);
-        return { name: item.name, category: item.category, quantities: item.quantities, dbId: dbItem?.id, checked: dbItem?.checked ?? false, isCustom: false };
-      }),
-  );
-
-  // Custom items: DB rows not derived from the current meal plan
-  let customDisplayItems = $derived<DisplayItem[]>(
-    dbItems
-      .filter((i) => !mealPlanNames.has(i.name))
-      .map((i) => ({ dbId: i.id, name: i.name, category: i.category, quantities: [i.quantity], checked: i.checked, isCustom: true })),
-  );
-
-  let allDisplayItems = $derived<DisplayItem[]>([...mealPlanDisplayItems, ...customDisplayItems]);
+  let allDisplayItems = $derived(buildDisplayItems(mealPlanItems, dbItems, dismissed));
   let groupedItems = $derived(groupGroceryByCategory(allDisplayItems));
 
   let addingCategory = $state<IngredientCategory | null>(null);
@@ -93,40 +62,12 @@
   let editName = $state("");
   let editQuantity = $state("");
 
-  let longPressTimer: ReturnType<typeof setTimeout> | null = null;
-  let longPressStartX = 0;
-  let longPressStartY = 0;
-  const LONG_PRESS_MS = 500;
-  const LONG_PRESS_MOVE_PX = 10;
-
-  function handleItemPointerDown(event: PointerEvent, item: DisplayItem) {
-    longPressStartX = event.clientX;
-    longPressStartY = event.clientY;
-    longPressTimer = setTimeout(() => {
-      longPressTimer = null;
-      // Only allow editing items that have a DB row
-      if (!item.dbId) return;
-      editingItem = item;
-      editName = item.name;
-      editQuantity = formatGroceryQuantities(item.quantities);
-    }, LONG_PRESS_MS);
-  }
-
-  function handleItemPointerMove(event: PointerEvent) {
-    if (longPressTimer === null) return;
-    const dx = event.clientX - longPressStartX;
-    const dy = event.clientY - longPressStartY;
-    if (dx * dx + dy * dy > LONG_PRESS_MOVE_PX * LONG_PRESS_MOVE_PX) {
-      clearTimeout(longPressTimer);
-      longPressTimer = null;
-    }
-  }
-
-  function handleItemPointerUp() {
-    if (longPressTimer !== null) {
-      clearTimeout(longPressTimer);
-      longPressTimer = null;
-    }
+  function startEditing(item: DisplayItem) {
+    // Only allow editing items that have a DB row
+    if (!item.dbId) return;
+    editingItem = item;
+    editName = item.name;
+    editQuantity = formatGroceryQuantities(item.quantities);
   }
 
   function cancelEditing() {
@@ -287,16 +228,13 @@
                 {:else}
                   <label
                     class="flex min-w-0 flex-1 cursor-pointer select-none items-start gap-3"
-                    onpointerdown={(e) => handleItemPointerDown(e, item as DisplayItem)}
-                    onpointermove={handleItemPointerMove}
-                    onpointerup={handleItemPointerUp}
-                    onpointercancel={handleItemPointerUp}
+                    use:longpress={{ onLongPress: () => startEditing(item) }}
                   >
                     <input
                       type="checkbox"
                       class="mt-0.5 size-4 shrink-0 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
                       checked={item.checked}
-                      onchange={() => handleToggleChecked(item as DisplayItem)}
+                      onchange={() => handleToggleChecked(item)}
                     />
                     <span
                       class="text-sm text-slate-700 {item.checked
@@ -311,7 +249,7 @@
                     type="button"
                     class="shrink-0 rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
                     aria-label={$_("grocery.remove")}
-                    onclick={() => handleRemove(item as DisplayItem)}
+                    onclick={() => handleRemove(item)}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
                       <path

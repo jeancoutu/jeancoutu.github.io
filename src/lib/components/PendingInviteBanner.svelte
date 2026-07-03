@@ -1,11 +1,11 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
-  import { session } from "../stores/auth";
+  import { auth } from "../stores/auth.svelte";
   import { getPendingInvites, acceptInvite, type HouseholdInvite } from "../api/household";
 
   let invites = $state<HouseholdInvite[]>([]);
   let dismissed = $state<Set<string>>(new Set());
-  let myEmail = $derived($session?.user?.email ?? null);
+  let myEmail = $derived(auth.session?.user?.email ?? null);
 
   $effect(() => {
     if (!myEmail) return;

@@ -2,7 +2,7 @@
   import { _ } from "svelte-i18n";
   import Modal from "./Modal.svelte";
   import IngredientSearch from "./IngredientSearch.svelte";
-  import { addMeal, updateMealById } from "../stores/meals";
+  import { addMeal, updateMealById } from "../stores/meals.svelte";
   import type { DayKey, DurationTag, IngredientCategory, Meal } from "../types";
   import { DAYS } from "../types";
   import { getIngredientCategory } from "../../data/ingredientCategories";
@@ -10,8 +10,8 @@
 
   interface Props {
     open: boolean;
-    meal?: Meal;
-    duplicateOf?: Meal;
+    meal?: Meal | undefined;
+    duplicateOf?: Meal | undefined;
     onclose: () => void;
   }
 
@@ -21,50 +21,44 @@
   const titleKey = $derived(meal ? "meals.edit.title" : duplicateOf ? "meals.duplicate.title" : "meals.create.title");
   const submitKey = $derived(meal ? "meals.edit.submit" : "meals.create.submit");
 
-  let name = $state("");
-  let duration = $state<DurationTag>("short");
-  let url = $state("");
-  let ingredientRows = $state<{ name: string; quantity: string; category: IngredientCategory }[]>([]);
-  let instructions = $state("");
-  let selectedDays = $state<DayKey[]>(DAYS.map((day) => day.key));
+  function formFromMeal(mealToLoad: Meal, nameOverride?: string) {
+    return {
+      name: nameOverride ?? mealToLoad.name,
+      duration: mealToLoad.duration,
+      url: mealToLoad.url,
+      ingredientRows: mealToLoad.ingredients.map((ing) => ({
+        name: ing.name,
+        quantity: ing.quantity,
+        category: getIngredientCategory(ing.name) ?? ing.category,
+      })),
+      instructions: mealToLoad.instructions.join("\n"),
+      selectedDays: mealToLoad.supperDays,
+    };
+  }
+
+  // Snapshot the props once at mount: the caller keys this component by
+  // meal/duplicateOf identity, so a new value always means a remount.
+  // svelte-ignore state_referenced_locally
+  const initialForm = meal
+    ? formFromMeal(meal)
+    : duplicateOf
+      ? formFromMeal(duplicateOf, buildDuplicateName(duplicateOf.name, $_("meals.duplicate.suffix")))
+      : {
+          name: "",
+          duration: "short" as DurationTag,
+          url: "",
+          ingredientRows: [] as { name: string; quantity: string; category: IngredientCategory }[],
+          instructions: "",
+          selectedDays: DAYS.map((day) => day.key),
+        };
+
+  let name = $state(initialForm.name);
+  let duration = $state<DurationTag>(initialForm.duration);
+  let url = $state(initialForm.url);
+  let ingredientRows = $state(initialForm.ingredientRows);
+  let instructions = $state(initialForm.instructions);
+  let selectedDays = $state<DayKey[]>(initialForm.selectedDays);
   let error = $state("");
-
-  $effect(() => {
-    if (!open) return;
-
-    if (meal) {
-      loadMeal(meal);
-    } else if (duplicateOf) {
-      loadMeal(duplicateOf);
-      name = buildDuplicateName(duplicateOf.name, $_("meals.duplicate.suffix"));
-    } else {
-      resetForm();
-    }
-  });
-
-  function resetForm() {
-    name = "";
-    duration = "short";
-    url = "";
-    ingredientRows = [];
-    instructions = "";
-    selectedDays = DAYS.map((day) => day.key);
-    error = "";
-  }
-
-  function loadMeal(mealToEdit: Meal) {
-    name = mealToEdit.name;
-    duration = mealToEdit.duration;
-    url = mealToEdit.url;
-    ingredientRows = mealToEdit.ingredients.map((ing) => ({
-      name: ing.name,
-      quantity: ing.quantity,
-      category: getIngredientCategory(ing.name) ?? ing.category,
-    }));
-    instructions = mealToEdit.instructions.join("\n");
-    selectedDays = mealToEdit.supperDays;
-    error = "";
-  }
 
   function close() {
     onclose();

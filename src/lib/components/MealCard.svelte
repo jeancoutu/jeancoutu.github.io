@@ -2,7 +2,7 @@
   import { _ } from "svelte-i18n";
   import type { Meal } from "../types";
   import DurationBadge from "./DurationBadge.svelte";
-  import { navigate } from "../utils/router";
+  import { navigate } from "../utils/router.svelte";
 
   interface Props {
     meal: Meal;
