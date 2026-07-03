@@ -1,5 +1,6 @@
 import { supabase } from "../supabase";
-import type { DayKey, DurationTag, IngredientCategory, Meal } from "../types";
+import type { Database } from "../database.types";
+import type { Meal } from "../types";
 
 type MealRow = {
   id: string;
@@ -15,14 +16,14 @@ function rowToMeal(row: MealRow): Meal {
   return {
     id: row.id,
     name: row.name,
-    duration: row.duration as DurationTag,
-    supperDays: (row.supper_days ?? []) as DayKey[],
+    duration: row.duration as Meal["duration"],
+    supperDays: (row.supper_days ?? []) as Meal["supperDays"],
     url: row.url ?? "",
     instructions: row.instructions ?? [],
     ingredients: (row.meal_ingredients ?? []).map((ing) => ({
       name: ing.name,
       quantity: ing.quantity,
-      category: ing.category as IngredientCategory,
+      category: ing.category as Meal["ingredients"][number]["category"],
     })),
   };
 }
@@ -35,7 +36,7 @@ export async function getMeals(): Promise<Meal[]> {
     );
 
   if (error) throw error;
-  return (data as MealRow[]).map(rowToMeal);
+  return data.map(rowToMeal);
 }
 
 export async function createMeal(input: Omit<Meal, "id">): Promise<Meal> {
@@ -65,11 +66,11 @@ export async function createMeal(input: Omit<Meal, "id">): Promise<Meal> {
     if (ingError) throw ingError;
   }
 
-  return { ...input, id: meal.id as string };
+  return { ...input, id: meal.id };
 }
 
 export async function updateMeal(id: string, input: Partial<Meal>): Promise<Meal> {
-  const fields: Record<string, unknown> = {};
+  const fields: Database["public"]["Tables"]["meals"]["Update"] = {};
   if (input.name !== undefined) fields.name = input.name;
   if (input.duration !== undefined) fields.duration = input.duration;
   if (input.url !== undefined) fields.url = input.url;
@@ -108,12 +109,12 @@ export async function updateMeal(id: string, input: Partial<Meal>): Promise<Meal
   }
 
   return rowToMeal({
-    id: (meal as { id: string }).id,
-    name: (meal as { name: string }).name,
-    duration: (meal as { duration: string }).duration,
-    url: (meal as { url: string | null }).url,
-    supper_days: (meal as { supper_days: string[] | null }).supper_days,
-    instructions: (meal as { instructions: string[] | null }).instructions,
+    id: meal.id,
+    name: meal.name,
+    duration: meal.duration,
+    url: meal.url,
+    supper_days: meal.supper_days,
+    instructions: meal.instructions,
     meal_ingredients: input.ingredients?.map((ing) => ({
       name: ing.name,
       quantity: ing.quantity,

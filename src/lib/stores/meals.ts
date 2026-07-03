@@ -1,5 +1,5 @@
 import { derived, get, writable } from "svelte/store";
-import type { DayKey, DurationTag, IngredientCategory, Meal } from "../types";
+import type { DayKey, DurationTag, Ingredient, Meal } from "../types";
 import { DAYS, INGREDIENT_CATEGORIES } from "../types";
 import {
   createMeal,
@@ -7,23 +7,17 @@ import {
   getMeals,
   updateMeal,
 } from "../api/meals";
-import { session } from "./auth";
+import { onUserChange } from "./auth";
 
 const VALID_DAYS = new Set<DayKey>(DAYS.map((day) => day.key));
 const VALID_CATEGORIES = new Set(INGREDIENT_CATEGORIES);
-
-export interface CustomMealIngredient {
-  name: string;
-  quantity: string;
-  category: IngredientCategory;
-}
 
 export interface CustomMealInput {
   name: string;
   duration: DurationTag;
   supperDays: DayKey[];
   url: string;
-  ingredients: CustomMealIngredient[];
+  ingredients: Ingredient[];
   instructions: string[];
 }
 
@@ -51,11 +45,7 @@ function buildMealInput(input: CustomMealInput): Omit<Meal, "id"> {
 
 export const allMeals = writable<Meal[]>([]);
 
-let prevMealsUserId: string | null = null;
-session.subscribe(async ($session) => {
-  const userId = $session?.user?.id ?? null;
-  if (userId === prevMealsUserId) return;
-  prevMealsUserId = userId;
+onUserChange(async ($session) => {
   if ($session) {
     allMeals.set(await getMeals());
   } else {

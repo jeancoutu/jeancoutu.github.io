@@ -28,7 +28,7 @@ export async function getOrCreateWeeklyPlanId(weekStart: string): Promise<string
     .maybeSingle();
 
   if (selectError) throw selectError;
-  if (existing) return (existing as { id: string }).id;
+  if (existing) return existing.id;
 
   const { data: created, error: insertError } = await supabase
     .from("weekly_plans")
@@ -37,7 +37,7 @@ export async function getOrCreateWeeklyPlanId(weekStart: string): Promise<string
     .single();
 
   if (insertError) throw insertError;
-  return (created as { id: string }).id;
+  return created.id;
 }
 
 export async function getWeeklyPlan(
@@ -59,8 +59,8 @@ export async function getWeeklyPlan(
 
   if (dpError) throw dpError;
   return {
-    plan: rowsToPlan((rows ?? []) as DayPlanRow[]),
-    dismissedNames: (wp as { id: string; dismissed_ingredient_names: string[] }).dismissed_ingredient_names ?? [],
+    plan: rowsToPlan(rows ?? []),
+    dismissedNames: wp.dismissed_ingredient_names ?? [],
   };
 }
 
@@ -74,7 +74,7 @@ export async function dismissIngredient(weekStart: string, name: string): Promis
   if (wpError) throw wpError;
   if (!wp) return;
 
-  const current = (wp as { id: string; dismissed_ingredient_names: string[] }).dismissed_ingredient_names ?? [];
+  const current = wp.dismissed_ingredient_names ?? [];
   if (current.includes(name)) return;
 
   const { error } = await supabase
@@ -95,7 +95,7 @@ export async function undismissIngredient(weekStart: string, name: string): Prom
   if (wpError) throw wpError;
   if (!wp) return;
 
-  const current = (wp as { id: string; dismissed_ingredient_names: string[] }).dismissed_ingredient_names ?? [];
+  const current = wp.dismissed_ingredient_names ?? [];
   const updated = current.filter((n) => n !== name);
   if (updated.length === current.length) return;
 
@@ -114,7 +114,6 @@ export async function setMealSlot(
   mealId: string | null,
 ): Promise<string> {
   const weeklyPlanId = await getOrCreateWeeklyPlanId(weekStart);
-  const column = slot === "supper" ? "supper_meal_id" : "diner_meal_id";
   const otherColumn = slot === "supper" ? "diner_meal_id" : "supper_meal_id";
   if (mealId) {
     const { data: existing, error: selectError } = await supabase
@@ -129,15 +128,15 @@ export async function setMealSlot(
     if (existing) {
       const { error } = await supabase
         .from("day_plans")
-        .update({ [column]: mealId })
-        .eq("id", (existing as { id: string }).id);
+        .update(slot === "supper" ? { supper_meal_id: mealId } : { diner_meal_id: mealId })
+        .eq("id", existing.id);
       if (error) throw error;
     } else {
-      const { error } = await supabase.from("day_plans").insert({
-        weekly_plan_id: weeklyPlanId,
-        day_key: day,
-        [column]: mealId,
-      });
+      const { error } = await supabase.from("day_plans").insert(
+        slot === "supper"
+          ? { weekly_plan_id: weeklyPlanId, day_key: day, supper_meal_id: mealId }
+          : { weekly_plan_id: weeklyPlanId, day_key: day, diner_meal_id: mealId },
+      );
       if (error) throw error;
     }
   } else {
@@ -156,7 +155,10 @@ export async function setMealSlot(
       const { error } = await supabase.from("day_plans").delete().eq("id", existing.id);
       if (error) throw error;
     } else {
-      const { error } = await supabase.from("day_plans").update({ [column]: null }).eq("id", existing.id);
+      const { error } = await supabase
+        .from("day_plans")
+        .update(slot === "supper" ? { supper_meal_id: null } : { diner_meal_id: null })
+        .eq("id", existing.id);
       if (error) throw error;
     }
   }

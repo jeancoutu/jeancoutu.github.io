@@ -25,7 +25,7 @@ export async function getMyHouseholdId(): Promise<string> {
     .eq("user_id", user.id)
     .single();
   if (error) throw error;
-  return (data as { household_id: string }).household_id;
+  return data.household_id;
 }
 
 /** All members of the current user's household (includes the current user). */
@@ -34,7 +34,7 @@ export async function getHouseholdMembers(): Promise<HouseholdMember[]> {
     .from("household_memberships")
     .select("user_id, email, joined_at");
   if (error) throw error;
-  return data as HouseholdMember[];
+  return data;
 }
 
 /** Pending invites sent FROM the current user's household. */
@@ -71,9 +71,9 @@ export async function inviteMember(email: string): Promise<void> {
   if (membershipError) throw membershipError;
 
   const { error } = await supabase.from("household_invites").insert({
-    household_id: (membership as { household_id: string; email: string }).household_id,
+    household_id: membership.household_id,
     invited_by: user.id,
-    invited_by_email: (membership as { household_id: string; email: string }).email,
+    invited_by_email: membership.email,
     invite_email: email,
     status: "pending",
   });

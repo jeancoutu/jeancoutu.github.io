@@ -1,20 +1,22 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import { _ } from "svelte-i18n";
-  import { supabase } from "../supabase";
+  import { session } from "../stores/auth";
   import { getPendingInvites, acceptInvite, type HouseholdInvite } from "../api/household";
 
   let invites = $state<HouseholdInvite[]>([]);
   let dismissed = $state<Set<string>>(new Set());
+  let myEmail = $derived($session?.user?.email ?? null);
 
-  onMount(async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) return;
-      invites = await getPendingInvites(user.email);
-    } catch {
-      // silently ignore — user may not be authenticated yet
-    }
+  $effect(() => {
+    if (!myEmail) return;
+    const email = myEmail;
+    getPendingInvites(email)
+      .then((result) => {
+        invites = result;
+      })
+      .catch(() => {
+        // silently ignore — user may not be authenticated yet
+      });
   });
 
   async function accept(invite: HouseholdInvite) {

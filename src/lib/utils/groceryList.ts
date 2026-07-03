@@ -3,7 +3,6 @@ import {
 } from "../../data/ingredientCategories";
 import type { IngredientCategory, Meal, MealSlot, WeeklyPlan } from "../types";
 import { DAYS } from "../types";
-import { getMealById } from "../stores/meals";
 
 export interface GroceryItem {
   name: string;
@@ -11,7 +10,10 @@ export interface GroceryItem {
   quantities: string[];
 }
 
-export function getPlannedMeals(plan: WeeklyPlan): Meal[] {
+export function getPlannedMeals(
+  plan: WeeklyPlan,
+  getMeal: (id: string) => Meal | undefined,
+): Meal[] {
   const slots: MealSlot[] = ["diner", "supper"];
   const seen = new Set<string>();
   const unique: Meal[] = [];
@@ -20,7 +22,7 @@ export function getPlannedMeals(plan: WeeklyPlan): Meal[] {
     for (const slot of slots) {
       const id = plan[key]?.[slot];
       if (!id || seen.has(id)) continue;
-      const meal = getMealById(id);
+      const meal = getMeal(id);
       if (!meal) continue;
       seen.add(id);
       unique.push(meal);
@@ -94,9 +96,10 @@ export interface GroceryAdjustment {
 export function computeGroceryAdjustments(
   oldPlan: WeeklyPlan,
   newPlan: WeeklyPlan,
+  getMeal: (id: string) => Meal | undefined,
 ): GroceryAdjustment[] {
-  const oldItems = buildGroceryList(getPlannedMeals(oldPlan));
-  const newItems = buildGroceryList(getPlannedMeals(newPlan));
+  const oldItems = buildGroceryList(getPlannedMeals(oldPlan, getMeal));
+  const newItems = buildGroceryList(getPlannedMeals(newPlan, getMeal));
 
   const oldMap = new Map(oldItems.map((i) => [i.name, i]));
   const newMap = new Map(newItems.map((i) => [i.name, i]));

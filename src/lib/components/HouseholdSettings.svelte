@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import { _ } from "svelte-i18n";
-  import { supabase } from "../supabase";
+  import { session } from "../stores/auth";
   import {
     getHouseholdMembers,
     getHouseholdInvites,
@@ -18,17 +17,14 @@
   let allMembers = $state<HouseholdMember[]>([]);
   let outgoingInvites = $state<HouseholdInvite[]>([]);
   let incomingInvites = $state<HouseholdInvite[]>([]);
-  let myUserId = $state<string | null>(null);
-  let myEmail = $state<string | null>(null);
+  let myUserId = $derived($session?.user?.id ?? null);
+  let myEmail = $derived($session?.user?.email ?? null);
   let emailInput = $state("");
   let inviting = $state(false);
   let inviteError = $state("");
 
-  onMount(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    myUserId = user?.id ?? null;
-    myEmail = user?.email ?? null;
-    await reload();
+  $effect(() => {
+    if (myEmail) void reload();
   });
 
   async function reload() {

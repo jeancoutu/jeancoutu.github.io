@@ -2,6 +2,7 @@
   import { _ } from "svelte-i18n";
   import type { IngredientCategory } from "../types";
   import { weeklyPlan, dismissedIngredientsForWeek } from "../stores/weeklyPlan";
+  import { getMealById } from "../stores/meals";
   import {
     addGroceryItem,
     editGroceryItem,
@@ -25,7 +26,7 @@
     isCustom: boolean;
   }
 
-  let plannedMeals = $derived(getPlannedMeals($weeklyPlan));
+  let plannedMeals = $derived(getPlannedMeals($weeklyPlan, getMealById));
   let mealPlanItems = $derived(buildGroceryList(plannedMeals));
   let dbItems = $derived($groceryItemsForWeek);
 

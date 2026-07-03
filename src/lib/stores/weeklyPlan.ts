@@ -1,12 +1,12 @@
 import { writable, get, derived } from "svelte/store";
 import type { DayKey, MealSlot, WeeklyPlan } from "../types";
 import { DAYS } from "../types";
-import { allMeals } from "./meals";
+import { allMeals, getMealById } from "./meals";
 import { previousDay } from "../utils/dayOrder";
 import { mealsEligibleForSupper } from "../utils/supperDays";
 import { shuffle } from "../utils/shuffle";
 import { getWeekSaturday, toWeekKey } from "../utils/weekDates";
-import { session } from "./auth";
+import { onUserChange } from "./auth";
 import {
   getWeeklyPlan,
   setMealSlot,
@@ -41,11 +41,7 @@ async function loadWeek(week: string): Promise<void> {
   dismissedNamesPerWeek.update((all) => ({ ...all, [week]: dismissedNames }));
 }
 
-let prevPlanUserId: string | null = null;
-session.subscribe(async ($session) => {
-  const userId = $session?.user?.id ?? null;
-  if (userId === prevPlanUserId) return;
-  prevPlanUserId = userId;
+onUserChange(async ($session) => {
   if ($session) {
     await loadWeek(get(selectedWeek));
   } else {
@@ -83,7 +79,7 @@ function createWeeklyPlanStore() {
     });
 
     const newPlan = get(plans)[week] ?? {};
-    const adjustments = computeGroceryAdjustments(oldPlan, newPlan);
+    const adjustments = computeGroceryAdjustments(oldPlan, newPlan, getMealById);
     const dismissedNames = get(dismissedNamesPerWeek)[week] ?? [];
     return applyGroceryAdjustments(week, adjustments, weeklyPlanId, dismissedNames);
   }
@@ -166,7 +162,7 @@ function createWeeklyPlanStore() {
 
       await bulkSetWeekPlan(week, current);
 
-      const meals = getPlannedMeals(current);
+      const meals = getPlannedMeals(current, getMealById);
       const groceries = buildGroceryList(meals);
       await bulkReplaceGroceryItems(
         week,

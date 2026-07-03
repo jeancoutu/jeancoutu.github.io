@@ -1,7 +1,7 @@
 import { derived, get, writable } from "svelte/store";
 import type { IngredientCategory } from "../types";
 import { selectedWeek, dismissedIngredientsForWeek, weeklyPlan } from "./weeklyPlan";
-import { session } from "./auth";
+import { session, onUserChange } from "./auth";
 import {
   fetchGroceryItems,
   upsertGroceryItem,
@@ -37,11 +37,7 @@ async function loadWeek(weekKey: string): Promise<void> {
   }
 }
 
-let prevGroceryUserId: string | null = null;
-session.subscribe(async ($session) => {
-  const userId = $session?.user?.id ?? null;
-  if (userId === prevGroceryUserId) return;
-  prevGroceryUserId = userId;
+onUserChange(async ($session) => {
   if ($session) {
     await loadWeek(get(selectedWeek));
   } else {

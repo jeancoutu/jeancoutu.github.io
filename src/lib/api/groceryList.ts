@@ -24,10 +24,10 @@ export async function fetchGroceryItems(weekStart: string): Promise<GroceryDBIte
   const { data, error } = await supabase
     .from("grocery_items")
     .select("id, name, quantity, category, checked")
-    .eq("weekly_plan_id", (plan as { id: string }).id);
+    .eq("weekly_plan_id", plan.id);
 
   if (error) throw error;
-  return (data ?? []) as GroceryDBItem[];
+  return data ?? [];
 }
 
 export async function upsertGroceryItem(
@@ -46,7 +46,7 @@ export async function upsertGroceryItem(
     .single();
 
   if (error) throw error;
-  return data as GroceryDBItem;
+  return data;
 }
 
 export async function updateGroceryItem(
@@ -83,7 +83,7 @@ export async function deleteAllGroceryItems(weekStart: string): Promise<void> {
   const { error } = await supabase
     .from("grocery_items")
     .delete()
-    .eq("weekly_plan_id", (plan as { id: string }).id);
+    .eq("weekly_plan_id", plan.id);
 
   if (error) throw error;
 }
@@ -105,7 +105,7 @@ export async function applyGroceryAdjustments(
 
   if (fetchError) throw fetchError;
 
-  const existing = (currentItems ?? []) as GroceryDBItem[];
+  const existing = currentItems ?? [];
   const dbByName = new Map(existing.map((i) => [i.name, i]));
 
   const toDelete: string[] = [];
@@ -167,7 +167,7 @@ export async function applyGroceryAdjustments(
           .from("grocery_items")
           .insert(toInsert)
           .select("id, name, quantity, category, checked")
-          .then(({ data, error }) => { if (error) throw error; return (data ?? []) as GroceryDBItem[]; })
+          .then(({ data, error }) => { if (error) throw error; return data ?? []; })
       : Promise.resolve([] as GroceryDBItem[]),
   ]);
 
