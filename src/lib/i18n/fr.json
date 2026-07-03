@@ -39,6 +39,7 @@
   "meals.create.submit": "Créer le repas",
   "meals.create.cancel": "Annuler",
   "meals.create.errors.name": "Veuillez entrer un nom de repas.",
+  "meals.create.errors.nameTooLong": "Le nom du repas ne doit pas dépasser 50 caractères.",
   "meals.create.errors.ingredients": "Veuillez ajouter au moins un ingrédient.",
   "meals.create.errors.instructions": "Veuillez ajouter au moins une instruction.",
   "meals.create.errors.save": "Impossible d'enregistrer le repas. Veuillez réessayer.",

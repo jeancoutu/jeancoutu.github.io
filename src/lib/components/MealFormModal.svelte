@@ -89,6 +89,11 @@
       return;
     }
 
+    if (name.trim().length > 50) {
+      error = $_("meals.create.errors.nameTooLong");
+      return;
+    }
+
     if (ingredientRows.length === 0) {
       error = $_("meals.create.errors.ingredients");
       return;
@@ -160,6 +165,7 @@
       <input
         type="text"
         bind:value={name}
+        maxlength={50}
         class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
         placeholder={$_("meals.create.namePlaceholder")}
       />

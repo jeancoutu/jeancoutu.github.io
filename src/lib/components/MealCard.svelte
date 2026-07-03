@@ -20,9 +20,6 @@
     <h2 class="text-lg font-semibold text-slate-900">{meal.name}</h2>
     <DurationBadge duration={meal.duration} />
   </div>
-  <p class="mt-2 text-sm text-slate-600">
-    {$_("duration.label")} {$_("duration." + meal.duration)}
-  </p>
   <button
     type="button"
     onclick={viewRecipe}

@@ -47,9 +47,13 @@
     </button>
 
     <header>
-      <div class="flex flex-wrap items-center gap-2">
-        <h1 class="text-2xl font-bold text-slate-900">{meal.name}</h1>
-        <DurationBadge duration={meal.duration} />
+      <div class="flex min-w-0 items-center gap-2">
+        <h1 class="min-w-0 truncate text-2xl font-bold text-slate-900">{meal.name}</h1>
+        <div class="shrink-0">
+          <DurationBadge duration={meal.duration} />
+        </div>
+      </div>
+      <div class="mt-2 flex flex-wrap items-center gap-2">
         <button
           type="button"
           onclick={() => (editMealOpen = true)}
@@ -65,9 +69,6 @@
           {$_("mealDetail.duplicate")}
         </button>
       </div>
-      <p class="mt-2 text-sm text-slate-600">
-        {$_("duration.label")} {$_("duration." + meal.duration)}
-      </p>
       {#if meal.url}
         <a
           href={meal.url}
