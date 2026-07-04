@@ -25,7 +25,12 @@
   let dismissed = $derived(new Set(weeklyPlan.dismissedIngredients));
 
   let allDisplayItems = $derived(buildDisplayItems(mealPlanItems, dbItems, dismissed));
-  let groupedItems = $derived(groupGroceryByCategory(allDisplayItems));
+  let groupedItems = $derived(
+    groupGroceryByCategory(allDisplayItems).map((group) => ({
+      ...group,
+      items: [...group.items].sort((a, b) => Number(a.checked) - Number(b.checked)),
+    })),
+  );
 
   let addingCategory = $state<IngredientCategory | null>(null);
   let newItemName = $state("");
