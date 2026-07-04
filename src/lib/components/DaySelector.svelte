@@ -14,6 +14,10 @@
 
   const slots: MealSlot[] = ["diner", "supper"];
 
+  let sortedMeals = $derived(
+    [...meals.all].sort((a, b) => a.name.localeCompare(b.name)),
+  );
+
   async function onChange(slot: MealSlot, e: Event) {
     const value = (e.currentTarget as HTMLSelectElement).value;
     const updatedGroceries = await weeklyPlan.setDay(day, slot, value || undefined);
@@ -41,7 +45,7 @@
             onchange={(e) => onChange(slot, e)}
           >
             <option value="">{$_("slot.selectMeal")}</option>
-            {#each meals.all as meal}
+            {#each sortedMeals as meal}
               <option value={meal.id}>{meal.name}</option>
             {/each}
           </select>
