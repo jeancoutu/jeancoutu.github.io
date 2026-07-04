@@ -28,7 +28,7 @@ export function buildDisplayItems(
       return {
         name: item.name,
         category: item.category,
-        quantities: item.quantities,
+        quantities: dbItem ? [dbItem.quantity] : item.quantities,
         dbId: dbItem?.id,
         checked: dbItem?.checked ?? false,
         isCustom: false,
