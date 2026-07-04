@@ -19,7 +19,7 @@ describe("buildDisplayItems", () => {
       new Set(),
     );
     expect(result).toEqual([
-      { name: "Carrots", category: "vegetables", quantities: ["2"], dbId: "1", checked: true, isCustom: false },
+      { name: "Carrots", category: "vegetables", quantities: ["1"], dbId: "1", checked: true, isCustom: false },
     ]);
   });
 
@@ -51,6 +51,20 @@ describe("buildDisplayItems", () => {
     );
     expect(result).toEqual([
       { dbId: "2", name: "Chocolate", category: "vegetables", quantities: ["1 bar"], checked: false, isCustom: true },
+    ]);
+  });
+
+  it("merges leftover DB rows that share a name into a single display item", () => {
+    const result = buildDisplayItems(
+      [],
+      [
+        dbItem({ id: "1", name: "1", quantity: "1", checked: false }),
+        dbItem({ id: "2", name: "1", quantity: "2", checked: true }),
+      ],
+      new Set(),
+    );
+    expect(result).toEqual([
+      { dbId: "1", name: "1", category: "vegetables", quantities: ["1", "2"], checked: true, isCustom: true },
     ]);
   });
 

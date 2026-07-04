@@ -116,6 +116,35 @@ describe("groceryList store", () => {
     );
   });
 
+  it("addGroceryItem merges into an existing item with the same name instead of duplicating it", async () => {
+    const { groceryList, addGroceryItem } = await importStore();
+    addGroceryItem("vegetables", "Carrots", "1");
+    await vi.waitFor(() => expect(groceryList.itemsForWeek).toHaveLength(1));
+    addGroceryItem("vegetables", "Carrots", "2");
+    await vi.waitFor(() => expect(groceryList.itemsForWeek[0]!.quantity).toBe("3"));
+    expect(groceryList.itemsForWeek).toHaveLength(1);
+    expect(mockUpsertGroceryItem).toHaveBeenLastCalledWith(
+      expect.any(String),
+      expect.objectContaining({ name: "Carrots", quantity: "3" }),
+    );
+  });
+
+  it("editGroceryItem merges into a colliding item and deletes the renamed row", async () => {
+    const { groceryList, addGroceryItem, editGroceryItem } = await importStore();
+    addGroceryItem("vegetables", "Carrots", "1");
+    await vi.waitFor(() => expect(groceryList.itemsForWeek).toHaveLength(1));
+    addGroceryItem("vegetables", "Spinach", "1 bag");
+    await vi.waitFor(() => expect(groceryList.itemsForWeek).toHaveLength(2));
+
+    const spinachId = groceryList.itemsForWeek.find((i) => i.name === "Spinach")!.id;
+    editGroceryItem(spinachId, "Carrots", "vegetables", "2");
+
+    expect(groceryList.itemsForWeek).toHaveLength(1);
+    expect(groceryList.itemsForWeek[0]!.name).toBe("Carrots");
+    expect(groceryList.itemsForWeek[0]!.quantity).toBe("3");
+    expect(mockDeleteGroceryItem).toHaveBeenCalledWith(spinachId);
+  });
+
   it("state is not persisted to localStorage", async () => {
     const { addGroceryItem } = await importStore();
     addGroceryItem("vegetables", "Carrot", "3");

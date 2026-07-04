@@ -8,6 +8,7 @@ import {
   deleteGroceryItem,
   type GroceryDBItem,
 } from "../api/groceryList";
+import { adjustQuantityString } from "../utils/groceryList";
 
 export type { GroceryDBItem };
 
@@ -91,12 +92,20 @@ export async function addGroceryItem(
     await weeklyPlan.undismissIngredient(trimmedName);
   }
 
+  const existing = (groceryList.itemsByWeek[weekKey] ?? []).find(
+    (i) => i.name === trimmedName,
+  );
+  const trimmedQuantity = quantity.trim() || "1";
+  const mergedQuantity = existing
+    ? (adjustQuantityString(existing.quantity, [trimmedQuantity], []) ?? trimmedQuantity)
+    : trimmedQuantity;
+
   try {
     const item = await upsertGroceryItem(weekKey, {
       name: trimmedName,
-      quantity: quantity.trim() || "1",
+      quantity: mergedQuantity,
       category,
-      checked: false,
+      checked: existing?.checked ?? false,
     });
     const items = groceryList.itemsByWeek[weekKey] ?? [];
     const idx = items.findIndex((i) => i.id === item.id);
@@ -128,9 +137,31 @@ export function editGroceryItem(
   if (!trimmedName) return;
   const trimmedQty = quantity.trim() || "1";
   const weekKey = weeklyPlan.selectedWeek;
+  const items = groceryList.itemsByWeek[weekKey] ?? [];
+
+  // Renaming onto an existing item's name+category would collide with its unique
+  // constraint; merge into that item instead of creating a duplicate.
+  const collision = items.find(
+    (i) => i.id !== id && i.name === trimmedName && i.category === category,
+  );
+
+  if (collision) {
+    const mergedQuantity =
+      adjustQuantityString(collision.quantity, [trimmedQty], []) ?? trimmedQty;
+    groceryList.itemsByWeek = {
+      ...groceryList.itemsByWeek,
+      [weekKey]: items
+        .filter((i) => i.id !== id)
+        .map((i) => (i.id === collision.id ? { ...i, quantity: mergedQuantity } : i)),
+    };
+    updateGroceryItem(collision.id, { quantity: mergedQuantity }).catch(console.error);
+    deleteGroceryItem(id).catch(console.error);
+    return;
+  }
+
   groceryList.itemsByWeek = {
     ...groceryList.itemsByWeek,
-    [weekKey]: (groceryList.itemsByWeek[weekKey] ?? []).map((i) =>
+    [weekKey]: items.map((i) =>
       i.id === id ? { ...i, name: trimmedName, category, quantity: trimmedQty } : i,
     ),
   };

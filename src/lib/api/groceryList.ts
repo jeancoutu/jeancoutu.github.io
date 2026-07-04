@@ -40,7 +40,7 @@ export async function upsertGroceryItem(
     .from("grocery_items")
     .upsert(
       { weekly_plan_id: weeklyPlanId, ...item },
-      { onConflict: "weekly_plan_id,name,quantity,category" },
+      { onConflict: "weekly_plan_id,name,category" },
     )
     .select("id, name, quantity, category, checked")
     .single();
