@@ -30,6 +30,11 @@
   let addingCategory = $state<IngredientCategory | null>(null);
   let newItemName = $state("");
   let newItemQuantity = $state("");
+  let newItemNameInput = $state<HTMLInputElement | null>(null);
+
+  $effect(() => {
+    if (addingCategory) newItemNameInput?.focus();
+  });
 
   function startAdding(category: IngredientCategory) {
     addingCategory = category;
@@ -137,46 +142,51 @@
 
         {#if addingCategory === group.category}
           <form
-            class="mt-3 flex flex-wrap items-end gap-2"
+            class="mt-3 flex flex-col gap-2"
             onsubmit={(event) => {
               event.preventDefault();
               submitAdd();
             }}
           >
-            <label class="min-w-0 flex-1">
-              <span class="sr-only">{$_("grocery.addName")}</span>
-              <input
-                type="text"
-                bind:value={newItemName}
-                placeholder={$_("grocery.addName")}
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-                onkeydown={handleAddKeydown}
-              />
-            </label>
-            <label class="w-24 shrink-0">
-              <span class="sr-only">{$_("grocery.addQuantity")}</span>
-              <input
-                type="text"
-                bind:value={newItemQuantity}
-                placeholder={$_("grocery.addQuantity")}
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-                onkeydown={handleAddKeydown}
-              />
-            </label>
-            <button
-              type="submit"
-              class="rounded-lg bg-orange-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-orange-600 disabled:opacity-50"
-              disabled={!newItemName.trim()}
-            >
-              {$_("grocery.addConfirm")}
-            </button>
-            <button
-              type="button"
-              class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              onclick={cancelAdding}
-            >
-              {$_("grocery.addCancel")}
-            </button>
+            <div class="flex gap-2">
+              <label class="min-w-0 flex-1">
+                <span class="sr-only">{$_("grocery.addName")}</span>
+                <input
+                  type="text"
+                  bind:value={newItemName}
+                  bind:this={newItemNameInput}
+                  placeholder={$_("grocery.addName")}
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  onkeydown={handleAddKeydown}
+                />
+              </label>
+              <label class="w-16 shrink-0">
+                <span class="sr-only">{$_("grocery.addQuantity")}</span>
+                <input
+                  type="text"
+                  bind:value={newItemQuantity}
+                  placeholder={$_("grocery.addQuantity")}
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  onkeydown={handleAddKeydown}
+                />
+              </label>
+            </div>
+            <div class="flex justify-end gap-2">
+              <button
+                type="submit"
+                class="rounded-lg bg-orange-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-orange-600 disabled:opacity-50"
+                disabled={!newItemName.trim()}
+              >
+                {$_("grocery.addConfirm")}
+              </button>
+              <button
+                type="button"
+                class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                onclick={cancelAdding}
+              >
+                {$_("grocery.addCancel")}
+              </button>
+            </div>
           </form>
         {/if}
 
@@ -187,43 +197,47 @@
               <li class="flex items-start gap-3">
                 {#if isEditing}
                   <form
-                    class="flex min-w-0 flex-1 flex-wrap items-end gap-2"
+                    class="flex min-w-0 flex-1 flex-col gap-2"
                     onsubmit={(event) => { event.preventDefault(); submitEdit(); }}
                   >
-                    <label class="min-w-0 flex-1">
-                      <span class="sr-only">{$_("grocery.addName")}</span>
-                      <input
-                        type="text"
-                        bind:value={editName}
-                        placeholder={$_("grocery.addName")}
-                        class="w-full rounded-lg border border-orange-400 px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-                        onkeydown={handleEditKeydown}
-                      />
-                    </label>
-                    <label class="w-24 shrink-0">
-                      <span class="sr-only">{$_("grocery.addQuantity")}</span>
-                      <input
-                        type="text"
-                        bind:value={editQuantity}
-                        placeholder={$_("grocery.addQuantity")}
-                        class="w-full rounded-lg border border-orange-400 px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-                        onkeydown={handleEditKeydown}
-                      />
-                    </label>
-                    <button
-                      type="submit"
-                      class="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-orange-600 disabled:opacity-50"
-                      disabled={!editName.trim()}
-                    >
-                      {$_("grocery.editConfirm")}
-                    </button>
-                    <button
-                      type="button"
-                      class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                      onclick={cancelEditing}
-                    >
-                      {$_("grocery.addCancel")}
-                    </button>
+                    <div class="flex gap-2">
+                      <label class="min-w-0 flex-1">
+                        <span class="sr-only">{$_("grocery.addName")}</span>
+                        <input
+                          type="text"
+                          bind:value={editName}
+                          placeholder={$_("grocery.addName")}
+                          class="w-full rounded-lg border border-orange-400 px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                          onkeydown={handleEditKeydown}
+                        />
+                      </label>
+                      <label class="w-16 shrink-0">
+                        <span class="sr-only">{$_("grocery.addQuantity")}</span>
+                        <input
+                          type="text"
+                          bind:value={editQuantity}
+                          placeholder={$_("grocery.addQuantity")}
+                          class="w-full rounded-lg border border-orange-400 px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                          onkeydown={handleEditKeydown}
+                        />
+                      </label>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                      <button
+                        type="submit"
+                        class="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-orange-600 disabled:opacity-50"
+                        disabled={!editName.trim()}
+                      >
+                        {$_("grocery.editConfirm")}
+                      </button>
+                      <button
+                        type="button"
+                        class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        onclick={cancelEditing}
+                      >
+                        {$_("grocery.addCancel")}
+                      </button>
+                    </div>
                   </form>
                 {:else}
                   <label
