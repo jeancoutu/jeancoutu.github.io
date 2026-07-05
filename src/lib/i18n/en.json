@@ -108,6 +108,7 @@
   "household.settings.cancelInvite": "Cancel",
   "nav.settings": "Settings",
   "settings.title": "Settings",
+  "settings.household.title": "Household",
   "settings.presets.title": "Grocery presets",
   "settings.presets.description": "Reusable ingredient lists you can toggle on the weekly grocery list.",
   "settings.presets.manage": "Manage grocery presets",

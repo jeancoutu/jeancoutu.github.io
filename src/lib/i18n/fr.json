@@ -108,6 +108,7 @@
   "household.settings.cancelInvite": "Annuler",
   "nav.settings": "Paramètres",
   "settings.title": "Paramètres",
+  "settings.household.title": "Foyer",
   "settings.presets.title": "Listes prédéfinies d'épicerie",
   "settings.presets.description": "Listes d'ingrédients réutilisables à activer sur la liste d'épicerie de la semaine.",
   "settings.presets.manage": "Gérer les listes prédéfinies",

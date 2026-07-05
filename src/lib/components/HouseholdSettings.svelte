@@ -84,11 +84,11 @@
   let isShared = $derived(allMembers.length > 1);
 </script>
 
-<section class="flex flex-col gap-6">
+<div class="flex flex-col gap-6">
   <!-- My household: other members -->
   <div class="flex flex-col gap-4">
     <div class="flex items-center justify-between">
-      <h2 class="text-base font-semibold text-slate-800">{$_("household.settings.myHousehold")}</h2>
+      <h2 class="text-sm font-medium text-slate-700">{$_("household.settings.myHousehold")}</h2>
       {#if isShared}
         <button
           onclick={handleLeave}
@@ -162,7 +162,7 @@
   <!-- Incoming invites for the current user -->
   {#if incomingInvites.length > 0}
     <div class="flex flex-col gap-3">
-      <h2 class="text-base font-semibold text-slate-800">{$_("household.settings.pendingInvites")}</h2>
+      <h2 class="text-sm font-medium text-slate-700">{$_("household.settings.pendingInvites")}</h2>
       <ul class="flex flex-col gap-2">
         {#each incomingInvites as inv (inv.id)}
           <li class="flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm">
@@ -180,4 +180,4 @@
       </ul>
     </div>
   {/if}
-</section>
+</div>
