@@ -66,6 +66,31 @@ export async function getWeeklyPlan(
   };
 }
 
+export async function getWeekMealIds(weekStart: string): Promise<Set<string>> {
+  const { data: wp, error: wpError } = await supabase
+    .from("weekly_plans")
+    .select("id")
+    .eq("week_start", weekStart)
+    .maybeSingle();
+
+  if (wpError) throw wpError;
+  if (!wp) return new Set();
+
+  const { data: rows, error: dpError } = await supabase
+    .from("day_plans")
+    .select("supper_meal_id, diner_meal_id")
+    .eq("weekly_plan_id", wp.id);
+
+  if (dpError) throw dpError;
+
+  const ids = new Set<string>();
+  for (const row of rows ?? []) {
+    if (row.supper_meal_id) ids.add(row.supper_meal_id);
+    if (row.diner_meal_id) ids.add(row.diner_meal_id);
+  }
+  return ids;
+}
+
 export async function dismissIngredient(weekStart: string, name: string): Promise<void> {
   const { data: wp, error: wpError } = await supabase
     .from("weekly_plans")

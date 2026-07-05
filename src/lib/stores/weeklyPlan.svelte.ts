@@ -4,7 +4,7 @@ import { meals, getMealById } from "./meals.svelte";
 import { previousDay } from "../utils/dayOrder";
 import { mealsEligibleForSupper } from "../utils/supperDays";
 import { shuffle } from "../utils/shuffle";
-import { getWeekSaturday, toWeekKey } from "../utils/weekDates";
+import { getWeekSaturday, toWeekKey, addWeeks, parseWeekKey } from "../utils/weekDates";
 import { onUserChange } from "./auth.svelte";
 import {
   getWeeklyPlan,
@@ -12,6 +12,7 @@ import {
   setDayNote,
   clearWeekData,
   bulkSetWeekPlan,
+  getWeekMealIds,
   dismissIngredient as apiDismissIngredient,
   undismissIngredient as apiUndismissIngredient,
 } from "../api/plan";
@@ -127,8 +128,12 @@ class WeeklyPlanStore {
         if (day?.supper) usedIds.add(day.supper);
         if (day?.diner) usedIds.add(day.diner);
       }
+      const previousWeekKey = toWeekKey(addWeeks(parseWeekKey(week), -1));
+      const previousWeekIds = await getWeekMealIds(previousWeekKey);
       for (const { key } of emptySuppers) {
-        const candidates = shuffle(mealsEligibleForSupper(meals.all, key, usedIds));
+        const candidates = shuffle(
+          mealsEligibleForSupper(meals.all, key, usedIds, previousWeekIds),
+        );
         const pick = candidates[0];
         if (!pick) continue;
         const entry = { ...(current[key] ?? {}) };

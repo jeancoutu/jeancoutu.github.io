@@ -6,6 +6,7 @@ vi.mock("../../lib/api/plan", () => ({
   setDayNote: vi.fn().mockResolvedValue(undefined),
   clearWeekData: vi.fn().mockResolvedValue(undefined),
   bulkSetWeekPlan: vi.fn().mockResolvedValue(undefined),
+  getWeekMealIds: vi.fn().mockResolvedValue(new Set()),
 }));
 
 vi.mock("../../lib/api/meals", () => ({
@@ -15,6 +16,12 @@ vi.mock("../../lib/api/meals", () => ({
   deleteMeal: vi.fn(),
 }));
 
+vi.mock("../../lib/api/groceryList", () => ({
+  bulkReplaceGroceryItems: vi.fn().mockResolvedValue(undefined),
+  applyGroceryAdjustments: vi.fn().mockResolvedValue(null),
+  deleteGroceryItem: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe("weeklyPlan store", () => {
   beforeEach(() => {
     vi.resetModules();
@@ -22,8 +29,10 @@ describe("weeklyPlan store", () => {
 
   async function importStore() {
     const { weeklyPlan } = await import("../../lib/stores/weeklyPlan.svelte");
-    const { setMealSlot, setDayNote, clearWeekData, getWeeklyPlan, bulkSetWeekPlan } = await import("../../lib/api/plan");
-    return { weeklyPlan, setMealSlot, setDayNote, clearWeekData, getWeeklyPlan, bulkSetWeekPlan };
+    const { setMealSlot, setDayNote, clearWeekData, getWeeklyPlan, bulkSetWeekPlan, getWeekMealIds } =
+      await import("../../lib/api/plan");
+    const { meals } = await import("../../lib/stores/meals.svelte");
+    return { weeklyPlan, setMealSlot, setDayNote, clearWeekData, getWeeklyPlan, bulkSetWeekPlan, getWeekMealIds, meals };
   }
 
   it("starts with empty plan for current week", async () => {
@@ -151,5 +160,62 @@ describe("weeklyPlan store", () => {
     await weeklyPlan.setDay("friday", "supper", undefined);
     expect(weeklyPlan.current.friday?.supper).toBeUndefined();
     expect(weeklyPlan.current.friday?.note).toBe("Keep this note");
+  });
+
+  describe("autoFillWeek", () => {
+    function makeMeal(id: string, supperDays: string[]) {
+      return {
+        id,
+        name: id,
+        duration: "short" as const,
+        supperDays: supperDays as any,
+        url: "",
+        ingredients: [],
+        instructions: [],
+      };
+    }
+
+    it("avoids a meal used last week when other eligible meals exist", async () => {
+      const { weeklyPlan, meals, getWeekMealIds } = await importStore();
+      const allDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+      meals.all = [
+        makeMeal("a", allDays),
+        makeMeal("b", allDays),
+        makeMeal("c", allDays),
+        makeMeal("d", allDays),
+        makeMeal("e", allDays),
+        makeMeal("f", allDays),
+        makeMeal("g", allDays),
+        makeMeal("h", allDays),
+      ];
+      vi.mocked(getWeekMealIds).mockResolvedValue(new Set(["a"]));
+
+      await weeklyPlan.autoFillWeek();
+
+      const usedMealIds = Object.values(weeklyPlan.current)
+        .map((entry) => entry?.supper)
+        .filter(Boolean);
+      expect(usedMealIds).not.toContain("a");
+    });
+
+    it("falls back to a previous-week meal when it's the only eligible option", async () => {
+      const { weeklyPlan, meals, getWeekMealIds } = await importStore();
+      meals.all = [makeMeal("a", ["monday"])];
+      vi.mocked(getWeekMealIds).mockResolvedValue(new Set(["a"]));
+
+      await weeklyPlan.autoFillWeek();
+
+      expect(weeklyPlan.current.monday?.supper).toBe("a");
+    });
+
+    it("behaves as before when there is no previous week's plan", async () => {
+      const { weeklyPlan, meals, getWeekMealIds } = await importStore();
+      meals.all = [makeMeal("a", ["monday"])];
+      vi.mocked(getWeekMealIds).mockResolvedValue(new Set());
+
+      await weeklyPlan.autoFillWeek();
+
+      expect(weeklyPlan.current.monday?.supper).toBe("a");
+    });
   });
 });
