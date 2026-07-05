@@ -29,7 +29,7 @@
       <button
         type="button"
         onclick={() => navigate(tab.path)}
-        class="flex flex-1 flex-col items-center gap-1 py-3 text-sm font-medium transition
+        class="flex flex-1 flex-col items-center gap-1 py-2 text-sm font-medium transition
           {isActive(tab.id)
           ? 'text-orange-600'
           : 'text-slate-500 hover:text-slate-700'}"
@@ -47,6 +47,6 @@
 
 <style>
   .safe-area-pb {
-    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0) + 0.5rem);
   }
 </style>
