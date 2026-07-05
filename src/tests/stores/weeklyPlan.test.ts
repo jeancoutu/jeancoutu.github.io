@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 vi.mock("../../lib/api/plan", () => ({
   getWeeklyPlan: vi.fn().mockResolvedValue({ plan: {}, dismissedNames: [] }),
   setMealSlot: vi.fn().mockResolvedValue("mock-weekly-plan-id"),
+  setDayNote: vi.fn().mockResolvedValue(undefined),
   clearWeekData: vi.fn().mockResolvedValue(undefined),
   bulkSetWeekPlan: vi.fn().mockResolvedValue(undefined),
 }));
@@ -21,8 +22,8 @@ describe("weeklyPlan store", () => {
 
   async function importStore() {
     const { weeklyPlan } = await import("../../lib/stores/weeklyPlan.svelte");
-    const { setMealSlot, clearWeekData, getWeeklyPlan, bulkSetWeekPlan } = await import("../../lib/api/plan");
-    return { weeklyPlan, setMealSlot, clearWeekData, getWeeklyPlan, bulkSetWeekPlan };
+    const { setMealSlot, setDayNote, clearWeekData, getWeeklyPlan, bulkSetWeekPlan } = await import("../../lib/api/plan");
+    return { weeklyPlan, setMealSlot, setDayNote, clearWeekData, getWeeklyPlan, bulkSetWeekPlan };
   }
 
   it("starts with empty plan for current week", async () => {
@@ -111,5 +112,44 @@ describe("weeklyPlan store", () => {
     const week = weeklyPlan.selectedWeek;
     const all = weeklyPlan.getAllPlans();
     expect(all[week]?.thursday?.supper).toBe("meal-all");
+  });
+
+  it("setDayNote calls the API and updates the plan", async () => {
+    const { weeklyPlan, setDayNote } = await importStore();
+    const week = weeklyPlan.selectedWeek;
+    await weeklyPlan.setDayNote("monday", "Leftovers night");
+    expect(setDayNote).toHaveBeenCalledWith(week, "monday", "Leftovers night");
+    expect(weeklyPlan.current.monday?.note).toBe("Leftovers night");
+  });
+
+  it("setDayNote creates a day entry even when no meals are assigned", async () => {
+    const { weeklyPlan } = await importStore();
+    await weeklyPlan.setDayNote("tuesday", "Order pizza");
+    expect(weeklyPlan.current.tuesday).toEqual({ note: "Order pizza" });
+  });
+
+  it("setDayNote(null) clears the note but keeps the day entry when meals are assigned", async () => {
+    const { weeklyPlan } = await importStore();
+    await weeklyPlan.setDay("wednesday", "supper", "meal-abc");
+    await weeklyPlan.setDayNote("wednesday", "Note to remove");
+    await weeklyPlan.setDayNote("wednesday", null);
+    expect(weeklyPlan.current.wednesday?.note).toBeUndefined();
+    expect(weeklyPlan.current.wednesday?.supper).toBe("meal-abc");
+  });
+
+  it("setDayNote(null) removes the day entry when there are no meals", async () => {
+    const { weeklyPlan } = await importStore();
+    await weeklyPlan.setDayNote("thursday", "Temporary note");
+    await weeklyPlan.setDayNote("thursday", null);
+    expect(weeklyPlan.current.thursday).toBeUndefined();
+  });
+
+  it("clearing the last meal slot preserves an existing note", async () => {
+    const { weeklyPlan } = await importStore();
+    await weeklyPlan.setDayNote("friday", "Keep this note");
+    await weeklyPlan.setDay("friday", "supper", "meal-x");
+    await weeklyPlan.setDay("friday", "supper", undefined);
+    expect(weeklyPlan.current.friday?.supper).toBeUndefined();
+    expect(weeklyPlan.current.friday?.note).toBe("Keep this note");
   });
 });

@@ -5,6 +5,7 @@
   import { weeklyPlan } from "../stores/weeklyPlan.svelte";
   import { setGroceryItemsForWeek } from "../stores/groceryList.svelte";
   import { navigate } from "../utils/router.svelte";
+  import DayNoteModal from "./DayNoteModal.svelte";
 
   interface Props {
     day: DayKey;
@@ -13,6 +14,8 @@
   let { day }: Props = $props();
 
   const slots: MealSlot[] = ["diner", "supper"];
+
+  let noteModalOpen = $state(false);
 
   let sortedMeals = $derived(
     [...meals.all].sort((a, b) => a.name.localeCompare(b.name)),
@@ -32,7 +35,23 @@
 </script>
 
 <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-  <p class="mb-3 text-sm font-semibold text-slate-900">{$_(`day.${day}`)}</p>
+  <div class="mb-3 flex items-center gap-2">
+    <p class="text-sm font-semibold text-slate-900">{$_(`day.${day}`)}</p>
+    <button
+      type="button"
+      onclick={() => (noteModalOpen = true)}
+      class="flex size-6 shrink-0 items-center justify-center rounded-md transition
+        {weeklyPlan.current[day]?.note
+        ? 'bg-orange-500 text-white hover:bg-orange-600'
+        : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}"
+      title={weeklyPlan.current[day]?.note ? $_("planner.note.edit") : $_("planner.note.add")}
+      aria-label={weeklyPlan.current[day]?.note ? $_("planner.note.edit") : $_("planner.note.add")}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-3.5" aria-hidden="true">
+        <path d="M14.688 3.312a1 1 0 0 1 1.414 0l1.586 1.586a1 1 0 0 1 0 1.414L8.414 15.586a1 1 0 0 1-.39.242l-3.5 1.166a.5.5 0 0 1-.632-.633l1.166-3.5a1 1 0 0 1 .242-.39l9.274-9.273a1 1 0 0 1 .414-.293Z" />
+      </svg>
+    </button>
+  </div>
   <div class="space-y-3">
     {#each slots as slot}
       <label class="block" for="day-{day}-{slot}">
@@ -66,5 +85,16 @@
         </div>
       </label>
     {/each}
+    {#if weeklyPlan.current[day]?.note}
+      <p class="whitespace-pre-wrap text-xs italic text-slate-500">{weeklyPlan.current[day]?.note}</p>
+    {/if}
   </div>
 </div>
+
+<DayNoteModal
+  open={noteModalOpen}
+  {day}
+  note={weeklyPlan.current[day]?.note}
+  onclose={() => (noteModalOpen = false)}
+  onsave={(value) => weeklyPlan.setDayNote(day, value)}
+/>

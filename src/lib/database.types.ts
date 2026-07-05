@@ -215,6 +215,7 @@ export interface Database {
           day_key: DayKeyEnum;
           supper_meal_id: string | null;
           diner_meal_id: string | null;
+          note: string | null;
         };
         Insert: {
           id?: string;
@@ -222,6 +223,7 @@ export interface Database {
           day_key: DayKeyEnum;
           supper_meal_id?: string | null;
           diner_meal_id?: string | null;
+          note?: string | null;
         };
         Update: {
           id?: string;
@@ -229,6 +231,7 @@ export interface Database {
           day_key?: DayKeyEnum;
           supper_meal_id?: string | null;
           diner_meal_id?: string | null;
+          note?: string | null;
         };
         Relationships: [
           {

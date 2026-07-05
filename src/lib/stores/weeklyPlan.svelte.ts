@@ -9,6 +9,7 @@ import { onUserChange } from "./auth.svelte";
 import {
   getWeeklyPlan,
   setMealSlot,
+  setDayNote,
   clearWeekData,
   bulkSetWeekPlan,
   dismissIngredient as apiDismissIngredient,
@@ -50,7 +51,7 @@ class WeeklyPlanStore {
     } else {
       delete dayEntry[slot];
     }
-    if (dayEntry.supper || dayEntry.diner) {
+    if (dayEntry.supper || dayEntry.diner || dayEntry.note) {
       current[day] = dayEntry;
     } else {
       delete current[day];
@@ -73,6 +74,25 @@ class WeeklyPlanStore {
 
   async setDay(day: DayKey, slot: MealSlot, mealId: string | undefined): Promise<GroceryDBItem[] | null> {
     return this.#updateSlot(day, slot, mealId);
+  }
+
+  async setDayNote(day: DayKey, note: string | null): Promise<void> {
+    const week = this.selectedWeek;
+    await setDayNote(week, day, note);
+
+    const current = { ...(this.plans[week] ?? {}) };
+    const dayEntry = { ...(current[day] ?? {}) };
+    if (note) {
+      dayEntry.note = note;
+    } else {
+      delete dayEntry.note;
+    }
+    if (dayEntry.supper || dayEntry.diner || dayEntry.note) {
+      current[day] = dayEntry;
+    } else {
+      delete current[day];
+    }
+    this.plans = { ...this.plans, [week]: current };
   }
 
   async clearWeek(): Promise<void> {

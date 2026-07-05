@@ -47,6 +47,7 @@ export type MealSlot = "supper" | "diner";
 export interface DayPlan {
   supper?: string;
   diner?: string;
+  note?: string;
 }
 
 export interface WeeklyPlan {

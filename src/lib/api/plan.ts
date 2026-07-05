@@ -6,16 +6,18 @@ type DayPlanRow = {
   day_key: string;
   supper_meal_id: string | null;
   diner_meal_id: string | null;
+  note: string | null;
 };
 
 function rowsToPlan(rows: DayPlanRow[]): WeeklyPlan {
   const plan: WeeklyPlan = {};
   for (const row of rows) {
     const day = row.day_key as DayKey;
-    const entry: { supper?: string; diner?: string } = {};
+    const entry: { supper?: string; diner?: string; note?: string } = {};
     if (row.supper_meal_id) entry.supper = row.supper_meal_id;
     if (row.diner_meal_id) entry.diner = row.diner_meal_id;
-    if (entry.supper || entry.diner) plan[day] = entry;
+    if (row.note) entry.note = row.note;
+    if (entry.supper || entry.diner || entry.note) plan[day] = entry;
   }
   return plan;
 }
@@ -54,7 +56,7 @@ export async function getWeeklyPlan(
 
   const { data: rows, error: dpError } = await supabase
     .from("day_plans")
-    .select("id, day_key, supper_meal_id, diner_meal_id")
+    .select("id, day_key, supper_meal_id, diner_meal_id, note")
     .eq("weekly_plan_id", wp.id);
 
   if (dpError) throw dpError;
@@ -142,7 +144,7 @@ export async function setMealSlot(
   } else {
     const { data: existing, error: selectError } = await supabase
       .from("day_plans")
-      .select(`id, ${otherColumn}`)
+      .select(`id, note, ${otherColumn}`)
       .eq("weekly_plan_id", weeklyPlanId)
       .eq("day_key", day)
       .maybeSingle();
@@ -151,7 +153,7 @@ export async function setMealSlot(
     if (!existing) return weeklyPlanId;
 
     const otherValue = existing[otherColumn as keyof typeof existing];
-    if (!otherValue) {
+    if (!otherValue && !existing.note) {
       const { error } = await supabase.from("day_plans").delete().eq("id", existing.id);
       if (error) throw error;
     } else {
@@ -163,6 +165,44 @@ export async function setMealSlot(
     }
   }
   return weeklyPlanId;
+}
+
+export async function setDayNote(
+  weekStart: string,
+  day: DayKey,
+  note: string | null,
+): Promise<void> {
+  const weeklyPlanId = await getOrCreateWeeklyPlanId(weekStart);
+
+  const { data: existing, error: selectError } = await supabase
+    .from("day_plans")
+    .select("id, supper_meal_id, diner_meal_id")
+    .eq("weekly_plan_id", weeklyPlanId)
+    .eq("day_key", day)
+    .maybeSingle();
+
+  if (selectError) throw selectError;
+
+  if (note) {
+    if (existing) {
+      const { error } = await supabase.from("day_plans").update({ note }).eq("id", existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from("day_plans")
+        .insert({ weekly_plan_id: weeklyPlanId, day_key: day, note });
+      if (error) throw error;
+    }
+  } else {
+    if (!existing) return;
+    if (!existing.supper_meal_id && !existing.diner_meal_id) {
+      const { error } = await supabase.from("day_plans").delete().eq("id", existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from("day_plans").update({ note: null }).eq("id", existing.id);
+      if (error) throw error;
+    }
+  }
 }
 
 export async function clearPlan(weekStart: string): Promise<void> {
