@@ -18,6 +18,7 @@
   } from "../utils/groceryList";
   import { buildDisplayItems, type DisplayItem } from "../utils/groceryDisplay";
   import { longpress } from "../utils/longpress";
+  import { groceryPresets, togglePresetForWeek } from "../stores/groceryPresets.svelte";
 
   let plannedMeals = $derived(getPlannedMeals(weeklyPlan.current, getMealById));
   let mealPlanItems = $derived(buildGroceryList(plannedMeals));
@@ -111,12 +112,47 @@
       weeklyPlan.dismissIngredient(item.name, item.dbId);
     }
   }
+
+  let togglingPresetId = $state<string | null>(null);
+
+  async function handlePresetToggle(presetId: string) {
+    if (togglingPresetId) return;
+    togglingPresetId = presetId;
+    try {
+      await togglePresetForWeek(presetId);
+    } catch (err) {
+      console.error("Failed to toggle grocery preset:", err);
+    } finally {
+      togglingPresetId = null;
+    }
+  }
 </script>
 
 <section class="mt-6">
-  <h2 class="mb-4 text-lg font-semibold text-slate-900">
-    {$_("grocery.title")}
-  </h2>
+  <div class="mb-4 flex items-center gap-3">
+    <h2 class="shrink-0 text-lg font-semibold text-slate-900">
+      {$_("grocery.title")}
+    </h2>
+    {#if groceryPresets.all.length > 0}
+      <div class="flex min-w-0 flex-1 gap-2 overflow-x-auto" role="group" aria-label={$_("grocery.presets.label")}>
+        {#each groceryPresets.all as preset (preset.id)}
+          {@const active = groceryPresets.activeForWeek.has(preset.id)}
+          <button
+            type="button"
+            onclick={() => handlePresetToggle(preset.id)}
+            disabled={togglingPresetId !== null}
+            aria-pressed={active}
+            class="shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition disabled:opacity-50
+              {active
+              ? 'border-orange-500 bg-orange-500 text-white hover:bg-orange-600'
+              : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}"
+          >
+            {preset.name}
+          </button>
+        {/each}
+      </div>
+    {/if}
+  </div>
 
   {#if allDisplayItems.length === 0}
     <p class="mb-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">

@@ -4,6 +4,8 @@ export type Route =
   | { name: "planner" }
   | { name: "meals" }
   | { name: "meal"; id: string }
+  | { name: "presets" }
+  | { name: "preset"; id: string }
   | { name: "settings" };
 
 function parseLogicalPath(pathname: string): Route {
@@ -18,9 +20,16 @@ function parseLogicalPath(pathname: string): Route {
   if (path === "/settings") {
     return { name: "settings" };
   }
+  if (path === "/presets") {
+    return { name: "presets" };
+  }
   const mealMatch = path.match(/^\/meal\/([^/]+)$/);
   if (mealMatch) {
     return { name: "meal", id: decodeURIComponent(mealMatch[1]!) };
+  }
+  const presetMatch = path.match(/^\/preset\/([^/]+)$/);
+  if (presetMatch) {
+    return { name: "preset", id: decodeURIComponent(presetMatch[1]!) };
   }
   return { name: "planner" };
 }
@@ -61,6 +70,10 @@ export function pathFor(r: Route): string {
       return appPath("/meals");
     case "meal":
       return appPath(`/meal/${encodeURIComponent(r.id)}`);
+    case "presets":
+      return appPath("/presets");
+    case "preset":
+      return appPath(`/preset/${encodeURIComponent(r.id)}`);
     case "settings":
       return appPath("/settings");
   }

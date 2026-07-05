@@ -5,6 +5,7 @@ import {
   computeGroceryAdjustments,
   formatGroceryQuantities,
   getPlannedMeals,
+  presetItemsToAdjustments,
 } from "../../lib/utils/groceryList";
 import type { Meal, WeeklyPlan } from "../../lib/types";
 
@@ -178,5 +179,62 @@ describe("computeGroceryAdjustments", () => {
     const newPlan: WeeklyPlan = { monday: { diner: "b" } };
 
     expect(computeGroceryAdjustments(oldPlan, newPlan, getMeal)).toEqual([]);
+  });
+});
+
+describe("presetItemsToAdjustments", () => {
+  it("maps items to additive adjustments", () => {
+    expect(
+      presetItemsToAdjustments(
+        [{ name: "Riz", category: "aisle", quantity: "1 kg" }],
+        "add",
+      ),
+    ).toEqual([
+      { name: "Riz", category: "aisle", addQuantities: ["1 kg"], removeQuantities: [] },
+    ]);
+  });
+
+  it("maps items to subtractive adjustments", () => {
+    expect(
+      presetItemsToAdjustments(
+        [{ name: "Riz", category: "aisle", quantity: "1 kg" }],
+        "remove",
+      ),
+    ).toEqual([
+      { name: "Riz", category: "aisle", addQuantities: [], removeQuantities: ["1 kg"] },
+    ]);
+  });
+
+  it("groups items sharing a name into one adjustment", () => {
+    expect(
+      presetItemsToAdjustments(
+        [
+          { name: "Riz", category: "aisle", quantity: "1 kg" },
+          { name: "Riz", category: "aisle", quantity: "500 g" },
+          { name: "Lait", category: "fridge", quantity: "1 L" },
+        ],
+        "add",
+      ),
+    ).toEqual([
+      { name: "Riz", category: "aisle", addQuantities: ["1 kg", "500 g"], removeQuantities: [] },
+      { name: "Lait", category: "fridge", addQuantities: ["1 L"], removeQuantities: [] },
+    ]);
+  });
+
+  it("activation then deactivation nets back to the original quantity", () => {
+    const preset = [{ name: "Riz", category: "aisle" as const, quantity: "1 kg" }];
+    const [addAdj] = presetItemsToAdjustments(preset, "add");
+    const afterAdd = adjustQuantityString("2 kg", addAdj!.addQuantities, addAdj!.removeQuantities);
+    expect(afterAdd).toBe("3 kg");
+
+    const [removeAdj] = presetItemsToAdjustments(preset, "remove");
+    const afterRemove = adjustQuantityString(afterAdd, removeAdj!.addQuantities, removeAdj!.removeQuantities);
+    expect(afterRemove).toBe("2 kg");
+  });
+
+  it("deactivation drops an item that nets to zero", () => {
+    const preset = [{ name: "Riz", category: "aisle" as const, quantity: "1 kg" }];
+    const [removeAdj] = presetItemsToAdjustments(preset, "remove");
+    expect(adjustQuantityString("1 kg", removeAdj!.addQuantities, removeAdj!.removeQuantities)).toBeNull();
   });
 });

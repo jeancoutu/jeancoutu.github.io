@@ -281,6 +281,92 @@ export interface Database {
           },
         ];
       };
+      grocery_presets: {
+        Row: {
+          id: string;
+          household_id: string;
+          name: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          household_id?: string;
+          name: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          household_id?: string;
+          name?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      grocery_preset_items: {
+        Row: {
+          id: string;
+          preset_id: string;
+          name: string;
+          quantity: string;
+          category: IngredientCategoryEnum;
+        };
+        Insert: {
+          id?: string;
+          preset_id: string;
+          name: string;
+          quantity?: string;
+          category: IngredientCategoryEnum;
+        };
+        Update: {
+          id?: string;
+          preset_id?: string;
+          name?: string;
+          quantity?: string;
+          category?: IngredientCategoryEnum;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "grocery_preset_items_preset_id_fkey";
+            columns: ["preset_id"];
+            isOneToOne: false;
+            referencedRelation: "grocery_presets";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      weekly_plan_grocery_presets: {
+        Row: {
+          weekly_plan_id: string;
+          preset_id: string;
+          created_at: string;
+        };
+        Insert: {
+          weekly_plan_id: string;
+          preset_id: string;
+          created_at?: string;
+        };
+        Update: {
+          weekly_plan_id?: string;
+          preset_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "weekly_plan_grocery_presets_weekly_plan_id_fkey";
+            columns: ["weekly_plan_id"];
+            isOneToOne: false;
+            referencedRelation: "weekly_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "weekly_plan_grocery_presets_preset_id_fkey";
+            columns: ["preset_id"];
+            isOneToOne: false;
+            referencedRelation: "grocery_presets";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {

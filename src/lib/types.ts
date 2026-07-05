@@ -33,6 +33,14 @@ export interface Meal {
   instructions: string[];
 }
 
+export type GroceryPresetItem = Ingredient;
+
+export interface GroceryPreset {
+  id: string;
+  name: string;
+  items: GroceryPresetItem[];
+}
+
 export type DayKey =
   | "monday"
   | "tuesday"

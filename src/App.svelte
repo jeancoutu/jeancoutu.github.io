@@ -8,8 +8,10 @@
   import AuthGate from "./lib/components/AuthGate.svelte";
   import PendingInviteBanner from "./lib/components/PendingInviteBanner.svelte";
   import Settings from "./routes/settings/Settings.svelte";
+  import PresetsList from "./routes/presets/PresetsList.svelte";
+  import PresetDetail from "./routes/presets/[id]/PresetDetail.svelte";
 
-  let showNav = $derived(router.current.name !== "meal");
+  let showNav = $derived(router.current.name !== "meal" && router.current.name !== "preset");
 
   $effect(() => {
     document.title = $_(`app.title`);
@@ -26,6 +28,10 @@
         <Meals />
       {:else if router.current.name === "meal"}
         <MealDetail id={router.current.id} />
+      {:else if router.current.name === "presets"}
+        <PresetsList />
+      {:else if router.current.name === "preset"}
+        <PresetDetail id={router.current.id} />
       {:else if router.current.name === "settings"}
         <Settings />
       {/if}

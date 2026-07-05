@@ -122,6 +122,30 @@ export function computeGroceryAdjustments(
   return adjustments;
 }
 
+// Converts a grocery preset's items into adjustments that either merge them
+// into ("add") or subtract them from ("remove") a week's grocery items.
+// Items sharing a name are grouped so each name yields a single adjustment.
+export function presetItemsToAdjustments(
+  items: { name: string; quantity: string; category: IngredientCategory }[],
+  direction: "add" | "remove",
+): GroceryAdjustment[] {
+  const byName = new Map<string, GroceryAdjustment>();
+  for (const item of items) {
+    let adj = byName.get(item.name);
+    if (!adj) {
+      adj = {
+        name: item.name,
+        category: item.category,
+        addQuantities: [],
+        removeQuantities: [],
+      };
+      byName.set(item.name, adj);
+    }
+    (direction === "add" ? adj.addQuantities : adj.removeQuantities).push(item.quantity);
+  }
+  return [...byName.values()];
+}
+
 // Adjusts a formatted quantity string by adding and subtracting individual quantity strings.
 // Returns null if the net result drops to zero or below.
 export function adjustQuantityString(
