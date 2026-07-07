@@ -130,5 +130,22 @@
   "presets.errors.name": "Please enter a preset name.",
   "presets.errors.save": "Failed to save preset. Please try again.",
   "presets.errors.delete": "Failed to delete preset. Please try again.",
-  "grocery.presets.label": "Grocery presets"
+  "grocery.presets.label": "Grocery presets",
+  "sync.offline": "Offline",
+  "sync.error": "Sync error — retrying",
+  "sync.pendingCount": "{n, plural, one {# change pending} other {# changes pending}}",
+  "sync.dismiss": "Dismiss",
+  "sync.conflict.entity.meal": "meal",
+  "sync.conflict.entity.groceryPreset": "grocery preset",
+  "sync.conflict.entity.weeklyPlan": "weekly plan",
+  "sync.conflict.entity.groceryItem": "grocery item",
+  "sync.conflict.entity.generic": "item",
+  "sync.conflictToast": "Your change to a {entity} was overwritten by a newer update.",
+  "sync.conflictToastNamed": "Your edit to \"{name}\" was overwritten by a newer change.",
+  "settings.account.title": "Account",
+  "settings.account.signOut": "Sign out",
+  "settings.account.signOutConfirmTitle": "Unsynced changes",
+  "settings.account.signOutWarning": "{n, plural, one {You have 1 unsynced change} other {You have {n} unsynced changes}} that will be lost if you sign out now.",
+  "settings.account.signOutAnyway": "Sign out anyway",
+  "settings.account.cancel": "Cancel"
 }

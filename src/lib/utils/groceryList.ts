@@ -261,7 +261,11 @@ export function formatGroceryQuantities(quantities: string[]): string {
   const groups: Array<{ total: number; unit: string }> = [];
   const unparsed: string[] = [];
 
-  for (const q of quantities) {
+  // Split on ", " (separator) but not a bare "," (French decimal, e.g. "1,5 kg"),
+  // since a quantity here may already be a comma-joined result of a prior format pass.
+  const parts = quantities.flatMap((q) => q.split(/,\s+/));
+
+  for (const q of parts) {
     const p = parseQuantity(q);
     if (!p) {
       unparsed.push(q);

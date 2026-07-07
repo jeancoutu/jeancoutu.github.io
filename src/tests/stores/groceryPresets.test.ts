@@ -1,39 +1,76 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { GroceryPreset } from "../../lib/types";
 
-const mockGetGroceryPresets = vi.fn<() => Promise<GroceryPreset[]>>();
-const mockCreateGroceryPreset = vi.fn<(input: Omit<GroceryPreset, "id">) => Promise<GroceryPreset>>();
-const mockUpdateGroceryPreset = vi.fn<(id: string, input: Omit<GroceryPreset, "id">) => Promise<GroceryPreset>>();
-const mockDeleteGroceryPreset = vi.fn<(id: string) => Promise<void>>();
-const mockGetActivePresetIds = vi.fn<(weekStart: string) => Promise<string[]>>();
-const mockActivatePreset = vi.fn();
-const mockDeactivatePreset = vi.fn();
+const mockGetByWeek = vi.fn();
+const mockSetPresetActive = vi.fn();
 
-vi.mock("../../lib/api/groceryPresets", () => ({
-  getGroceryPresets: () => mockGetGroceryPresets(),
-  createGroceryPreset: (input: Omit<GroceryPreset, "id">) => mockCreateGroceryPreset(input),
-  updateGroceryPreset: (id: string, input: Omit<GroceryPreset, "id">) => mockUpdateGroceryPreset(id, input),
-  deleteGroceryPreset: (id: string) => mockDeleteGroceryPreset(id),
-  getActivePresetIds: (weekStart: string) => mockGetActivePresetIds(weekStart),
-  activatePreset: (...args: unknown[]) => mockActivatePreset(...args),
-  deactivatePreset: (...args: unknown[]) => mockDeactivatePreset(...args),
+vi.mock("../../lib/repos/weeklyPlanRepo", () => ({
+  weeklyPlanRepo: {
+    getByWeek: (...args: unknown[]) => mockGetByWeek(...args),
+    setPresetActive: (...args: unknown[]) => mockSetPresetActive(...args),
+    getOrCreate: vi.fn(),
+    save: vi.fn(),
+    setPlan: vi.fn(),
+    getMealIds: vi.fn().mockResolvedValue(new Set()),
+    clearPlan: vi.fn(),
+    dismissIngredient: vi.fn(),
+    undismissIngredient: vi.fn(),
+  },
+}));
+
+const mockApplyAdjustments = vi.fn();
+
+vi.mock("../../lib/repos/groceryItemRepo", () => ({
+  groceryItemRepo: {
+    applyAdjustments: (...args: unknown[]) => mockApplyAdjustments(...args),
+    getForPlan: vi.fn().mockResolvedValue([]),
+    upsert: vi.fn(),
+    delete: vi.fn(),
+    deleteAll: vi.fn(),
+    replaceAll: vi.fn(),
+  },
+}));
+
+vi.mock("../../lib/repos/groceryPresetRepo", () => ({
+  groceryPresetRepo: {
+    getAll: vi.fn().mockResolvedValue([]),
+    create: vi.fn().mockImplementation((payload) =>
+      Promise.resolve({ id: "p-new", ...payload }),
+    ),
+    update: vi.fn().mockImplementation((id, payload) =>
+      Promise.resolve({ id, ...payload }),
+    ),
+    delete: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+vi.mock("../../lib/repos/mealRepo", () => ({
+  mealRepo: {
+    getAll: vi.fn().mockResolvedValue([]),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  },
 }));
 
 describe("groceryPresets store", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
-    mockGetGroceryPresets.mockResolvedValue([]);
-    mockCreateGroceryPreset.mockImplementation(async (input) => ({ id: "p-new", ...input }));
-    mockUpdateGroceryPreset.mockImplementation(async (id, input) => ({ id, ...input }));
-    mockDeleteGroceryPreset.mockResolvedValue(undefined);
-    mockGetActivePresetIds.mockResolvedValue([]);
-    mockActivatePreset.mockResolvedValue(null);
-    mockDeactivatePreset.mockResolvedValue(null);
+    mockGetByWeek.mockResolvedValue(undefined);
+    mockSetPresetActive.mockImplementation(async (weekStart: string, presetId: string, active: boolean) => ({
+      id: "plan-1",
+      weekStart,
+      plan: {},
+      dismissedNames: [],
+      presetIds: active ? [presetId] : [],
+    }));
+    mockApplyAdjustments.mockResolvedValue([]);
   });
 
   async function importStore() {
     const { weeklyPlan } = await import("../../lib/stores/weeklyPlan.svelte");
+    const { groceryPresetRepo } = await import("../../lib/repos/groceryPresetRepo");
     const {
       groceryPresets,
       addPreset,
@@ -42,7 +79,16 @@ describe("groceryPresets store", () => {
       getPresetById,
       togglePresetForWeek,
     } = await import("../../lib/stores/groceryPresets.svelte");
-    return { weeklyPlan, groceryPresets, addPreset, updatePresetById, deletePresetById, getPresetById, togglePresetForWeek };
+    return {
+      weeklyPlan,
+      groceryPresets,
+      addPreset,
+      updatePresetById,
+      deletePresetById,
+      getPresetById,
+      togglePresetForWeek,
+      groceryPresetRepo,
+    };
   }
 
   it("starts with no presets and no active ids", async () => {
@@ -51,27 +97,27 @@ describe("groceryPresets store", () => {
     expect(groceryPresets.activeForWeek.size).toBe(0);
   });
 
-  it("addPreset creates via API and adds it to the store", async () => {
-    const { groceryPresets, addPreset } = await importStore();
-    const preset = await addPreset({ name: "  Pantry  ", items: [] });
+  it("addPreset creates via the repo and adds it to the store", async () => {
+    const { groceryPresets, addPreset, groceryPresetRepo } = await importStore();
+    const preset: GroceryPreset = await addPreset({ name: "  Pantry  ", items: [] });
     expect(preset.name).toBe("Pantry");
     expect(groceryPresets.all).toHaveLength(1);
-    expect(mockCreateGroceryPreset).toHaveBeenCalledWith({ name: "Pantry", items: [] });
+    expect(groceryPresetRepo.create).toHaveBeenCalledWith({ name: "Pantry", items: [] });
   });
 
   it("addPreset trims item fields and defaults blank quantities to '1'", async () => {
-    const { addPreset } = await importStore();
+    const { addPreset, groceryPresetRepo } = await importStore();
     await addPreset({
       name: "Pantry",
       items: [{ name: " Riz ", quantity: "  ", category: "aisle" }],
     });
-    expect(mockCreateGroceryPreset).toHaveBeenCalledWith({
+    expect(groceryPresetRepo.create).toHaveBeenCalledWith({
       name: "Pantry",
       items: [{ name: "Riz", quantity: "1", category: "aisle" }],
     });
   });
 
-  it("updatePresetById updates via API and replaces the stored preset", async () => {
+  it("updatePresetById updates via the repo and replaces the stored preset", async () => {
     const { groceryPresets, addPreset, updatePresetById } = await importStore();
     const preset = await addPreset({ name: "Pantry", items: [] });
     await updatePresetById(preset.id, {
@@ -83,7 +129,8 @@ describe("groceryPresets store", () => {
   });
 
   it("deletePresetById removes the preset and its active-week entries", async () => {
-    const { groceryPresets, addPreset, deletePresetById, togglePresetForWeek } = await importStore();
+    const { groceryPresets, addPreset, deletePresetById, togglePresetForWeek, groceryPresetRepo } =
+      await importStore();
     const preset = await addPreset({ name: "Pantry", items: [] });
     await togglePresetForWeek(preset.id);
     expect(groceryPresets.activeForWeek.has(preset.id)).toBe(true);
@@ -91,7 +138,7 @@ describe("groceryPresets store", () => {
     await deletePresetById(preset.id);
     expect(groceryPresets.all).toHaveLength(0);
     expect(groceryPresets.activeForWeek.has(preset.id)).toBe(false);
-    expect(mockDeleteGroceryPreset).toHaveBeenCalledWith(preset.id);
+    expect(groceryPresetRepo.delete).toHaveBeenCalledWith(preset.id);
   });
 
   it("getPresetById finds a preset", async () => {
@@ -110,10 +157,10 @@ describe("groceryPresets store", () => {
 
     await togglePresetForWeek(preset.id);
 
-    expect(mockActivatePreset).toHaveBeenCalledWith(
-      weeklyPlan.selectedWeek,
-      preset.id,
-      [{ name: "Riz", quantity: "1 kg", category: "aisle" }],
+    expect(mockSetPresetActive).toHaveBeenCalledWith(weeklyPlan.selectedWeek, preset.id, true);
+    expect(mockApplyAdjustments).toHaveBeenCalledWith(
+      "plan-1",
+      [{ name: "Riz", category: "aisle", addQuantities: ["1 kg"], removeQuantities: [] }],
     );
     expect(groceryPresets.activeForWeek.has(preset.id)).toBe(true);
   });
@@ -125,15 +172,14 @@ describe("groceryPresets store", () => {
     await togglePresetForWeek(preset.id);
     await togglePresetForWeek(preset.id);
 
-    expect(mockDeactivatePreset).toHaveBeenCalledWith(weeklyPlan.selectedWeek, preset.id, []);
+    expect(mockSetPresetActive).toHaveBeenLastCalledWith(weeklyPlan.selectedWeek, preset.id, false);
     expect(groceryPresets.activeForWeek.has(preset.id)).toBe(false);
   });
 
   it("togglePresetForWeek does nothing for an unknown preset", async () => {
     const { togglePresetForWeek } = await importStore();
     await togglePresetForWeek("nope");
-    expect(mockActivatePreset).not.toHaveBeenCalled();
-    expect(mockDeactivatePreset).not.toHaveBeenCalled();
+    expect(mockSetPresetActive).not.toHaveBeenCalled();
   });
 
   it("togglePresetForWeek updates the grocery list with returned items", async () => {
@@ -143,7 +189,7 @@ describe("groceryPresets store", () => {
       name: "Pantry",
       items: [{ name: "Riz", quantity: "1 kg", category: "aisle" }],
     });
-    mockActivatePreset.mockResolvedValue([
+    mockApplyAdjustments.mockResolvedValue([
       { id: "g1", name: "Riz", quantity: "1 kg", category: "aisle", checked: false },
     ]);
 

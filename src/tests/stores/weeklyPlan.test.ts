@@ -1,38 +1,89 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-vi.mock("../../lib/api/plan", () => ({
-  getWeeklyPlan: vi.fn().mockResolvedValue({ plan: {}, dismissedNames: [] }),
-  setMealSlot: vi.fn().mockResolvedValue("mock-weekly-plan-id"),
-  setDayNote: vi.fn().mockResolvedValue(undefined),
-  clearWeekData: vi.fn().mockResolvedValue(undefined),
-  bulkSetWeekPlan: vi.fn().mockResolvedValue(undefined),
-  getWeekMealIds: vi.fn().mockResolvedValue(new Set()),
+function planRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "plan-1",
+    weekStart: "mock-week",
+    plan: {},
+    dismissedNames: [],
+    presetIds: [],
+    version: 1,
+    updatedAt: "now",
+    deletedAt: null,
+    ...overrides,
+  };
+}
+
+const mockGetByWeek = vi.fn();
+const mockGetOrCreate = vi.fn();
+const mockSave = vi.fn();
+const mockSetPlan = vi.fn();
+const mockGetMealIds = vi.fn();
+const mockClearPlan = vi.fn();
+const mockDismissIngredient = vi.fn();
+const mockUndismissIngredient = vi.fn();
+
+vi.mock("../../lib/repos/weeklyPlanRepo", () => ({
+  weeklyPlanRepo: {
+    getByWeek: (...args: unknown[]) => mockGetByWeek(...args),
+    getOrCreate: (...args: unknown[]) => mockGetOrCreate(...args),
+    save: (...args: unknown[]) => mockSave(...args),
+    setPlan: (...args: unknown[]) => mockSetPlan(...args),
+    getMealIds: (...args: unknown[]) => mockGetMealIds(...args),
+    clearPlan: (...args: unknown[]) => mockClearPlan(...args),
+    dismissIngredient: (...args: unknown[]) => mockDismissIngredient(...args),
+    undismissIngredient: (...args: unknown[]) => mockUndismissIngredient(...args),
+  },
 }));
 
-vi.mock("../../lib/api/meals", () => ({
-  getMeals: vi.fn().mockResolvedValue([]),
-  createMeal: vi.fn(),
-  updateMeal: vi.fn(),
-  deleteMeal: vi.fn(),
+const mockApplyAdjustments = vi.fn();
+const mockDeleteAll = vi.fn();
+const mockReplaceAll = vi.fn();
+const mockDeleteItem = vi.fn();
+
+vi.mock("../../lib/repos/groceryItemRepo", () => ({
+  groceryItemRepo: {
+    applyAdjustments: (...args: unknown[]) => mockApplyAdjustments(...args),
+    deleteAll: (...args: unknown[]) => mockDeleteAll(...args),
+    replaceAll: (...args: unknown[]) => mockReplaceAll(...args),
+    delete: (...args: unknown[]) => mockDeleteItem(...args),
+  },
 }));
 
-vi.mock("../../lib/api/groceryList", () => ({
-  bulkReplaceGroceryItems: vi.fn().mockResolvedValue(undefined),
-  applyGroceryAdjustments: vi.fn().mockResolvedValue(null),
-  deleteGroceryItem: vi.fn().mockResolvedValue(undefined),
+vi.mock("../../lib/repos/mealRepo", () => ({
+  mealRepo: {
+    getAll: vi.fn().mockResolvedValue([]),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  },
 }));
 
 describe("weeklyPlan store", () => {
   beforeEach(() => {
     vi.resetModules();
+    vi.clearAllMocks();
+    mockGetByWeek.mockResolvedValue(undefined);
+    mockGetOrCreate.mockImplementation(async (weekStart: string) => planRow({ weekStart }));
+    mockSave.mockImplementation(async (row: ReturnType<typeof planRow>, patch: Record<string, unknown>) => ({
+      ...row,
+      ...patch,
+    }));
+    mockSetPlan.mockImplementation(async (weekStart: string, plan: unknown) => planRow({ weekStart, plan }));
+    mockGetMealIds.mockResolvedValue(new Set());
+    mockClearPlan.mockResolvedValue(planRow());
+    mockDismissIngredient.mockResolvedValue(planRow());
+    mockUndismissIngredient.mockResolvedValue(planRow());
+    mockApplyAdjustments.mockResolvedValue(null);
+    mockDeleteAll.mockResolvedValue(undefined);
+    mockReplaceAll.mockResolvedValue([]);
+    mockDeleteItem.mockResolvedValue(undefined);
   });
 
   async function importStore() {
     const { weeklyPlan } = await import("../../lib/stores/weeklyPlan.svelte");
-    const { setMealSlot, setDayNote, clearWeekData, getWeeklyPlan, bulkSetWeekPlan, getWeekMealIds } =
-      await import("../../lib/api/plan");
     const { meals } = await import("../../lib/stores/meals.svelte");
-    return { weeklyPlan, setMealSlot, setDayNote, clearWeekData, getWeeklyPlan, bulkSetWeekPlan, getWeekMealIds, meals };
+    return { weeklyPlan, meals };
   }
 
   it("starts with empty plan for current week", async () => {
@@ -40,11 +91,11 @@ describe("weeklyPlan store", () => {
     expect(weeklyPlan.current).toEqual({});
   });
 
-  it("setDay calls setMealSlot API and updates the plan", async () => {
-    const { weeklyPlan, setMealSlot } = await importStore();
+  it("setDay creates/updates the weekly plan row and updates the plan", async () => {
+    const { weeklyPlan } = await importStore();
     const week = weeklyPlan.selectedWeek;
     await weeklyPlan.setDay("monday", "supper", "meal-abc");
-    expect(setMealSlot).toHaveBeenCalledWith(week, "monday", "supper", "meal-abc");
+    expect(mockGetOrCreate).toHaveBeenCalledWith(week);
     expect(weeklyPlan.current.monday?.supper).toBe("meal-abc");
   });
 
@@ -62,11 +113,13 @@ describe("weeklyPlan store", () => {
     expect(weeklyPlan.current.monday).toBeUndefined();
   });
 
-  it("clearWeek calls clearWeekData and empties the plan", async () => {
-    const { weeklyPlan, clearWeekData } = await importStore();
+  it("clearWeek clears the plan row and grocery items", async () => {
+    const { weeklyPlan } = await importStore();
     await weeklyPlan.setDay("monday", "supper", "meal-1");
+    mockClearPlan.mockResolvedValue(planRow({ id: "plan-1" }));
     await weeklyPlan.clearWeek();
-    expect(clearWeekData).toHaveBeenCalled();
+    expect(mockClearPlan).toHaveBeenCalled();
+    expect(mockDeleteAll).toHaveBeenCalledWith("plan-1");
     expect(weeklyPlan.current).toEqual({});
   });
 
@@ -78,28 +131,28 @@ describe("weeklyPlan store", () => {
     expect(weeklyPlan.current.monday?.supper).toBe("meal-x");
   });
 
-  it("importPlan calls bulkSetWeekPlan with the given plan", async () => {
-    const { weeklyPlan, bulkSetWeekPlan } = await importStore();
+  it("importPlan calls setPlan with the given plan", async () => {
+    const { weeklyPlan } = await importStore();
     const plan = { monday: { supper: "meal-a" }, tuesday: { diner: "meal-b" } };
     await weeklyPlan.importPlan(plan, "2025-W02");
-    expect(bulkSetWeekPlan).toHaveBeenCalledWith("2025-W02", plan);
+    expect(mockSetPlan).toHaveBeenCalledWith("2025-W02", plan);
   });
 
   it("setSelectedWeek switches the active week and loads it if not cached", async () => {
-    const { weeklyPlan, getWeeklyPlan } = await importStore();
-    vi.mocked(getWeeklyPlan).mockResolvedValue({ plan: { friday: { supper: "meal-z" } }, dismissedNames: [] });
+    const { weeklyPlan } = await importStore();
+    mockGetByWeek.mockResolvedValue(planRow({ plan: { friday: { supper: "meal-z" } } }));
     await weeklyPlan.setSelectedWeek("2025-W10");
     expect(weeklyPlan.selectedWeek).toBe("2025-W10");
-    expect(getWeeklyPlan).toHaveBeenCalledWith("2025-W10");
+    expect(mockGetByWeek).toHaveBeenCalledWith("2025-W10");
   });
 
   it("setSelectedWeek does not reload if week is already cached", async () => {
-    const { weeklyPlan, getWeeklyPlan } = await importStore();
-    vi.mocked(getWeeklyPlan).mockClear();
+    const { weeklyPlan } = await importStore();
+    mockGetByWeek.mockClear();
     await weeklyPlan.setSelectedWeek("2025-W11");
-    const callCount = vi.mocked(getWeeklyPlan).mock.calls.length;
+    const callCount = mockGetByWeek.mock.calls.length;
     await weeklyPlan.setSelectedWeek("2025-W11");
-    expect(vi.mocked(getWeeklyPlan).mock.calls.length).toBe(callCount);
+    expect(mockGetByWeek.mock.calls.length).toBe(callCount);
   });
 
   it("getSnapshot returns a copy of the current plan", async () => {
@@ -123,11 +176,9 @@ describe("weeklyPlan store", () => {
     expect(all[week]?.thursday?.supper).toBe("meal-all");
   });
 
-  it("setDayNote calls the API and updates the plan", async () => {
-    const { weeklyPlan, setDayNote } = await importStore();
-    const week = weeklyPlan.selectedWeek;
+  it("setDayNote updates the plan", async () => {
+    const { weeklyPlan } = await importStore();
     await weeklyPlan.setDayNote("monday", "Leftovers night");
-    expect(setDayNote).toHaveBeenCalledWith(week, "monday", "Leftovers night");
     expect(weeklyPlan.current.monday?.note).toBe("Leftovers night");
   });
 
@@ -162,6 +213,21 @@ describe("weeklyPlan store", () => {
     expect(weeklyPlan.current.friday?.note).toBe("Keep this note");
   });
 
+  it("dismissIngredient marks the name dismissed and deletes the grocery item", async () => {
+    const { weeklyPlan } = await importStore();
+    await weeklyPlan.dismissIngredient("Garlic", "item-1");
+    expect(weeklyPlan.dismissedIngredients).toContain("Garlic");
+    expect(mockDismissIngredient).toHaveBeenCalledWith(weeklyPlan.selectedWeek, "Garlic");
+    expect(mockDeleteItem).toHaveBeenCalledWith("item-1");
+  });
+
+  it("undismissIngredient removes the name from the dismissed list", async () => {
+    const { weeklyPlan } = await importStore();
+    await weeklyPlan.dismissIngredient("Garlic");
+    await weeklyPlan.undismissIngredient("Garlic");
+    expect(weeklyPlan.dismissedIngredients).not.toContain("Garlic");
+  });
+
   describe("autoFillWeek", () => {
     function makeMeal(id: string, supperDays: string[]) {
       return {
@@ -176,7 +242,7 @@ describe("weeklyPlan store", () => {
     }
 
     it("avoids a meal used last week when other eligible meals exist", async () => {
-      const { weeklyPlan, meals, getWeekMealIds } = await importStore();
+      const { weeklyPlan, meals } = await importStore();
       const allDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
       meals.all = [
         makeMeal("a", allDays),
@@ -188,7 +254,7 @@ describe("weeklyPlan store", () => {
         makeMeal("g", allDays),
         makeMeal("h", allDays),
       ];
-      vi.mocked(getWeekMealIds).mockResolvedValue(new Set(["a"]));
+      mockGetMealIds.mockResolvedValue(new Set(["a"]));
 
       await weeklyPlan.autoFillWeek();
 
@@ -199,9 +265,9 @@ describe("weeklyPlan store", () => {
     });
 
     it("falls back to a previous-week meal when it's the only eligible option", async () => {
-      const { weeklyPlan, meals, getWeekMealIds } = await importStore();
+      const { weeklyPlan, meals } = await importStore();
       meals.all = [makeMeal("a", ["monday"])];
-      vi.mocked(getWeekMealIds).mockResolvedValue(new Set(["a"]));
+      mockGetMealIds.mockResolvedValue(new Set(["a"]));
 
       await weeklyPlan.autoFillWeek();
 
@@ -209,9 +275,9 @@ describe("weeklyPlan store", () => {
     });
 
     it("behaves as before when there is no previous week's plan", async () => {
-      const { weeklyPlan, meals, getWeekMealIds } = await importStore();
+      const { weeklyPlan, meals } = await importStore();
       meals.all = [makeMeal("a", ["monday"])];
-      vi.mocked(getWeekMealIds).mockResolvedValue(new Set());
+      mockGetMealIds.mockResolvedValue(new Set());
 
       await weeklyPlan.autoFillWeek();
 

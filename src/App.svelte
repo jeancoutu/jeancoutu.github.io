@@ -7,6 +7,7 @@
   import MealDetail from "./routes/meal/[id]/MealDetail.svelte";
   import AuthGate from "./lib/components/AuthGate.svelte";
   import PendingInviteBanner from "./lib/components/PendingInviteBanner.svelte";
+  import ConflictToast from "./lib/components/ConflictToast.svelte";
   import Settings from "./routes/settings/Settings.svelte";
   import PresetsList from "./routes/presets/PresetsList.svelte";
   import PresetDetail from "./routes/presets/[id]/PresetDetail.svelte";
@@ -19,6 +20,7 @@
 </script>
 
 <AuthGate>
+  <ConflictToast />
   <PendingInviteBanner />
   <div class="mx-auto flex min-h-full w-full max-w-lg flex-col">
     <main class="flex-1 px-4 pt-4 {showNav ? 'pb-24' : 'pb-4'}">

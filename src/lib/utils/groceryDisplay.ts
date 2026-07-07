@@ -1,4 +1,4 @@
-import type { GroceryDBItem } from "../api/groceryList";
+import type { GroceryDBItem } from "../repos/groceryItemRepo";
 import type { IngredientCategory } from "../types";
 import type { GroceryItem } from "./groceryList";
 

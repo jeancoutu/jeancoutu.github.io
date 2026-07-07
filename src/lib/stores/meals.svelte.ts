@@ -1,12 +1,8 @@
 import type { DayKey, DurationTag, Ingredient, Meal } from "../types";
 import { DAYS, INGREDIENT_CATEGORIES } from "../types";
-import {
-  createMeal,
-  deleteMeal,
-  getMeals,
-  updateMeal,
-} from "../api/meals";
+import { mealRepo } from "../repos/mealRepo";
 import { onUserChange } from "./auth.svelte";
+import { onSynced } from "../sync/status.svelte";
 
 const VALID_DAYS = new Set<DayKey>(DAYS.map((day) => day.key));
 const VALID_CATEGORIES = new Set(INGREDIENT_CATEGORIES);
@@ -62,8 +58,21 @@ class MealsStore {
 
 export const meals = new MealsStore();
 
+async function refreshMeals(): Promise<void> {
+  meals.all = await mealRepo.getAll();
+}
+
+// Reads always come from IndexedDB, not the network, so this works offline
+// with a cached session. A logout/switch wipes IndexedDB (see src/lib/db),
+// which the next pull/refresh will reflect as an empty list.
 onUserChange(async ($session) => {
-  meals.all = $session ? await getMeals() : [];
+  meals.all = $session ? await mealRepo.getAll() : [];
+});
+
+// Cross-device / realtime changes land in Dexie via the sync engine, not
+// through these store functions, so re-read after every successful sync.
+onSynced(() => {
+  void refreshMeals();
 });
 
 export function getMealById(id: string): Meal | undefined {
@@ -71,7 +80,7 @@ export function getMealById(id: string): Meal | undefined {
 }
 
 export async function addMeal(input: CustomMealInput): Promise<Meal> {
-  const meal = await createMeal(buildMealInput(input));
+  const meal = await mealRepo.create(buildMealInput(input));
   meals.all = [...meals.all, meal];
   return meal;
 }
@@ -80,12 +89,12 @@ export async function updateMealById(
   id: string,
   input: CustomMealInput,
 ): Promise<Meal> {
-  const meal = await updateMeal(id, buildMealInput(input));
+  const meal = await mealRepo.update(id, buildMealInput(input));
   meals.all = meals.all.map((m) => (m.id === id ? meal : m));
   return meal;
 }
 
 export async function deleteMealById(id: string): Promise<void> {
-  await deleteMeal(id);
+  await mealRepo.delete(id);
   meals.all = meals.all.filter((m) => m.id !== id);
 }

@@ -6,18 +6,12 @@ import { mealsEligibleForSupper } from "../utils/supperDays";
 import { shuffle } from "../utils/shuffle";
 import { getWeekSaturday, toWeekKey, addWeeks, parseWeekKey } from "../utils/weekDates";
 import { onUserChange } from "./auth.svelte";
-import {
-  getWeeklyPlan,
-  setMealSlot,
-  setDayNote,
-  clearWeekData,
-  bulkSetWeekPlan,
-  getWeekMealIds,
-  dismissIngredient as apiDismissIngredient,
-  undismissIngredient as apiUndismissIngredient,
-} from "../api/plan";
-import { bulkReplaceGroceryItems, applyGroceryAdjustments, deleteGroceryItem, type GroceryDBItem } from "../api/groceryList";
+import { onSynced } from "../sync/status.svelte";
+import { weeklyPlanRepo } from "../repos/weeklyPlanRepo";
+import { groceryItemRepo, type GroceryDBItem } from "../repos/groceryItemRepo";
 import { getPlannedMeals, buildGroceryList, formatGroceryQuantities, computeGroceryAdjustments } from "../utils/groceryList";
+
+export type { GroceryDBItem };
 
 const defaultWeek = toWeekKey(getWeekSaturday());
 
@@ -30,9 +24,9 @@ class WeeklyPlanStore {
   dismissedIngredients = $derived(this.dismissedNamesPerWeek[this.selectedWeek] ?? []);
 
   async #loadWeek(week: string): Promise<void> {
-    const { plan, dismissedNames } = await getWeeklyPlan(week);
-    this.plans = { ...this.plans, [week]: plan };
-    this.dismissedNamesPerWeek = { ...this.dismissedNamesPerWeek, [week]: dismissedNames };
+    const row = await weeklyPlanRepo.getByWeek(week);
+    this.plans = { ...this.plans, [week]: row?.plan ?? {} };
+    this.dismissedNamesPerWeek = { ...this.dismissedNamesPerWeek, [week]: row?.dismissedNames ?? [] };
   }
 
   async #updateSlot(
@@ -43,9 +37,9 @@ class WeeklyPlanStore {
     const week = this.selectedWeek;
     const id = mealId ?? null;
     const oldPlan = this.plans[week] ?? {};
+    const row = await weeklyPlanRepo.getOrCreate(week);
 
-    const weeklyPlanId = await setMealSlot(week, day, slot, id);
-    const current = { ...(this.plans[week] ?? {}) };
+    const current = { ...oldPlan };
     const dayEntry = { ...(current[day] ?? {}) };
     if (id) {
       dayEntry[slot] = id;
@@ -57,12 +51,13 @@ class WeeklyPlanStore {
     } else {
       delete current[day];
     }
-    this.plans = { ...this.plans, [week]: current };
 
-    const newPlan = this.plans[week] ?? {};
-    const adjustments = computeGroceryAdjustments(oldPlan, newPlan, getMealById);
-    const dismissedNames = this.dismissedNamesPerWeek[week] ?? [];
-    return applyGroceryAdjustments(week, adjustments, weeklyPlanId, dismissedNames);
+    const updatedRow = await weeklyPlanRepo.save(row, { plan: current });
+    this.plans = { ...this.plans, [week]: updatedRow.plan };
+
+    const adjustments = computeGroceryAdjustments(oldPlan, updatedRow.plan, getMealById);
+    if (adjustments.length === 0) return null;
+    return groceryItemRepo.applyAdjustments(updatedRow.id, adjustments, updatedRow.dismissedNames);
   }
 
   async setSelectedWeek(weekKey: string): Promise<void> {
@@ -79,7 +74,7 @@ class WeeklyPlanStore {
 
   async setDayNote(day: DayKey, note: string | null): Promise<void> {
     const week = this.selectedWeek;
-    await setDayNote(week, day, note);
+    const row = await weeklyPlanRepo.getOrCreate(week);
 
     const current = { ...(this.plans[week] ?? {}) };
     const dayEntry = { ...(current[day] ?? {}) };
@@ -93,12 +88,15 @@ class WeeklyPlanStore {
     } else {
       delete current[day];
     }
-    this.plans = { ...this.plans, [week]: current };
+
+    const updatedRow = await weeklyPlanRepo.save(row, { plan: current });
+    this.plans = { ...this.plans, [week]: updatedRow.plan };
   }
 
   async clearWeek(): Promise<void> {
     const week = this.selectedWeek;
-    await clearWeekData(week);
+    const row = await weeklyPlanRepo.clearPlan(week);
+    if (row) await groceryItemRepo.deleteAll(row.id);
     const { [week]: _, ...rest } = this.plans;
     this.plans = rest;
   }
@@ -107,9 +105,8 @@ class WeeklyPlanStore {
     const week = weekStart ?? this.selectedWeek;
     this.selectedWeek = week;
 
-    await bulkSetWeekPlan(week, plan);
-
-    this.plans = { ...this.plans, [week]: plan };
+    const updatedRow = await weeklyPlanRepo.setPlan(week, plan);
+    this.plans = { ...this.plans, [week]: updatedRow.plan };
   }
 
   async autoFillWeek(): Promise<void> {
@@ -129,7 +126,7 @@ class WeeklyPlanStore {
         if (day?.diner) usedIds.add(day.diner);
       }
       const previousWeekKey = toWeekKey(addWeeks(parseWeekKey(week), -1));
-      const previousWeekIds = await getWeekMealIds(previousWeekKey);
+      const previousWeekIds = await weeklyPlanRepo.getMealIds(previousWeekKey);
       for (const { key } of emptySuppers) {
         const candidates = shuffle(
           mealsEligibleForSupper(meals.all, key, usedIds, previousWeekIds),
@@ -165,12 +162,12 @@ class WeeklyPlanStore {
 
     this.plans = { ...this.plans, [week]: current };
 
-    await bulkSetWeekPlan(week, current);
+    const updatedRow = await weeklyPlanRepo.setPlan(week, current);
 
     const plannedMeals = getPlannedMeals(current, getMealById);
     const groceries = buildGroceryList(plannedMeals);
-    await bulkReplaceGroceryItems(
-      week,
+    await groceryItemRepo.replaceAll(
+      updatedRow.id,
       groceries.map((item) => ({
         name: item.name,
         category: item.category,
@@ -202,9 +199,9 @@ class WeeklyPlanStore {
     if (!currentNames.includes(name)) {
       this.dismissedNamesPerWeek = { ...this.dismissedNamesPerWeek, [week]: [...currentNames, name] };
     }
-    await apiDismissIngredient(week, name);
+    await weeklyPlanRepo.dismissIngredient(week, name);
     if (dbId) {
-      await deleteGroceryItem(dbId);
+      await groceryItemRepo.delete(dbId);
     }
   }
 
@@ -214,7 +211,7 @@ class WeeklyPlanStore {
       ...this.dismissedNamesPerWeek,
       [week]: (this.dismissedNamesPerWeek[week] ?? []).filter((n) => n !== name),
     };
-    await apiUndismissIngredient(week, name);
+    await weeklyPlanRepo.undismissIngredient(week, name);
   }
 }
 
@@ -228,4 +225,11 @@ onUserChange(async ($session) => {
     weeklyPlan.dismissedNamesPerWeek = {};
     weeklyPlan.selectedWeek = toWeekKey(getWeekSaturday());
   }
+});
+
+// Cross-device / realtime changes land in Dexie via the sync engine, not
+// through these store functions, so re-read the selected week after every
+// successful sync.
+onSynced(() => {
+  void weeklyPlan.reloadWeek();
 });

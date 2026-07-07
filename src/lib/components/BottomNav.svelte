@@ -1,6 +1,7 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
   import { router, navigate } from "../utils/router.svelte";
+  import SyncIndicator from "./SyncIndicator.svelte";
 
   const tabs = [
     { id: "planner" as const, labelKey: "nav.planner", path: "/planner" },
@@ -24,6 +25,7 @@
   class="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white safe-area-pb"
   aria-label={$_("nav.main")}
 >
+  <SyncIndicator />
   <div class="mx-auto flex max-w-lg">
     {#each tabs as tab}
       <button

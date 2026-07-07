@@ -2,15 +2,11 @@ import type { GroceryPreset } from "../types";
 import { auth, onUserChange } from "./auth.svelte";
 import { weeklyPlan } from "./weeklyPlan.svelte";
 import { setGroceryItemsForWeek } from "./groceryList.svelte";
-import {
-  activatePreset,
-  createGroceryPreset,
-  deactivatePreset,
-  deleteGroceryPreset,
-  getActivePresetIds,
-  getGroceryPresets,
-  updateGroceryPreset,
-} from "../api/groceryPresets";
+import { groceryPresetRepo } from "../repos/groceryPresetRepo";
+import { weeklyPlanRepo } from "../repos/weeklyPlanRepo";
+import { groceryItemRepo } from "../repos/groceryItemRepo";
+import { onSynced } from "../sync/status.svelte";
+import { presetItemsToAdjustments } from "../utils/groceryList";
 
 export interface GroceryPresetInput {
   name: string;
@@ -38,23 +34,36 @@ class GroceryPresetsStore {
 
 export const groceryPresets = new GroceryPresetsStore();
 
+async function refreshPresets(): Promise<void> {
+  groceryPresets.all = await groceryPresetRepo.getAll();
+}
+
 async function loadActiveIds(weekKey: string): Promise<void> {
   try {
-    const ids = await getActivePresetIds(weekKey);
-    groceryPresets.activeIdsByWeek = { ...groceryPresets.activeIdsByWeek, [weekKey]: ids };
+    const row = await weeklyPlanRepo.getByWeek(weekKey);
+    groceryPresets.activeIdsByWeek = { ...groceryPresets.activeIdsByWeek, [weekKey]: row?.presetIds ?? [] };
   } catch (err) {
     console.error("Failed to load active grocery presets:", err);
   }
 }
 
+// Reads always come from IndexedDB, not the network, so this works offline
+// with a cached session. A logout/switch wipes IndexedDB (see src/lib/db),
+// which the next pull/refresh will reflect as an empty list.
 onUserChange(async ($session) => {
   if ($session) {
-    groceryPresets.all = await getGroceryPresets();
+    await refreshPresets();
     await loadActiveIds(weeklyPlan.selectedWeek);
   } else {
     groceryPresets.all = [];
     groceryPresets.activeIdsByWeek = {};
   }
+});
+
+// Cross-device / realtime changes land in Dexie via the sync engine, not
+// through these store functions, so re-read after every successful sync.
+onSynced(() => {
+  void refreshPresets();
 });
 
 $effect.root(() => {
@@ -72,7 +81,7 @@ export function getPresetById(id: string): GroceryPreset | undefined {
 }
 
 export async function addPreset(input: GroceryPresetInput): Promise<GroceryPreset> {
-  const preset = await createGroceryPreset(buildPresetInput(input));
+  const preset = await groceryPresetRepo.create(buildPresetInput(input));
   groceryPresets.all = [...groceryPresets.all, preset];
   return preset;
 }
@@ -81,13 +90,13 @@ export async function updatePresetById(
   id: string,
   input: GroceryPresetInput,
 ): Promise<GroceryPreset> {
-  const preset = await updateGroceryPreset(id, buildPresetInput(input));
+  const preset = await groceryPresetRepo.update(id, buildPresetInput(input));
   groceryPresets.all = groceryPresets.all.map((p) => (p.id === id ? preset : p));
   return preset;
 }
 
 export async function deletePresetById(id: string): Promise<void> {
-  await deleteGroceryPreset(id);
+  await groceryPresetRepo.delete(id);
   groceryPresets.all = groceryPresets.all.filter((p) => p.id !== id);
   // The DB cascades join rows away; mirror that in local per-week active state.
   groceryPresets.activeIdsByWeek = Object.fromEntries(
@@ -105,17 +114,15 @@ export async function togglePresetForWeek(presetId: string): Promise<void> {
   const weekKey = weeklyPlan.selectedWeek;
   const activeIds = groceryPresets.activeIdsByWeek[weekKey] ?? [];
   const isActive = activeIds.includes(presetId);
+  const nextActive = !isActive;
 
-  const items = isActive
-    ? await deactivatePreset(weekKey, presetId, preset.items)
-    : await activatePreset(weekKey, presetId, preset.items);
+  const planRow = await weeklyPlanRepo.setPresetActive(weekKey, presetId, nextActive);
+  const items = await groceryItemRepo.applyAdjustments(
+    planRow.id,
+    presetItemsToAdjustments(preset.items, nextActive ? "add" : "remove"),
+  );
 
-  groceryPresets.activeIdsByWeek = {
-    ...groceryPresets.activeIdsByWeek,
-    [weekKey]: isActive
-      ? activeIds.filter((id) => id !== presetId)
-      : [...activeIds, presetId],
-  };
+  groceryPresets.activeIdsByWeek = { ...groceryPresets.activeIdsByWeek, [weekKey]: planRow.presetIds };
 
-  if (items) setGroceryItemsForWeek(weekKey, items);
+  setGroceryItemsForWeek(weekKey, items);
 }

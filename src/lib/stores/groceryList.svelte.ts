@@ -1,13 +1,9 @@
 import type { IngredientCategory } from "../types";
 import { weeklyPlan } from "./weeklyPlan.svelte";
 import { auth, onUserChange } from "./auth.svelte";
-import {
-  fetchGroceryItems,
-  upsertGroceryItem,
-  updateGroceryItem,
-  deleteGroceryItem,
-  type GroceryDBItem,
-} from "../api/groceryList";
+import { onSynced } from "../sync/status.svelte";
+import { weeklyPlanRepo } from "../repos/weeklyPlanRepo";
+import { groceryItemRepo, type GroceryDBItem } from "../repos/groceryItemRepo";
 import { adjustQuantityString } from "../utils/groceryList";
 
 export type { GroceryDBItem };
@@ -35,7 +31,8 @@ export function clearGroceryItemsForWeek(weekKey: string): void {
 
 async function loadWeek(weekKey: string): Promise<void> {
   try {
-    const items = await fetchGroceryItems(weekKey);
+    const row = await weeklyPlanRepo.getByWeek(weekKey);
+    const items = row ? await groceryItemRepo.getForPlan(row.id) : [];
     groceryList.itemsByWeek = { ...groceryList.itemsByWeek, [weekKey]: items };
   } catch (err) {
     console.error("Failed to load grocery items:", err);
@@ -50,6 +47,12 @@ onUserChange(async ($session) => {
   }
 });
 
+// Cross-device / realtime changes land in Dexie via the sync engine, not
+// through these store functions, so re-read after every successful sync.
+onSynced(() => {
+  void loadWeek(weeklyPlan.selectedWeek);
+});
+
 $effect.root(() => {
   $effect(() => {
     const weekKey = weeklyPlan.selectedWeek;
@@ -60,6 +63,15 @@ $effect.root(() => {
   });
 });
 
+function upsertInStore(weekKey: string, item: GroceryDBItem): void {
+  const items = groceryList.itemsByWeek[weekKey] ?? [];
+  const idx = items.findIndex((i) => i.id === item.id);
+  groceryList.itemsByWeek = {
+    ...groceryList.itemsByWeek,
+    [weekKey]: idx >= 0 ? items.map((i, j) => (j === idx ? item : i)) : [...items, item],
+  };
+}
+
 export function toggleGroceryItemChecked(
   name: string,
   quantity: string,
@@ -67,15 +79,15 @@ export function toggleGroceryItemChecked(
   checked: boolean,
 ): void {
   const weekKey = weeklyPlan.selectedWeek;
-  upsertGroceryItem(weekKey, { name, quantity, category, checked })
-    .then((item) => {
-      const items = groceryList.itemsByWeek[weekKey] ?? [];
-      const idx = items.findIndex((i) => i.id === item.id);
-      groceryList.itemsByWeek = {
-        ...groceryList.itemsByWeek,
-        [weekKey]: idx >= 0 ? items.map((i, j) => (j === idx ? item : i)) : [...items, item],
-      };
-    })
+  const existing = (groceryList.itemsByWeek[weekKey] ?? []).find(
+    (i) => i.name === name && i.category === category,
+  );
+
+  (async () => {
+    const plan = await weeklyPlanRepo.getOrCreate(weekKey);
+    return groceryItemRepo.upsert(plan.id, { id: existing?.id, name, quantity, category, checked });
+  })()
+    .then((item) => upsertInStore(weekKey, item))
     .catch(console.error);
 }
 
@@ -101,18 +113,15 @@ export async function addGroceryItem(
     : trimmedQuantity;
 
   try {
-    const item = await upsertGroceryItem(weekKey, {
+    const plan = await weeklyPlanRepo.getOrCreate(weekKey);
+    const item = await groceryItemRepo.upsert(plan.id, {
+      id: existing?.id,
       name: trimmedName,
       quantity: mergedQuantity,
       category,
       checked: existing?.checked ?? false,
     });
-    const items = groceryList.itemsByWeek[weekKey] ?? [];
-    const idx = items.findIndex((i) => i.id === item.id);
-    groceryList.itemsByWeek = {
-      ...groceryList.itemsByWeek,
-      [weekKey]: idx >= 0 ? items.map((i, j) => (j === idx ? item : i)) : [...items, item],
-    };
+    upsertInStore(weekKey, item);
   } catch (err) {
     console.error(err);
   }
@@ -124,7 +133,7 @@ export function removeGroceryItem(id: string): void {
     ...groceryList.itemsByWeek,
     [weekKey]: (groceryList.itemsByWeek[weekKey] ?? []).filter((i) => i.id !== id),
   };
-  deleteGroceryItem(id).catch(console.error);
+  groceryItemRepo.delete(id).catch(console.error);
 }
 
 export function editGroceryItem(
@@ -138,6 +147,8 @@ export function editGroceryItem(
   const trimmedQty = quantity.trim() || "1";
   const weekKey = weeklyPlan.selectedWeek;
   const items = groceryList.itemsByWeek[weekKey] ?? [];
+  const current = items.find((i) => i.id === id);
+  if (!current) return;
 
   // Renaming onto an existing item's name+category would collide with its unique
   // constraint; merge into that item instead of creating a duplicate.
@@ -145,25 +156,37 @@ export function editGroceryItem(
     (i) => i.id !== id && i.name === trimmedName && i.category === category,
   );
 
-  if (collision) {
-    const mergedQuantity =
-      adjustQuantityString(collision.quantity, [trimmedQty], []) ?? trimmedQty;
+  (async () => {
+    const plan = await weeklyPlanRepo.getOrCreate(weekKey);
+
+    if (collision) {
+      const mergedQuantity =
+        adjustQuantityString(collision.quantity, [trimmedQty], []) ?? trimmedQty;
+      const merged = await groceryItemRepo.upsert(plan.id, {
+        id: collision.id,
+        name: collision.name,
+        category: collision.category,
+        quantity: mergedQuantity,
+        checked: collision.checked,
+      });
+      await groceryItemRepo.delete(id);
+      groceryList.itemsByWeek = {
+        ...groceryList.itemsByWeek,
+        [weekKey]: items.filter((i) => i.id !== id).map((i) => (i.id === merged.id ? merged : i)),
+      };
+      return;
+    }
+
+    const updated = await groceryItemRepo.upsert(plan.id, {
+      id,
+      name: trimmedName,
+      category,
+      quantity: trimmedQty,
+      checked: current.checked,
+    });
     groceryList.itemsByWeek = {
       ...groceryList.itemsByWeek,
-      [weekKey]: items
-        .filter((i) => i.id !== id)
-        .map((i) => (i.id === collision.id ? { ...i, quantity: mergedQuantity } : i)),
+      [weekKey]: items.map((i) => (i.id === id ? updated : i)),
     };
-    updateGroceryItem(collision.id, { quantity: mergedQuantity }).catch(console.error);
-    deleteGroceryItem(id).catch(console.error);
-    return;
-  }
-
-  groceryList.itemsByWeek = {
-    ...groceryList.itemsByWeek,
-    [weekKey]: items.map((i) =>
-      i.id === id ? { ...i, name: trimmedName, category, quantity: trimmedQty } : i,
-    ),
-  };
-  updateGroceryItem(id, { name: trimmedName, category, quantity: trimmedQty }).catch(console.error);
+  })().catch(console.error);
 }

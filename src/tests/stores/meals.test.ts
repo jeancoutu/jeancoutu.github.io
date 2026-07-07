@@ -1,15 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { Meal } from "../../lib/types";
 
-vi.mock("../../lib/api/meals", () => ({
-  getMeals: vi.fn().mockResolvedValue([]),
-  createMeal: vi.fn().mockImplementation((payload) =>
-    Promise.resolve({ id: "custom-1", ...payload })
-  ),
-  updateMeal: vi.fn().mockImplementation((id, payload) =>
-    Promise.resolve({ id, ...payload })
-  ),
-  deleteMeal: vi.fn().mockResolvedValue(undefined),
+vi.mock("../../lib/repos/mealRepo", () => ({
+  mealRepo: {
+    getAll: vi.fn().mockResolvedValue([]),
+    create: vi.fn().mockImplementation((payload) =>
+      Promise.resolve({ id: "custom-1", ...payload })
+    ),
+    update: vi.fn().mockImplementation((id, payload) =>
+      Promise.resolve({ id, ...payload })
+    ),
+    delete: vi.fn().mockResolvedValue(undefined),
+  },
 }));
 
 const makeMeal = (overrides: Partial<Meal> = {}): Meal => ({
@@ -91,9 +93,9 @@ describe("meals store", () => {
     expect(getMealById("does-not-exist")).toBeUndefined();
   });
 
-  it("addMeal calls API and adds to store", async () => {
+  it("addMeal calls the repo and adds to store", async () => {
     const { meals, addMeal } = await importMeals();
-    const { createMeal } = await import("../../lib/api/meals");
+    const { mealRepo } = await import("../../lib/repos/mealRepo");
     meals.all = [];
     await addMeal({
       name: "New Dish",
@@ -103,22 +105,22 @@ describe("meals store", () => {
       ingredients: [],
       instructions: [],
     });
-    expect(createMeal).toHaveBeenCalled();
+    expect(mealRepo.create).toHaveBeenCalled();
     expect(meals.all.some((m) => m.id === "custom-1")).toBe(true);
   });
 
-  it("deleteMealById calls API and removes from store", async () => {
+  it("deleteMealById calls the repo and removes from store", async () => {
     const { meals, deleteMealById } = await importMeals();
-    const { deleteMeal } = await import("../../lib/api/meals");
+    const { mealRepo } = await import("../../lib/repos/mealRepo");
     meals.all = [makeMeal({ id: "to-delete" })];
     await deleteMealById("to-delete");
-    expect(deleteMeal).toHaveBeenCalledWith("to-delete");
+    expect(mealRepo.delete).toHaveBeenCalledWith("to-delete");
     expect(meals.all.some((m) => m.id === "to-delete")).toBe(false);
   });
 
-  it("updateMealById calls API and updates meal in store", async () => {
+  it("updateMealById calls the repo and updates meal in store", async () => {
     const { meals, updateMealById } = await importMeals();
-    const { updateMeal } = await import("../../lib/api/meals");
+    const { mealRepo } = await import("../../lib/repos/mealRepo");
     meals.all = [makeMeal({ id: "c-existing", name: "Old Name" })];
     await updateMealById("c-existing", {
       name: "New Name",
@@ -128,7 +130,7 @@ describe("meals store", () => {
       ingredients: [],
       instructions: [],
     });
-    expect(updateMeal).toHaveBeenCalledWith("c-existing", expect.objectContaining({ name: "New Name" }));
+    expect(mealRepo.update).toHaveBeenCalledWith("c-existing", expect.objectContaining({ name: "New Name" }));
     expect(meals.all.find((m) => m.id === "c-existing")?.name).toBe("New Name");
   });
 });

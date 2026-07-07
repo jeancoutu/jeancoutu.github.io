@@ -1,14 +1,23 @@
 import { describe, it, expect } from "vitest";
 import { buildDisplayItems } from "../../lib/utils/groceryDisplay";
 import type { GroceryItem } from "../../lib/utils/groceryList";
-import type { GroceryDBItem } from "../../lib/api/groceryList";
+import type { GroceryDBItem } from "../../lib/repos/groceryItemRepo";
 
 function mealPlanItem(overrides: Partial<GroceryItem> & { name: string }): GroceryItem {
   return { category: "vegetables", quantities: [], ...overrides };
 }
 
 function dbItem(overrides: Partial<GroceryDBItem> & { id: string; name: string }): GroceryDBItem {
-  return { category: "vegetables", quantity: "1", checked: false, ...overrides };
+  return {
+    weeklyPlanId: "plan-1",
+    category: "vegetables",
+    quantity: "1",
+    checked: false,
+    version: 1,
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    deletedAt: null,
+    ...overrides,
+  };
 }
 
 describe("buildDisplayItems", () => {

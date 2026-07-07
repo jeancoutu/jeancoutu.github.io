@@ -53,6 +53,18 @@ describe("formatGroceryQuantities", () => {
   it("formats a leftover decimal as the nearest simple fraction", () => {
     expect(formatGroceryQuantities(["0.5"])).toBe("1/2");
   });
+
+  it("re-merges a quantity that is already a comma-joined string", () => {
+    // Happens when duplicate DB rows for the same ingredient are combined
+    // (see mergeDbItemsByName) and one of them already holds a joined value.
+    expect(formatGroceryQuantities(["5 gousses, 11 gousses, 7 gousses, 9 gousses"])).toBe(
+      "32 gousses",
+    );
+  });
+
+  it("does not split a French decimal comma when re-merging", () => {
+    expect(formatGroceryQuantities(["1,5 kg, 2 kg"])).toBe("3 1/2 kg");
+  });
 });
 
 describe("adjustQuantityString", () => {

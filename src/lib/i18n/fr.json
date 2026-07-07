@@ -130,5 +130,22 @@
   "presets.errors.name": "Veuillez entrer un nom.",
   "presets.errors.save": "Impossible d'enregistrer. Veuillez réessayer.",
   "presets.errors.delete": "Impossible de supprimer. Veuillez réessayer.",
-  "grocery.presets.label": "Listes prédéfinies d'épicerie"
+  "grocery.presets.label": "Listes prédéfinies d'épicerie",
+  "sync.offline": "Hors ligne",
+  "sync.error": "Erreur de synchronisation — nouvelle tentative",
+  "sync.pendingCount": "{n, plural, one {# changement en attente} other {# changements en attente}}",
+  "sync.dismiss": "Fermer",
+  "sync.conflict.entity.meal": "repas",
+  "sync.conflict.entity.groceryPreset": "liste prédéfinie",
+  "sync.conflict.entity.weeklyPlan": "plan de la semaine",
+  "sync.conflict.entity.groceryItem": "article d'épicerie",
+  "sync.conflict.entity.generic": "élément",
+  "sync.conflictToast": "Votre modification d'un {entity} a été écrasée par un changement plus récent.",
+  "sync.conflictToastNamed": "Votre modification de « {name} » a été écrasée par un changement plus récent.",
+  "settings.account.title": "Compte",
+  "settings.account.signOut": "Se déconnecter",
+  "settings.account.signOutConfirmTitle": "Changements non synchronisés",
+  "settings.account.signOutWarning": "{n, plural, one {Vous avez 1 changement non synchronisé} other {Vous avez {n} changements non synchronisés}} qui sera perdu si vous vous déconnectez maintenant.",
+  "settings.account.signOutAnyway": "Se déconnecter quand même",
+  "settings.account.cancel": "Annuler"
 }
