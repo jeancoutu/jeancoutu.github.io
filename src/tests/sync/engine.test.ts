@@ -117,7 +117,7 @@ describe("sync engine", () => {
       version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
     };
     const itemB: LocalGroceryItem = {
-      id: "item-b", weeklyPlanId: "plan-1", name: "Rice", quantity: "1", category: "grains", checked: false,
+      id: "item-b", weeklyPlanId: "plan-1", name: "Rice", quantity: "1", category: "aisle", checked: false,
       version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
     };
     await db.groceryItems.bulkPut([itemA, itemB]);
