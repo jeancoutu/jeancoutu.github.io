@@ -29,22 +29,22 @@ Coverage-at-a-glance by feature area. See `ui-testing-plan.md` for the full plan
 
 ## Meals
 
-- [ ] "Create" opens `MealFormModal` in create mode
-- [ ] Search input filters the list by name
-- [ ] Duration filter narrows the list
-- [ ] Empty state renders when the filtered list is empty
-- [ ] Clicking "View recipe" navigates to `/meal/:id`
+- [x] "Create" opens `MealFormModal` in create mode (`src/tests/components/Meals.test.ts`)
+- [x] Search input filters the list by name (`src/tests/components/Meals.test.ts`)
+- [x] Duration filter narrows the list (`src/tests/components/Meals.test.ts`)
+- [x] Empty state renders when the filtered list is empty (`src/tests/components/Meals.test.ts`)
+- [x] Clicking "View recipe" navigates to `/meal/:id` (`src/tests/components/Meals.test.ts`)
 
 ## Meal Detail
 
-- [ ] "Back" returns to `/meals` (or browser history if in-app)
-- [ ] "Edit" opens the form pre-filled with current data; saving persists changes
-- [ ] "Duplicate" opens the form pre-filled with a generated duplicate name; saving creates a new meal without mutating the original
-- [ ] "View guide" link renders only when `meal.url` is set
-- [ ] Validation: empty name, name > 50 chars, zero ingredients, zero non-blank instruction lines each block save with the matching error
-- [ ] Day checkboxes toggle `supperDays`
-- [ ] Ingredient editor: add row, remove row, edit quantity inline
-- [ ] Save button disabled while saving; Cancel discards changes
+- [x] "Back" returns to `/meals` (or browser history if in-app) (`src/tests/components/MealDetail.test.ts`)
+- [x] "Edit" opens the form pre-filled with current data; saving persists changes (`src/tests/components/MealDetail.test.ts`)
+- [x] "Duplicate" opens the form pre-filled with a generated duplicate name; saving creates a new meal without mutating the original (`src/tests/components/MealDetail.test.ts`)
+- [x] "View guide" link renders only when `meal.url` is set (`src/tests/components/MealDetail.test.ts`)
+- [x] Validation: empty name, name > 50 chars, zero ingredients, zero non-blank instruction lines each block save with the matching error (`src/tests/components/MealDetail.test.ts`)
+- [x] Day checkboxes toggle `supperDays` (`src/tests/components/MealDetail.test.ts`)
+- [x] Ingredient editor: add row, remove row, edit quantity inline (`src/tests/components/MealDetail.test.ts`)
+- [x] Save button disabled while saving; Cancel discards changes (`src/tests/components/MealDetail.test.ts`)
 
 ## Presets
 

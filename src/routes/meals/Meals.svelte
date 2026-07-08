@@ -39,7 +39,8 @@
 
     <select
       class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
-      bind:value={meals.durationFilter}
+      value={meals.durationFilter}
+      onchange={(e) => (meals.durationFilter = e.currentTarget.value as DurationTag | "all")}
     >
       {#each durationValues as value}
         <option {value}>{$_(durationOptionKey(value))}</option>
