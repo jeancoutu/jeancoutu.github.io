@@ -48,12 +48,12 @@ Coverage-at-a-glance by feature area. See `ui-testing-plan.md` for the full plan
 
 ## Presets
 
-- [ ] Create form: "Create" disabled when name is blank; submitting creates the preset and navigates to its detail page
-- [ ] Clicking a list item navigates to its detail page
-- [ ] Delete is two-step: first click arms confirm/cancel, second click deletes
-- [ ] Empty state renders when there are no presets
-- [ ] Detail page: name validation blocks save on blank name; Save persists name + items and navigates back; Cancel discards and navigates back
-- [ ] (Cross-reference) toggling a preset on/off for the active week is covered under Grocery List
+- [x] Create form: "Create" disabled when name is blank; submitting creates the preset and navigates to its detail page (`src/tests/components/PresetsList.test.ts`)
+- [x] Clicking a list item navigates to its detail page (`src/tests/components/PresetsList.test.ts`)
+- [x] Delete is two-step: first click arms confirm/cancel, second click deletes (`src/tests/components/PresetsList.test.ts`)
+- [x] Empty state renders when there are no presets (`src/tests/components/PresetsList.test.ts`)
+- [x] Detail page: name validation blocks save on blank name; Save persists name + items and navigates back; Cancel discards and navigates back (`src/tests/components/PresetDetail.test.ts`)
+- [x] (Cross-reference) toggling a preset on/off for the active week is covered under Grocery List
 
 ## Sync Engine / RPC (PGlite-backed)
 
