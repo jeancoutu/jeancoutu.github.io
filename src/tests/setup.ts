@@ -1,4 +1,6 @@
+import "@testing-library/jest-dom/vitest";
 import { vi } from "vitest";
+import { init, register, waitLocale } from "svelte-i18n";
 
 // Mock localStorage
 const localStorageData: Record<string, string> = {};
@@ -23,3 +25,10 @@ vi.mock("../lib/supabase", () => ({
     },
   },
 }));
+
+// Real i18n, so component tests query actual rendered copy (and catch broken
+// translation keys) instead of asserting against raw key strings.
+register("en", () => import("../lib/i18n/en.json"));
+register("fr", () => import("../lib/i18n/fr.json"));
+await init({ fallbackLocale: "en", initialLocale: "en" });
+await waitLocale();

@@ -13,8 +13,12 @@
     "gen:types": "supabase gen types typescript --project-id abptrstwnljcffpltyye --schema public > src/lib/database.types.ts"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.3.16",
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "@tailwindcss/vite": "^4.1.4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/svelte": "^5.4.2",
+    "@testing-library/user-event": "^14.6.1",
     "@tsconfig/svelte": "^5.0.4",
     "@vitest/coverage-v8": "^4.1.9",
     "@vitest/ui": "^4.1.9",
