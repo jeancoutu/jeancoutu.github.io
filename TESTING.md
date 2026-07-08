@@ -9,23 +9,23 @@ Coverage-at-a-glance by feature area. See `ui-testing-plan.md` for the full plan
 
 ## Planner
 
-- [ ] Selecting a meal in a day/slot saves to `day_plans`, shows as selected, and (re)generates the grocery list
-- [ ] Clearing a slot (blank option) removes that meal from the day
-- [ ] Eye icon (only rendered when a slot has a meal) navigates to `/meal/:id`
-- [ ] Week-label button opens `WeekPickerModal`; selecting a week updates the selection and closes the modal; "has plan"/"This Week" indicators are correct
-- [ ] "Auto-fill" only fills empty supper slots, excludes meals used this week and the previous week, cascades supper → next day's diner, clears Saturday's diner
-- [ ] "Clear" empties all day selects and the grocery list for the week
-- [ ] "Refresh" reloads the week's plan and grocery items
-- [ ] Note icon opens `DayNoteModal`; Save persists trimmed note (or null), Clear removes it, Cancel discards, saved note renders under the day
+- [x] Selecting a meal in a day/slot saves to `day_plans`, shows as selected, and (re)generates the grocery list (`src/tests/components/DaySelector.test.ts`)
+- [x] Clearing a slot (blank option) removes that meal from the day (`src/tests/components/DaySelector.test.ts`)
+- [x] Eye icon (only rendered when a slot has a meal) navigates to `/meal/:id` (`src/tests/components/DaySelector.test.ts`)
+- [x] Week-label button opens `WeekPickerModal`; selecting a week updates the selection and closes the modal; "has plan"/"This Week" indicators are correct (`src/tests/components/Planner.test.ts`)
+- [x] "Auto-fill" only fills empty supper slots, cascades supper → next day's diner, clears Saturday's diner (`src/tests/components/Planner.test.ts`; the "excludes meals used this/previous week" selection rules are exhaustively covered at the store level in `src/tests/stores/weeklyPlan.test.ts`)
+- [x] "Clear" empties all day selects and the grocery list for the week (`src/tests/components/Planner.test.ts`)
+- [x] "Refresh" reloads the week's plan and grocery items (`src/tests/components/Planner.test.ts`)
+- [x] Note icon opens `DayNoteModal`; Save persists trimmed note (or null), Clear removes it, Cancel discards, saved note renders under the day (`src/tests/components/DaySelector.test.ts`)
 
 ## Grocery List
 
-- [ ] Preset pill buttons toggle `aria-pressed` and call `togglePresetForWeek`; disabled while in flight
-- [ ] "+" per category reveals an inline add form; submit adds the item; Escape/Cancel resets the form
-- [ ] Checkbox toggles `checked`; checked items sort to the bottom with strikethrough
-- [ ] Long-press a custom item enters inline edit; Enter saves, Escape cancels
-- [ ] Remove button: custom items call `removeGroceryItem`; plan-derived items call `dismissIngredient`
-- [ ] Empty state renders when there are no items
+- [x] Preset pill buttons toggle `aria-pressed` and call `togglePresetForWeek`; disabled while in flight (`src/tests/components/GroceryList.test.ts`)
+- [x] "+" per category reveals an inline add form; submit adds the item; Escape/Cancel resets the form (`src/tests/components/GroceryList.test.ts`)
+- [x] Checkbox toggles `checked`; checked items sort to the bottom with strikethrough (`src/tests/components/GroceryList.test.ts`)
+- [x] Long-press a custom item enters inline edit; Enter saves, Escape cancels (`src/tests/components/GroceryList.test.ts`)
+- [x] Remove button: custom items call `removeGroceryItem`; plan-derived items call `dismissIngredient` (`src/tests/components/GroceryList.test.ts`)
+- [x] Empty state renders when there are no items (`src/tests/components/GroceryList.test.ts`)
 
 ## Meals
 
