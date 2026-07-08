@@ -42,6 +42,11 @@ const SELECT_QUERIES: Record<string, string> = {
            ), '[]'::jsonb) as weekly_plan_grocery_presets
     from weekly_plans wp where wp.id = $1
   `,
+  grocery_items: `
+    select gi.id, gi.weekly_plan_id, gi.name, gi.quantity, gi.category, gi.checked,
+           gi.version, gi.updated_at, gi.deleted_at
+    from grocery_items gi where gi.id = $1
+  `,
 };
 
 // PGlite's pg-wire driver doesn't know these RPC params are Postgres arrays
@@ -55,10 +60,21 @@ function toArrayLiteral(value: string[]): string {
   return `{${value.map(escape).join(",")}}`;
 }
 
+// Only these RPC params are real Postgres array columns (day_key[], text[],
+// uuid[]); every other array-shaped param (p_ingredients, p_items,
+// p_day_plans, sync_grocery_items' p_items) is jsonb and must be left as a
+// plain JS array/object for PGlite's default JSON encoding. A value-based
+// heuristic (e.g. "every element is a string") can't tell these apart for an
+// *empty* array — `[].every(...)` is vacuously true — which previously sent
+// `{}` (an empty Postgres array literal) for an empty jsonb param, and
+// `{}`::jsonb parses as a JSON object, not an array, breaking
+// `jsonb_array_length()` downstream.
+const NATIVE_ARRAY_PARAMS = new Set(["p_supper_days", "p_instructions", "p_preset_ids"]);
+
 function formatRpcArgs(args: Record<string, unknown>): Record<string, unknown> {
   const formatted: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(args)) {
-    formatted[key] = Array.isArray(value) && value.every((v) => typeof v === "string") ? toArrayLiteral(value) : value;
+    formatted[key] = NATIVE_ARRAY_PARAMS.has(key) && Array.isArray(value) ? toArrayLiteral(value as string[]) : value;
   }
   return formatted;
 }

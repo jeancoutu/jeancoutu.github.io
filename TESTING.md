@@ -57,11 +57,11 @@ Coverage-at-a-glance by feature area. See `ui-testing-plan.md` for the full plan
 
 ## Sync Engine / RPC (PGlite-backed)
 
-- [ ] `upsert_meal`: insert, update with matching version, conflict on stale version, ingredient replace-on-upsert
-- [ ] `delete_meal`: soft-delete, version-conflict, already-deleted idempotency
-- [ ] `upsert_grocery_preset` / `delete_grocery_preset`: same shape as meal
-- [ ] `upsert_weekly_plan`: get-or-create by `(household_id, week_start)`, id remap, version conflict, day_plans/preset replace semantics
-- [ ] `delete_weekly_plan`: soft delete, version conflict
-- [ ] `sync_grocery_item` / `sync_grocery_items`: insert, update with version check, conflict with full row, merge-on-name-collision, revive-tombstone overwrite semantics, batched multi-item behavior
-- [ ] `pull_changes`: only rows updated after `p_since`, includes tombstones, null `p_since` full pull, nested shape matches `engine.ts` expectations
-- [ ] End-to-end: `engine.ts`'s `sync()` against the PGlite backend — push, conflict, pull, Dexie convergence
+- [x] `upsert_meal`: insert, update with matching version, conflict on stale version, ingredient replace-on-upsert (`src/tests/fixtures/rpcMeals.test.ts`)
+- [x] `delete_meal`: soft-delete, version-conflict, already-deleted idempotency (`src/tests/fixtures/rpcMeals.test.ts`)
+- [x] `upsert_grocery_preset` / `delete_grocery_preset`: same shape as meal (`src/tests/fixtures/rpcGroceryPresets.test.ts`)
+- [x] `upsert_weekly_plan`: get-or-create by `(household_id, week_start)`, id remap, version conflict, day_plans/preset replace semantics (`src/tests/fixtures/rpcWeeklyPlans.test.ts`)
+- [x] `delete_weekly_plan`: soft delete, version conflict (`src/tests/fixtures/rpcWeeklyPlans.test.ts`)
+- [x] `sync_grocery_item` / `sync_grocery_items`: insert, update with version check, conflict with full row, merge-on-name-collision, revive-tombstone overwrite semantics, batched multi-item behavior (`src/tests/fixtures/rpcGroceryItems.test.ts`)
+- [x] `pull_changes`: only rows updated after `p_since`, includes tombstones, null `p_since` full pull, nested shape matches `engine.ts` expectations (`src/tests/fixtures/rpcPullChanges.test.ts`)
+- [x] End-to-end: `engine.ts`'s `sync()` against the PGlite backend — push, conflict, pull, Dexie convergence (`src/tests/sync/engine.pglite.test.ts`)
