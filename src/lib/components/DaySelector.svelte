@@ -59,7 +59,7 @@
         <div class="flex gap-2">
           <select
             id="day-{day}-{slot}"
-            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+            class="w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-center text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
             value={weeklyPlan.current[day]?.[slot] ?? ""}
             onchange={(e) => onChange(slot, e)}
           >
