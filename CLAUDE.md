@@ -36,7 +36,25 @@ npm run test:watch
 ## Offline sync
 
 Reads/writes go UI → stores → repos (`src/lib/repos/`) → Dexie (`src/lib/db/`), never straight to Supabase.
-Writes also enqueue a sync op; `src/lib/sync/engine.ts` flushes the queue and pulls deltas via RPCs (foreground-triggered only — no iOS Background Sync). Conflicts are server-wins: the losing local op is dropped and the entity is refetched. See `offline-sync-plan.md` for the full design.
+Writes also enqueue a sync op; `src/lib/sync/engine.ts` flushes the queue and pulls deltas via RPCs (foreground-triggered only — no iOS Background Sync). On conflict, the engine adopts the server's canonical id, remaps all local references (queued ops, related entities) to it, and re-queues the rejected edit merged on top — it does not simply drop the op and refetch, since dangling references to a dead local id would wedge the sync queue. See `offline-sync-plan.md` for the full design.
+
+Dexie write gotchas:
+- Svelte 5 `$state` deep-reactive objects must go through `$state.snapshot()` before being handed to Dexie — a raw Proxy nested in the payload throws `DataCloneError` and silently drops the write.
+- Check-then-create patterns against Dexie (e.g. a repo's `getOrCreate`) must be wrapped in `db.transaction("rw", ...)` — an unguarded read-then-write can create duplicate rows under concurrent calls.
+
+## Debugging
+
+- Don't declare a bug fixed from passing tests or a plausible root cause alone — verify against the exact repro, and treat user-reported persistence as overriding a local pass.
+- When locking in a regression test, `git stash` the fix file, confirm the test fails with the original error, then restore the fix and confirm it passes.
+- Race-condition and sync bugs can have multiple independent causes — trace the full contract (e.g. conflict-response id remap, baseVersion refresh, pending-op skip) before fixing edge cases one at a time.
+
+## Testing gotchas
+
+- Dexie/store writes triggered by a UI interaction are async — assert with `vi.waitFor(...)`, not a synchronous read right after the interaction.
+- `resetStores()` (test helper) must reset every store field used across tests, including `weeklyPlan.selectedWeek` — a missed field leaks state between tests.
+- Test fixtures must use real enum values (e.g. `IngredientCategory`), not invented placeholders.
+- `fakeSupabase.ts` fixture gaps surface when writing new RPC/e2e tests: check its array-vs-jsonb serialization heuristic and `SELECT_QUERIES` map cover the entity you're adding, and that the engine mock stubs `auth` (required at import time by `src/lib/db/index.ts`).
+- Router module state (e.g. `hasNavigatedInApp`) persists across tests in the same file since `initRouter()` isn't called in tests — a second navigation test in one file can behave differently from the first.
 
 ## DB schema
 
