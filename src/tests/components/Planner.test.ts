@@ -122,6 +122,38 @@ describe("Planner", () => {
     expect(select.value).toBe("");
   });
 
+  // Regression test for a bug where selecting a meal for a second day (after
+  // a first day was already saved) silently failed: `weeklyPlan.plans` is a
+  // deep-reactive $state proxy tree, so once a save round-trips through it,
+  // the untouched day's entry becomes a Proxy. Merging onto that without
+  // snapshotting first nests a Proxy inside the object handed to Dexie, and
+  // IDBObjectStore.put throws DataCloneError, dropping the write.
+  it("selecting meals for two different days both persist to Dexie", async () => {
+    const chicken = await seedMeal("Chicken");
+    const beef = await seedMeal("Beef");
+    render(Planner);
+    const user = userEvent.setup();
+
+    const mondaySelect = document.getElementById("day-monday-supper") as HTMLSelectElement;
+    await user.selectOptions(mondaySelect, chicken.id);
+    await vi.waitFor(() => expect(weeklyPlan.current.monday?.supper).toBe(chicken.id));
+
+    const tuesdaySelect = document.getElementById("day-tuesday-supper") as HTMLSelectElement;
+    await user.selectOptions(tuesdaySelect, beef.id);
+    await vi.waitFor(() => expect(weeklyPlan.current.tuesday?.supper).toBe(beef.id));
+
+    // Both selections must still show as selected (a dropped save resets
+    // the <select> back to blank on the next render) and both must have
+    // actually landed in Dexie, not just in-memory state.
+    expect(mondaySelect.value).toBe(chicken.id);
+    expect(tuesdaySelect.value).toBe(beef.id);
+    await vi.waitFor(async () => {
+      const savedRow = await db.weeklyPlans.where("weekStart").equals(weeklyPlan.selectedWeek).first();
+      expect(savedRow?.plan.monday?.supper).toBe(chicken.id);
+      expect(savedRow?.plan.tuesday?.supper).toBe(beef.id);
+    });
+  });
+
   it("Refresh reloads the week's plan and grocery items from Dexie", async () => {
     const meal = await seedMeal("Chicken");
     render(Planner);

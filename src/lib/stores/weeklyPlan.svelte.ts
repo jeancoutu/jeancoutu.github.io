@@ -36,7 +36,11 @@ class WeeklyPlanStore {
   ): Promise<GroceryDBItem[] | null> {
     const week = this.selectedWeek;
     const id = mealId ?? null;
-    const oldPlan = this.plans[week] ?? {};
+    // this.plans is a deep-reactive $state proxy tree; snapshot it before
+    // building the object we hand to Dexie, or unmodified days stay Proxy
+    // objects nested in the payload and IDBObjectStore.put throws
+    // DataCloneError, silently dropping the write.
+    const oldPlan = $state.snapshot(this.plans[week] ?? {});
     const row = await weeklyPlanRepo.getOrCreate(week);
 
     const current = { ...oldPlan };
@@ -76,7 +80,8 @@ class WeeklyPlanStore {
     const week = this.selectedWeek;
     const row = await weeklyPlanRepo.getOrCreate(week);
 
-    const current = { ...(this.plans[week] ?? {}) };
+    // See #updateSlot: snapshot to strip $state Proxies before saving to Dexie.
+    const current = $state.snapshot(this.plans[week] ?? {});
     const dayEntry = { ...(current[day] ?? {}) };
     if (note) {
       dayEntry.note = note;

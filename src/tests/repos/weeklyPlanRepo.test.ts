@@ -33,6 +33,20 @@ describe("weeklyPlanRepo", () => {
     expect(await db.weeklyPlans.count()).toBe(1);
   });
 
+  it("concurrent getOrCreate calls for the same week never create two rows", async () => {
+    // Mirrors auto-fill's optimistic write racing a manual edit fired
+    // right after: both call getOrCreate for the same week before either
+    // Dexie write has landed.
+    const [a, b] = await Promise.all([
+      weeklyPlanRepo.getOrCreate("2025-01-04"),
+      weeklyPlanRepo.getOrCreate("2025-01-04"),
+    ]);
+
+    expect(a.id).toBe(b.id);
+    expect(await db.weeklyPlans.count()).toBe(1);
+    expect(await db.syncQueue.count()).toBe(1);
+  });
+
   it("save queues an upsert carrying the pre-save version as baseVersion", async () => {
     const row = await weeklyPlanRepo.getOrCreate("2025-01-04");
     await db.syncQueue.clear();

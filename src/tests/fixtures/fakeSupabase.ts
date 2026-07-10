@@ -29,7 +29,9 @@ const SELECT_QUERIES: Record<string, string> = {
     from grocery_presets gp where gp.id = $1
   `,
   weekly_plans: `
-    select wp.id, wp.week_start, wp.dismissed_ingredient_names, wp.version, wp.updated_at, wp.deleted_at,
+    -- week_start::text: PGlite's driver returns date columns as JS Dates,
+    -- but the real PostgREST API serializes them as "YYYY-MM-DD" strings.
+    select wp.id, wp.week_start::text as week_start, wp.dismissed_ingredient_names, wp.version, wp.updated_at, wp.deleted_at,
            coalesce((
              select jsonb_agg(jsonb_build_object(
                'day_key', dp.day_key, 'note', dp.note,

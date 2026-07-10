@@ -1,5 +1,6 @@
 import {
   db,
+  enqueue,
   getCursor,
   setCursor,
   type LocalGroceryItem,
@@ -173,8 +174,24 @@ async function refreshEntityAfterConflict(entity: SyncEntity, id: string, canoni
     case "weeklyPlan": {
       const row = await refetchWeeklyPlan(targetId);
       if (row) await applyWeeklyPlan(row);
-      // Remap: if the id we pushed under wasn't canonical, drop our stale local row.
-      if (targetId !== id) await db.weeklyPlans.delete(id);
+      // Remap: if the id we pushed under wasn't canonical, drop our stale
+      // local row and repoint everything that still references it — local
+      // grocery items and any queued ops (a queued grocery-item op pushed
+      // under the dead plan id would raise "Weekly plan not found" and
+      // wedge the queue).
+      if (targetId !== id) {
+        await db.weeklyPlans.delete(id);
+        await db.groceryItems.where("weeklyPlanId").equals(id).modify({ weeklyPlanId: targetId });
+        await db.syncQueue.toCollection().modify((item) => {
+          if (item.entity === "groceryItem" && (item.payload as LocalGroceryItem | null)?.weeklyPlanId === id) {
+            (item.payload as LocalGroceryItem).weeklyPlanId = targetId;
+          } else if (item.entity === "weeklyPlan" && item.entityId === id) {
+            item.entityId = targetId;
+            if (item.payload) (item.payload as LocalWeeklyPlan).id = targetId;
+            if (item.baseVersion === null && row) item.baseVersion = row.version;
+          }
+        });
+      }
       break;
     }
     case "groceryItem": {
@@ -186,20 +203,71 @@ async function refreshEntityAfterConflict(entity: SyncEntity, id: string, canoni
   }
 }
 
+// An op enqueued while a previous push for the same entity was in flight
+// carries the pre-push local version as its baseVersion (bumpLocalVersion
+// only lands when that push's response arrives). Pushing that stale base
+// would conflict and drop the edit even though it cleanly chains onto our
+// own acknowledged write. Re-reading the local version at push time is
+// safe: pullAndApply skips entities with pending ops, so while an op is
+// queued the local version only ever advances via our own push bumps.
+async function refreshBaseVersion(op: CoalescedOp): Promise<number | null> {
+  if (op.baseVersion === null) return null;
+  switch (op.entity) {
+    case "meal":
+      return (await db.meals.get(op.entityId))?.version ?? op.baseVersion;
+    case "groceryPreset":
+      return (await db.groceryPresets.get(op.entityId))?.version ?? op.baseVersion;
+    case "weeklyPlan":
+      return (await db.weeklyPlans.get(op.entityId))?.version ?? op.baseVersion;
+    case "groceryItem":
+      return (await db.groceryItems.get(op.entityId))?.version ?? op.baseVersion;
+  }
+}
+
+// After a week-collision conflict the canonical server row is already in
+// Dexie (refreshEntityAfterConflict); overlay the rejected payload's edits
+// on top of it and queue a normal version-checked update so the user's
+// selection isn't silently dropped.
+async function reapplyWeeklyPlanEdit(canonicalId: string, payload: LocalWeeklyPlan): Promise<void> {
+  const canonical = await db.weeklyPlans.get(canonicalId);
+  if (!canonical || canonical.deletedAt) return;
+  const merged: LocalWeeklyPlan = {
+    ...canonical,
+    plan: { ...canonical.plan, ...payload.plan },
+    dismissedNames: [...new Set([...canonical.dismissedNames, ...payload.dismissedNames])],
+    presetIds: [...new Set([...canonical.presetIds, ...payload.presetIds])],
+    updatedAt: new Date().toISOString(),
+  };
+  await db.weeklyPlans.put(merged);
+  await enqueue("weeklyPlan", canonicalId, "upsert", canonical.version, merged);
+}
+
 async function flushSingleOp(op: CoalescedOp): Promise<void> {
   const result = await pushOp({
     opId: "",
     entity: op.entity,
     entityId: op.entityId,
     op: op.op,
-    baseVersion: op.baseVersion,
+    baseVersion: await refreshBaseVersion(op),
     payload: op.payload,
     createdAt: "",
   });
 
   if (result.status === "conflict") {
     emitConflict({ entity: op.entity, entityId: op.entityId });
-    await refreshEntityAfterConflict(op.entity, op.entityId);
+    // Conflict responses include the server's canonical id, which differs
+    // from ours when the push collided with an existing row (weekly-plan
+    // week collision) — refetch that row and drop our stale local one.
+    await refreshEntityAfterConflict(op.entity, op.entityId, result.id);
+    if (op.entity === "weeklyPlan" && op.op === "upsert" && (op.baseVersion === null || result.id !== op.entityId)) {
+      // Null base: this client thought it was creating the week's plan but
+      // another device created it first. Remapped id: the edit went to a
+      // stale local duplicate of the week's row. Either way this is a
+      // wrong-row collision, not a concurrent edit of the same row, so per
+      // upsert_weekly_plan's contract adopt the canonical row and re-apply
+      // the edit as a real (version-checked) update instead of dropping it.
+      await reapplyWeeklyPlanEdit(result.id, op.payload as LocalWeeklyPlan);
+    }
   } else if (result.id !== op.entityId) {
     // Server assigned a different canonical id (weekly-plan collision).
     await refreshEntityAfterConflict(op.entity, op.entityId, result.id);
@@ -216,20 +284,38 @@ async function flushSingleOp(op: CoalescedOp): Promise<void> {
 // The RPC returns the resolved row inline on remap/conflict, so no
 // follow-up select is needed either.
 async function flushGroceryItemBatch(ops: CoalescedOp[]): Promise<void> {
+  // An op whose plan row is gone (both locally and hence on the server —
+  // plans are only deleted after a server round trip) can never sync:
+  // sync_grocery_item raises "Weekly plan not found", which would abort
+  // this and every future flush and wedge the queue behind it. Drop them.
+  const alive: CoalescedOp[] = [];
+  for (const op of ops) {
+    const planId = (op.payload as LocalGroceryItem | null)?.weeklyPlanId;
+    if (planId && (await db.weeklyPlans.get(planId))) {
+      alive.push(op);
+    } else {
+      await db.syncQueue.bulkDelete(op.seqs);
+    }
+  }
+  ops = alive;
+  if (ops.length === 0) return;
+
   const results = await pushGroceryItems(
-    ops.map((op) => {
-      const row = op.payload as LocalGroceryItem;
-      return {
-        weeklyPlanId: row.weeklyPlanId,
-        clientId: op.entityId,
-        name: row.name,
-        category: row.category,
-        quantity: row.quantity,
-        checked: row.checked,
-        baseVersion: op.baseVersion,
-        deleted: op.op === "delete",
-      };
-    }),
+    await Promise.all(
+      ops.map(async (op) => {
+        const row = op.payload as LocalGroceryItem;
+        return {
+          weeklyPlanId: row.weeklyPlanId,
+          clientId: op.entityId,
+          name: row.name,
+          category: row.category,
+          quantity: row.quantity,
+          checked: row.checked,
+          baseVersion: await refreshBaseVersion(op),
+          deleted: op.op === "delete",
+        };
+      }),
+    ),
   );
 
   const byClientId = new Map(results.map((r) => [r.client_id, r]));
@@ -311,12 +397,21 @@ async function pullAndApply(): Promise<void> {
   const cursor = await getCursor();
   const result = await pullChanges(cursor);
 
+  // A local write made after flushQueue()'s snapshot (but before this pull
+  // lands) has its op still sitting in syncQueue, unpushed. Applying a
+  // pulled row for that same entity here would blindly overwrite that
+  // newer local edit with stale (pre-edit) server data. Skip those; the
+  // pending op's own flush + the next pull will reconcile them correctly.
+  const pending = await db.syncQueue.toArray();
+  const isPending = (entity: SyncEntity, id: string) =>
+    pending.some((p) => p.entity === entity && p.entityId === id);
+
   await db.transaction("rw", db.meals, db.groceryPresets, db.weeklyPlans, db.groceryItems, async () => {
     await Promise.all([
-      ...result.meals.map(applyMeal),
-      ...result.grocery_presets.map(applyGroceryPreset),
-      ...result.weekly_plans.map(applyWeeklyPlan),
-      ...result.grocery_items.map(applyGroceryItem),
+      ...result.meals.filter((r) => !isPending("meal", r.id)).map(applyMeal),
+      ...result.grocery_presets.filter((r) => !isPending("groceryPreset", r.id)).map(applyGroceryPreset),
+      ...result.weekly_plans.filter((r) => !isPending("weeklyPlan", r.id)).map(applyWeeklyPlan),
+      ...result.grocery_items.filter((r) => !isPending("groceryItem", r.id)).map(applyGroceryItem),
     ]);
   });
 

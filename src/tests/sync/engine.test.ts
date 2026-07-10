@@ -81,7 +81,17 @@ describe("sync engine", () => {
     expect(await db.syncQueue.count()).toBe(0);
   });
 
+  // Grocery-item ops are only flushed while their plan row exists locally
+  // (dead references are dropped instead of wedging the queue), so seed it.
+  async function seedPlanRow(id: string): Promise<void> {
+    await db.weeklyPlans.put({
+      id, weekStart: "2026-01-05", plan: {}, dismissedNames: [], presetIds: [],
+      version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
+    });
+  }
+
   it("remaps a grocery item id on merge collision without touching other entities", async () => {
+    await seedPlanRow("plan-1");
     const local: LocalGroceryItem = {
       id: "local-item", weeklyPlanId: "plan-1", name: "Carrots", quantity: "2", category: "vegetables", checked: false,
       version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
@@ -112,6 +122,7 @@ describe("sync engine", () => {
   });
 
   it("batches multiple queued grocery-item ops into a single sync_grocery_items call", async () => {
+    await seedPlanRow("plan-1");
     const itemA: LocalGroceryItem = {
       id: "item-a", weeklyPlanId: "plan-1", name: "Carrots", quantity: "2", category: "vegetables", checked: false,
       version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
@@ -135,6 +146,20 @@ describe("sync engine", () => {
     expect((await db.groceryItems.get("item-a"))?.version).toBe(2);
     expect((await db.groceryItems.get("item-b"))?.version).toBe(2);
     expect(await db.syncQueue.count()).toBe(0);
+  });
+
+  it("drops queued grocery-item ops whose plan row no longer exists instead of wedging the queue", async () => {
+    const orphan: LocalGroceryItem = {
+      id: "orphan-item", weeklyPlanId: "gone-plan", name: "Carrots", quantity: "2", category: "vegetables", checked: false,
+      version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
+    };
+    await enqueue("groceryItem", "orphan-item", "upsert", null, orphan);
+
+    await sync();
+
+    expect(pushGroceryItems).not.toHaveBeenCalled();
+    expect(await db.syncQueue.count()).toBe(0);
+    expect(syncStatus.state).toBe("idle");
   });
 
   it("advances the cursor to the server watermark after a successful pull", async () => {

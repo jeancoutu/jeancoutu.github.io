@@ -7,24 +7,29 @@ export class WeeklyPlanRepository {
   }
 
   async getOrCreate(weekStart: string): Promise<LocalWeeklyPlan> {
-    const existing = await this.getByWeek(weekStart);
-    if (existing) return existing;
+    // Read-then-write must be atomic: two concurrent calls for the same
+    // week (e.g. auto-fill's own write racing a manual edit right after)
+    // must not both see "no row" and each create a separate one.
+    return db.transaction("rw", db.weeklyPlans, db.syncQueue, async () => {
+      const existing = await this.getByWeek(weekStart);
+      if (existing) return existing;
 
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
-    const row: LocalWeeklyPlan = {
-      id,
-      weekStart,
-      plan: {},
-      dismissedNames: [],
-      presetIds: [],
-      version: 1,
-      updatedAt: now,
-      deletedAt: null,
-    };
-    await db.weeklyPlans.put(row);
-    await enqueue("weeklyPlan", id, "upsert", null, row);
-    return row;
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const row: LocalWeeklyPlan = {
+        id,
+        weekStart,
+        plan: {},
+        dismissedNames: [],
+        presetIds: [],
+        version: 1,
+        updatedAt: now,
+        deletedAt: null,
+      };
+      await db.weeklyPlans.put(row);
+      await enqueue("weeklyPlan", id, "upsert", null, row);
+      return row;
+    });
   }
 
   async save(row: LocalWeeklyPlan, patch: Partial<Pick<LocalWeeklyPlan, "plan" | "dismissedNames" | "presetIds">>): Promise<LocalWeeklyPlan> {
