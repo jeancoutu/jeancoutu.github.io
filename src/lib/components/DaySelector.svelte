@@ -72,13 +72,12 @@
             <button
               type="button"
               onclick={() => viewRecipe(weeklyPlan.current[day]?.[slot] as string)}
-              class="flex size-[46px] shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
+              class="flex size-[46px] shrink-0 items-center justify-center rounded-lg text-orange-500 transition hover:bg-orange-50 hover:text-orange-600 active:bg-orange-100"
               title={$_("mealCard.viewRecipe")}
               aria-label={$_("mealCard.viewRecipe")}
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4" aria-hidden="true">
-                <path d="M10 3.5c-4.29 0-7.86 2.64-9.32 6.34a.75.75 0 0 0 0 .32C2.14 13.86 5.71 16.5 10 16.5s7.86-2.64 9.32-6.34a.75.75 0 0 0 0-.32C17.86 6.14 14.29 3.5 10 3.5Zm0 11a4.17 4.17 0 1 1 0-8.34 4.17 4.17 0 0 1 0 8.34Z" />
-                <path d="M10 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
+                <path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L11.22 6.08a.75.75 0 1 1 1.06-1.06l4.5 4.5a.75.75 0 0 1 0 1.06l-4.5 4.5a.75.75 0 1 1-1.06-1.06l3.168-3.17H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" />
               </svg>
             </button>
           {/if}
