@@ -53,7 +53,7 @@
     </button>
   </div>
   <div class="space-y-3">
-    {#each slots as slot}
+    {#each slots as slot (slot)}
       <label class="block" for="day-{day}-{slot}">
         <span class="mb-1 block text-xs font-medium text-slate-600">{$_(`slot.${slot}`)}</span>
         <div class="flex gap-2">
@@ -64,7 +64,7 @@
             onchange={(e) => onChange(slot, e)}
           >
             <option value="">{$_("slot.selectMeal")}</option>
-            {#each sortedMeals as meal}
+            {#each sortedMeals as meal (meal.id)}
               <option value={meal.id}>{meal.name}</option>
             {/each}
           </select>
