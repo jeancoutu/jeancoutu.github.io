@@ -116,10 +116,28 @@ describe("Planner", () => {
     await vi.waitFor(() => expect(groceryList.itemsForWeek.length).toBeGreaterThan(0));
 
     await user.click(screen.getByRole("button", { name: "Clear Week" }));
+    await user.click(screen.getByRole("button", { name: "Clear week" }));
 
     await vi.waitFor(() => expect(weeklyPlan.current).toEqual({}));
     expect(groceryList.itemsForWeek).toEqual([]);
     expect(select.value).toBe("");
+  });
+
+  it("Clear Week shows a confirmation dialog and does nothing until confirmed", async () => {
+    const meal = await seedMeal("Chicken");
+    render(Planner);
+    const user = userEvent.setup();
+
+    const select = document.getElementById("day-monday-supper") as HTMLSelectElement;
+    await user.selectOptions(select, meal.id);
+    await vi.waitFor(() => expect(weeklyPlan.current.monday?.supper).toBe(meal.id));
+
+    await user.click(screen.getByRole("button", { name: "Clear Week" }));
+    expect(screen.getByText(/removed all meals and notes|remove all meals and notes/i)).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(weeklyPlan.current.monday?.supper).toBe(meal.id);
   });
 
   // Regression test for a bug where selecting a meal for a second day (after

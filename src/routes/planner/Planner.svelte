@@ -10,6 +10,8 @@
 
   import WeekPickerModal from "../../lib/components/WeekPickerModal.svelte";
 
+  import Modal from "../../lib/components/Modal.svelte";
+
   import { weeklyPlan } from "../../lib/stores/weeklyPlan.svelte";
   import { reloadGroceryItemsForWeek, clearGroceryItemsForWeek } from "../../lib/stores/groceryList.svelte";
 
@@ -19,9 +21,21 @@
 
   let weekPickerOpen = $state(false);
 
+  let clearConfirmOpen = $state(false);
+
   let activeWeek = $derived(weeklyPlan.selectedWeek);
 
   let weekLabel = $derived(formatWeekRange(activeWeek, $locale ?? "en"));
+
+  async function confirmClearWeek() {
+
+    clearConfirmOpen = false;
+
+    await weeklyPlan.clearWeek();
+
+    clearGroceryItemsForWeek(weeklyPlan.selectedWeek);
+
+  }
 
 </script>
 
@@ -89,7 +103,7 @@
 
       type="button"
 
-      onclick={async () => { await weeklyPlan.clearWeek(); clearGroceryItemsForWeek(weeklyPlan.selectedWeek); }}
+      onclick={() => (clearConfirmOpen = true)}
 
       class="min-w-0 flex-1 truncate rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
 
@@ -142,3 +156,29 @@
 
 
 <WeekPickerModal open={weekPickerOpen} onclose={() => (weekPickerOpen = false)} />
+
+<Modal
+  open={clearConfirmOpen}
+  title={$_("planner.clearConfirmTitle")}
+  onclose={() => (clearConfirmOpen = false)}
+>
+  {#snippet footer()}
+    <button
+      type="button"
+      onclick={() => (clearConfirmOpen = false)}
+      class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
+    >
+      {$_("planner.clearCancel")}
+    </button>
+    <button
+      type="button"
+      onclick={confirmClearWeek}
+      class="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 active:bg-red-800"
+    >
+      {$_("planner.clearConfirm")}
+    </button>
+  {/snippet}
+  <p class="text-sm text-slate-600">
+    {$_("planner.clearConfirmMessage")}
+  </p>
+</Modal>
