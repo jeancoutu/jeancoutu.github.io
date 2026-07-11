@@ -37,11 +37,9 @@
   let addingCategory = $state<IngredientCategory | null>(null);
   let newItemName = $state("");
   let newItemQuantity = $state("");
-  let newItemNameInput = $state<HTMLInputElement | null>(null);
-
-  $effect(() => {
-    if (addingCategory) newItemNameInput?.focus();
-  });
+  function autofocus(node: HTMLInputElement) {
+    node.focus();
+  }
 
   function startAdding(category: IngredientCategory) {
     addingCategory = category;
@@ -196,7 +194,7 @@
                 <input
                   type="text"
                   bind:value={newItemName}
-                  bind:this={newItemNameInput}
+                  {@attach autofocus}
                   placeholder={$_("grocery.addName")}
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                   onkeydown={handleAddKeydown}
@@ -297,7 +295,7 @@
                         ? 'line-through text-slate-400'
                         : ''}"
                     >
-                      <span class="text-slate-500">{formatGroceryQuantities(item.quantities)}</span>
+                      <span class="tabular-nums text-slate-500">{formatGroceryQuantities(item.quantities)}</span>
                       {item.name}
                     </span>
                   </label>

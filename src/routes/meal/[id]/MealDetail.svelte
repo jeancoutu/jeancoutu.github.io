@@ -86,7 +86,7 @@
       <ul class="space-y-1 rounded-xl border border-slate-200 bg-white p-4">
         {#each meal.ingredients as ingredient}
           <li class="text-sm text-slate-700">
-            – {ingredient.quantity}
+            – <span class="tabular-nums">{ingredient.quantity}</span>
             {ingredient.name}
           </li>
         {/each}
