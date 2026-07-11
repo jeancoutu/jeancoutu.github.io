@@ -16,6 +16,11 @@ Object.defineProperty(globalThis, "localStorage", {
   writable: true,
 });
 
+// happy-dom doesn't implement Element.getAnimations, which svelte/animate (flip) calls.
+if (!Element.prototype.getAnimations) {
+  Element.prototype.getAnimations = () => [];
+}
+
 // Supabase mock
 vi.mock("../lib/supabase", () => ({
   supabase: {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
+  import { flip } from "svelte/animate";
   import type { IngredientCategory } from "../types";
   import { weeklyPlan } from "../stores/weeklyPlan.svelte";
   import { getMealById } from "../stores/meals.svelte";
@@ -235,7 +236,7 @@
           <ul class="mt-3 space-y-2">
             {#each group.items as item (item.name)}
               {@const isEditing = editingItem?.name === item.name}
-              <li class="flex items-start gap-3">
+              <li class="flex items-start gap-3" animate:flip={{ duration: 250 }}>
                 {#if isEditing}
                   <form
                     class="flex min-w-0 flex-1 flex-col gap-2"
