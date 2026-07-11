@@ -19,6 +19,8 @@
     }
     return current.name === "settings";
   }
+
+  const activeIndex = $derived(tabs.findIndex((tab) => isActive(tab.id)));
 </script>
 
 <nav
@@ -26,8 +28,16 @@
   aria-label={$_("nav.main")}
 >
   <SyncIndicator />
-  <div class="mx-auto flex max-w-lg">
-    {#each tabs as tab}
+  <div class="relative mx-auto flex max-w-lg">
+    {#if activeIndex >= 0}
+      <div
+        class="pointer-events-none absolute top-0 left-0 flex justify-center transition-transform duration-300 ease-out"
+        style="width: {100 / tabs.length}%; transform: translateX({activeIndex * 100}%)"
+      >
+        <span class="h-1 w-8 rounded-full bg-orange-500"></span>
+      </div>
+    {/if}
+    {#each tabs as tab (tab.id)}
       <button
         type="button"
         onclick={() => navigate(tab.path)}
@@ -37,10 +47,7 @@
           : 'text-slate-500 hover:text-slate-700'}"
         aria-current={isActive(tab.id) ? "page" : undefined}
       >
-        <span
-          class="h-1 w-8 rounded-full transition
-            {isActive(tab.id) ? 'bg-orange-500' : 'bg-transparent'}"
-        ></span>
+        <span class="h-1 w-8"></span>
         {$_(tab.labelKey)}
       </button>
     {/each}
