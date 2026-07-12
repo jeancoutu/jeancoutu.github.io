@@ -4,7 +4,7 @@ import type { GroceryItem } from "../../lib/utils/groceryList";
 import type { GroceryDBItem } from "../../lib/repos/groceryItemRepo";
 
 function mealPlanItem(overrides: Partial<GroceryItem> & { name: string }): GroceryItem {
-  return { category: "vegetables", quantities: [], ...overrides };
+  return { category: "vegetables", quantities: [], mealNames: [], ...overrides };
 }
 
 function dbItem(overrides: Partial<GroceryDBItem> & { id: string; name: string }): GroceryDBItem {
@@ -28,7 +28,7 @@ describe("buildDisplayItems", () => {
       new Set(),
     );
     expect(result).toEqual([
-      { name: "Carrots", category: "vegetables", quantities: ["1"], dbId: "1", checked: true, isCustom: false },
+      { name: "Carrots", category: "vegetables", quantities: ["1"], dbId: "1", checked: true, isCustom: false, mealNames: [] },
     ]);
   });
 
@@ -39,7 +39,7 @@ describe("buildDisplayItems", () => {
       new Set(),
     );
     expect(result).toEqual([
-      { name: "Carrots", category: "vegetables", quantities: ["2"], dbId: undefined, checked: false, isCustom: false },
+      { name: "Carrots", category: "vegetables", quantities: ["2"], dbId: undefined, checked: false, isCustom: false, mealNames: [] },
     ]);
   });
 
@@ -59,7 +59,7 @@ describe("buildDisplayItems", () => {
       new Set(),
     );
     expect(result).toEqual([
-      { dbId: "2", name: "Chocolate", category: "vegetables", quantities: ["1 bar"], checked: false, isCustom: true },
+      { dbId: "2", name: "Chocolate", category: "vegetables", quantities: ["1 bar"], checked: false, isCustom: true, mealNames: [] },
     ]);
   });
 
@@ -73,7 +73,7 @@ describe("buildDisplayItems", () => {
       new Set(),
     );
     expect(result).toEqual([
-      { dbId: "1", name: "1", category: "vegetables", quantities: ["1", "2"], checked: true, isCustom: true },
+      { dbId: "1", name: "1", category: "vegetables", quantities: ["1", "2"], checked: true, isCustom: true, mealNames: [] },
     ]);
   });
 
@@ -84,5 +84,34 @@ describe("buildDisplayItems", () => {
       new Set(),
     );
     expect(result).toHaveLength(1);
+  });
+
+  it("carries meal names through to meal-plan display items", () => {
+    const result = buildDisplayItems(
+      [mealPlanItem({ name: "Carrots", quantities: ["2"], mealNames: ["Tacos", "Ragoût"] })],
+      [],
+      new Set(),
+    );
+    expect(result[0]!.mealNames).toEqual(["Tacos", "Ragoût"]);
+  });
+
+  it("gives custom items an empty mealNames list", () => {
+    const result = buildDisplayItems(
+      [],
+      [dbItem({ id: "2", name: "Chocolate" })],
+      new Set(),
+    );
+    expect(result[0]!.mealNames).toEqual([]);
+  });
+
+  it("keeps meal names on a quantity-edited DB row that still matches a meal ingredient", () => {
+    const result = buildDisplayItems(
+      [mealPlanItem({ name: "Carrots", quantities: ["2"], mealNames: ["Tacos"] })],
+      [dbItem({ id: "1", name: "Carrots", quantity: "5" })],
+      new Set(),
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0]!.quantities).toEqual(["5"]);
+    expect(result[0]!.mealNames).toEqual(["Tacos"]);
   });
 });

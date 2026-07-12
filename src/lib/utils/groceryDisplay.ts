@@ -9,6 +9,7 @@ export interface DisplayItem {
   quantities: string[];
   checked: boolean;
   isCustom: boolean;
+  mealNames: string[];
 }
 
 // Merges meal-plan-derived items with DB rows (custom items + checked state),
@@ -60,6 +61,7 @@ export function buildDisplayItems(
         dbId: dbItem?.id,
         checked: dbItem?.checked ?? false,
         isCustom: false,
+        mealNames: item.mealNames,
       };
     });
 
@@ -72,6 +74,7 @@ export function buildDisplayItems(
       quantities: item.quantities,
       checked: item.checked,
       isCustom: true,
+      mealNames: [],
     }));
 
   return [...mealPlanDisplayItems, ...customDisplayItems];

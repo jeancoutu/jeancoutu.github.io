@@ -8,6 +8,7 @@ export interface GroceryItem {
   name: string;
   category: IngredientCategory;
   quantities: string[];
+  mealNames: string[];
 }
 
 export function getPlannedMeals(
@@ -37,12 +38,16 @@ function addToGroceryMap(
   name: string,
   category: IngredientCategory,
   quantity: string,
+  mealName: string,
 ): void {
   const existing = map.get(name);
   if (existing) {
     existing.quantities.push(quantity);
+    if (!existing.mealNames.includes(mealName)) {
+      existing.mealNames.push(mealName);
+    }
   } else {
-    map.set(name, { name, category, quantities: [quantity] });
+    map.set(name, { name, category, quantities: [quantity], mealNames: [mealName] });
   }
 }
 
@@ -56,6 +61,7 @@ export function buildGroceryList(meals: Meal[]): GroceryItem[] {
         ingredient.name,
         ingredient.category,
         ingredient.quantity,
+        meal.name,
       );
     }
   }

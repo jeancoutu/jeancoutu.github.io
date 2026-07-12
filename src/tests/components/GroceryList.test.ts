@@ -140,6 +140,60 @@ describe("GroceryList", () => {
     expect(groceryList.itemsForWeek.map((i) => i.name)).not.toContain("Discarded");
   }, 10000);
 
+  it("long-press edit shows the source meal names for a plan-derived item with a DB row", async () => {
+    const meal = await mealRepo.create({
+      name: "Tacos",
+      duration: "short",
+      supperDays: [],
+      url: "",
+      ingredients: [{ name: "Beef", quantity: "1 lb", category: "meat" }],
+      instructions: ["Cook"],
+    });
+    meals.all = await mealRepo.getAll();
+    weeklyPlan.plans = {
+      ...weeklyPlan.plans,
+      [weeklyPlan.selectedWeek]: { monday: { supper: meal.id } },
+    };
+    // DB row matching the meal ingredient (as applyAdjustments would create)
+    await addGroceryItem("meat", "Beef", "1 lb");
+
+    render(GroceryList);
+
+    const label = screen.getByText("Beef").closest("label")!;
+    fireEvent.pointerDown(label, { clientX: 0, clientY: 0 });
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    await screen.findByDisplayValue("Beef");
+    expect(screen.getByText("Tacos")).toBeInTheDocument();
+  }, 10000);
+
+  it("long-press edit shows no provenance line for a custom item", async () => {
+    const meal = await mealRepo.create({
+      name: "Tacos",
+      duration: "short",
+      supperDays: [],
+      url: "",
+      ingredients: [{ name: "Beef", quantity: "1 lb", category: "meat" }],
+      instructions: ["Cook"],
+    });
+    meals.all = await mealRepo.getAll();
+    weeklyPlan.plans = {
+      ...weeklyPlan.plans,
+      [weeklyPlan.selectedWeek]: { monday: { supper: meal.id } },
+    };
+    // Renamed item: no longer matches any planned meal ingredient → custom
+    await addGroceryItem("meat", "Ground Beef", "1 lb");
+
+    render(GroceryList);
+
+    const label = screen.getByText("Ground Beef").closest("label")!;
+    fireEvent.pointerDown(label, { clientX: 0, clientY: 0 });
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    await screen.findByDisplayValue("Ground Beef");
+    expect(screen.queryByText("Tacos")).not.toBeInTheDocument();
+  }, 10000);
+
   it("remove on a custom item calls removeGroceryItem", async () => {
     await addGroceryItem("vegetables", "Carrot", "1");
     render(GroceryList);

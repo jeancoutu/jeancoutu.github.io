@@ -262,6 +262,11 @@
                         />
                       </label>
                     </div>
+                    {#if editingItem && editingItem.mealNames.length > 0}
+                      <p class="text-xs text-slate-500">
+                        {editingItem.mealNames.join(" · ")}
+                      </p>
+                    {/if}
                     <div class="flex justify-end gap-2">
                       <button
                         type="submit"

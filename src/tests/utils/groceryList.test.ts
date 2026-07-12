@@ -111,8 +111,63 @@ describe("buildGroceryList", () => {
     ];
     const result = buildGroceryList(meals);
     expect(result).toEqual([
-      { name: "Tomate", category: "vegetables", quantities: ["1", "2"] },
+      { name: "Tomate", category: "vegetables", quantities: ["1", "2"], mealNames: ["m1", "m2"] },
     ]);
+  });
+
+  it("records the source meal name for a single meal", () => {
+    const meals: Meal[] = [
+      makeMeal({
+        id: "m1",
+        name: "Tacos",
+        ingredients: [{ name: "Tomate", category: "vegetables", quantity: "1" }],
+      }),
+    ];
+    expect(buildGroceryList(meals)[0]!.mealNames).toEqual(["Tacos"]);
+  });
+
+  it("records both meal names in plan order for a shared ingredient", () => {
+    const meals: Meal[] = [
+      makeMeal({
+        id: "m1",
+        name: "Poulet au beurre",
+        ingredients: [{ name: "Ail", category: "vegetables", quantity: "1" }],
+      }),
+      makeMeal({
+        id: "m2",
+        name: "Tacos",
+        ingredients: [{ name: "Ail", category: "vegetables", quantity: "2" }],
+      }),
+    ];
+    expect(buildGroceryList(meals)[0]!.mealNames).toEqual(["Poulet au beurre", "Tacos"]);
+  });
+
+  it("records a meal name once even with duplicate same-named ingredient rows", () => {
+    const meals: Meal[] = [
+      makeMeal({
+        id: "m1",
+        name: "Tacos",
+        ingredients: [
+          { name: "Ail", category: "vegetables", quantity: "1" },
+          { name: "Ail", category: "vegetables", quantity: "2" },
+        ],
+      }),
+    ];
+    expect(buildGroceryList(meals)[0]!.mealNames).toEqual(["Tacos"]);
+  });
+
+  it("records a meal name once when the same meal is planned on two days", () => {
+    const meal = makeMeal({
+      id: "m1",
+      name: "Tacos",
+      ingredients: [{ name: "Ail", category: "vegetables", quantity: "1" }],
+    });
+    const plan: WeeklyPlan = {
+      monday: { diner: "m1" },
+      tuesday: { supper: "m1" },
+    };
+    const planned = getPlannedMeals(plan, (id) => (id === "m1" ? meal : undefined));
+    expect(buildGroceryList(planned)[0]!.mealNames).toEqual(["Tacos"]);
   });
 
   it("sorts by category order then name", () => {
