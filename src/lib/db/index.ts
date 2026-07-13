@@ -54,6 +54,7 @@ export interface LocalGroceryItem extends SyncMeta {
   quantity: string;
   category: IngredientCategory;
   checked: boolean;
+  toVerify: boolean;
 }
 
 export type SyncEntity = "meal" | "groceryPreset" | "weeklyPlan" | "groceryItem";

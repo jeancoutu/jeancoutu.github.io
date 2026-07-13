@@ -257,6 +257,7 @@ create table grocery_items (
   quantity       text not null default '',
   category       ingredient_category not null,
   checked        boolean not null default false,
+  to_verify      boolean not null default false,
   updated_at     timestamptz not null default now(),
   version        int not null default 1,
   deleted_at     timestamptz,
@@ -739,9 +740,9 @@ create or replace function merge_grocery_quantity(existing text, incoming text) 
 
 -- Leaf root (Decision 3/4): identity is (weekly_plan_id, name, category).
 -- On a name collision the row is merged (quantities combined, checked
--- OR'd) and the canonical id/version returned so the client remaps.
--- p_deleted=true handles the delete path in the same RPC since both need
--- the same "does this row already exist under my client id" lookup.
+-- and to_verify OR'd) and the canonical id/version returned so the client
+-- remaps. p_deleted=true handles the delete path in the same RPC since both
+-- need the same "does this row already exist under my client id" lookup.
 create or replace function sync_grocery_item(
   p_weekly_plan_id uuid,
   p_client_id uuid,
@@ -749,6 +750,7 @@ create or replace function sync_grocery_item(
   p_category ingredient_category,
   p_quantity text,
   p_checked boolean,
+  p_to_verify boolean,
   p_base_version int,
   p_deleted boolean
 ) returns jsonb
@@ -795,7 +797,7 @@ create or replace function sync_grocery_item(
         return jsonb_build_object('status', 'conflict', 'id', v_existing.id, 'version', v_existing.version);
       end if;
 
-      update grocery_items set quantity = p_quantity, checked = p_checked, category = p_category
+      update grocery_items set quantity = p_quantity, checked = p_checked, to_verify = p_to_verify, category = p_category
       where id = v_existing.id
       returning * into v_row;
 
@@ -804,9 +806,10 @@ create or replace function sync_grocery_item(
 
     -- Reviving a tombstoned row (name+category collides with a soft-deleted
     -- item, e.g. clear-week then regenerate) is a fresh write, not a merge:
-    -- overwrite quantity/checked instead of combining with the stale value.
-    insert into grocery_items (id, weekly_plan_id, name, category, quantity, checked)
-    values (p_client_id, p_weekly_plan_id, p_name, p_category, p_quantity, p_checked)
+    -- overwrite quantity/checked/to_verify instead of combining with the
+    -- stale value.
+    insert into grocery_items (id, weekly_plan_id, name, category, quantity, checked, to_verify)
+    values (p_client_id, p_weekly_plan_id, p_name, p_category, p_quantity, p_checked, p_to_verify)
     on conflict (weekly_plan_id, name, category) do update set
       quantity = case when grocery_items.deleted_at is not null
                    then excluded.quantity
@@ -814,6 +817,9 @@ create or replace function sync_grocery_item(
       checked = case when grocery_items.deleted_at is not null
                   then excluded.checked
                   else grocery_items.checked or excluded.checked end,
+      to_verify = case when grocery_items.deleted_at is not null
+                    then excluded.to_verify
+                    else grocery_items.to_verify or excluded.to_verify end,
       deleted_at = null
     returning * into v_row;
 
@@ -841,6 +847,7 @@ create or replace function sync_grocery_items(p_items jsonb) returns jsonb
     v_category ingredient_category;
     v_quantity text;
     v_checked boolean;
+    v_to_verify boolean;
     v_base_version int;
     v_deleted boolean;
     v_plan_owned boolean;
@@ -857,6 +864,7 @@ create or replace function sync_grocery_items(p_items jsonb) returns jsonb
       v_category := (v_item->>'category')::ingredient_category;
       v_quantity := v_item->>'quantity';
       v_checked := (v_item->>'checked')::boolean;
+      v_to_verify := (v_item->>'to_verify')::boolean;
       v_base_version := nullif(v_item->>'base_version', '')::int;
       v_deleted := (v_item->>'deleted')::boolean;
 
@@ -905,7 +913,7 @@ create or replace function sync_grocery_items(p_items jsonb) returns jsonb
           continue;
         end if;
 
-        update grocery_items set quantity = v_quantity, checked = v_checked, category = v_category
+        update grocery_items set quantity = v_quantity, checked = v_checked, to_verify = v_to_verify, category = v_category
         where id = v_existing.id
         returning * into v_row;
 
@@ -917,8 +925,8 @@ create or replace function sync_grocery_items(p_items jsonb) returns jsonb
 
       -- See sync_grocery_item: reviving a tombstoned row overwrites instead
       -- of merging with the stale pre-delete value.
-      insert into grocery_items (id, weekly_plan_id, name, category, quantity, checked)
-      values (v_client_id, v_weekly_plan_id, v_name, v_category, v_quantity, v_checked)
+      insert into grocery_items (id, weekly_plan_id, name, category, quantity, checked, to_verify)
+      values (v_client_id, v_weekly_plan_id, v_name, v_category, v_quantity, v_checked, v_to_verify)
       on conflict (weekly_plan_id, name, category) do update set
         quantity = case when grocery_items.deleted_at is not null
                      then excluded.quantity
@@ -926,6 +934,9 @@ create or replace function sync_grocery_items(p_items jsonb) returns jsonb
         checked = case when grocery_items.deleted_at is not null
                     then excluded.checked
                     else grocery_items.checked or excluded.checked end,
+        to_verify = case when grocery_items.deleted_at is not null
+                      then excluded.to_verify
+                      else grocery_items.to_verify or excluded.to_verify end,
         deleted_at = null
       returning * into v_row;
 
@@ -1007,6 +1018,7 @@ create or replace function pull_changes(p_since timestamptz) returns jsonb
     select coalesce(jsonb_agg(jsonb_build_object(
       'id', gi.id, 'weekly_plan_id', gi.weekly_plan_id, 'name', gi.name,
       'quantity', gi.quantity, 'category', gi.category, 'checked', gi.checked,
+      'to_verify', gi.to_verify,
       'version', gi.version, 'updated_at', gi.updated_at, 'deleted_at', gi.deleted_at
     )), '[]'::jsonb) into v_grocery_items
     from grocery_items gi

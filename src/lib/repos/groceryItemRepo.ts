@@ -18,7 +18,14 @@ export class GroceryItemRepository {
   // different items never conflict.
   async upsert(
     weeklyPlanId: string,
-    input: { id?: string | undefined; name: string; quantity: string; category: IngredientCategory; checked: boolean },
+    input: {
+      id?: string | undefined;
+      name: string;
+      quantity: string;
+      category: IngredientCategory;
+      checked: boolean;
+      toVerify?: boolean;
+    },
   ): Promise<LocalGroceryItem> {
     const id = input.id ?? crypto.randomUUID();
     const existing = input.id ? await db.groceryItems.get(input.id) : undefined;
@@ -30,6 +37,7 @@ export class GroceryItemRepository {
       quantity: input.quantity,
       category: input.category,
       checked: input.checked,
+      toVerify: input.toVerify ?? existing?.toVerify ?? false,
       version: existing?.version ?? 1,
       updatedAt: now,
       deletedAt: null,
@@ -66,7 +74,7 @@ export class GroceryItemRepository {
 
   async replaceAll(
     weeklyPlanId: string,
-    items: { name: string; quantity: string; category: IngredientCategory; checked: boolean }[],
+    items: { name: string; quantity: string; category: IngredientCategory; checked: boolean; toVerify?: boolean }[],
   ): Promise<LocalGroceryItem[]> {
     await this.deleteAll(weeklyPlanId);
     return Promise.all(items.map((item) => this.upsert(weeklyPlanId, item)));

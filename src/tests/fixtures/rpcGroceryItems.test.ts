@@ -28,6 +28,7 @@ describe("sync_grocery_item RPC", () => {
       p_category: "vegetables",
       p_quantity: "2",
       p_checked: false,
+      p_to_verify: false,
       p_base_version: null,
       p_deleted: false,
     });
@@ -49,6 +50,7 @@ describe("sync_grocery_item RPC", () => {
       p_category: "vegetables",
       p_quantity: "2",
       p_checked: false,
+      p_to_verify: false,
       p_base_version: null,
       p_deleted: false,
     });
@@ -60,6 +62,7 @@ describe("sync_grocery_item RPC", () => {
       p_category: "vegetables",
       p_quantity: "3",
       p_checked: true,
+      p_to_verify: false,
       p_base_version: 1,
       p_deleted: false,
     });
@@ -81,6 +84,7 @@ describe("sync_grocery_item RPC", () => {
       p_category: "vegetables",
       p_quantity: "2",
       p_checked: false,
+      p_to_verify: false,
       p_base_version: null,
       p_deleted: false,
     });
@@ -92,6 +96,7 @@ describe("sync_grocery_item RPC", () => {
       p_category: "vegetables",
       p_quantity: "99",
       p_checked: false,
+      p_to_verify: false,
       p_base_version: 99,
       p_deleted: false,
     });
@@ -114,6 +119,7 @@ describe("sync_grocery_item RPC", () => {
       p_category: "aisle",
       p_quantity: "2 cups",
       p_checked: false,
+      p_to_verify: false,
       p_base_version: null,
       p_deleted: false,
     });
@@ -126,6 +132,7 @@ describe("sync_grocery_item RPC", () => {
       p_category: "aisle",
       p_quantity: "1 cup",
       p_checked: true,
+      p_to_verify: false,
       p_base_version: null,
       p_deleted: false,
     });
@@ -136,6 +143,44 @@ describe("sync_grocery_item RPC", () => {
 
     const refetched = await fake.from("grocery_items").select("*").eq("id", firstId).maybeSingle();
     expect(refetched.data).toMatchObject({ quantity: "2 cups, 1 cup", checked: true });
+  });
+
+  it("ORs to_verify on a name+category collision, same as checked", async () => {
+    const fake = await createFakeSupabase();
+    await fake._testHelpers.signInAsNewUser();
+    const planId = await makePlan(fake, "2026-01-05");
+
+    const firstId = crypto.randomUUID();
+    await fake.rpc("sync_grocery_item", {
+      p_weekly_plan_id: planId,
+      p_client_id: firstId,
+      p_name: "Rice",
+      p_category: "aisle",
+      p_quantity: "2 cups",
+      p_checked: false,
+      p_to_verify: false,
+      p_base_version: null,
+      p_deleted: false,
+    });
+
+    const secondId = crypto.randomUUID();
+    const { data, error } = await fake.rpc("sync_grocery_item", {
+      p_weekly_plan_id: planId,
+      p_client_id: secondId,
+      p_name: "Rice",
+      p_category: "aisle",
+      p_quantity: "1 cup",
+      p_checked: false,
+      p_to_verify: true,
+      p_base_version: null,
+      p_deleted: false,
+    });
+
+    expect(error).toBeNull();
+    expect(data).toMatchObject({ status: "ok", id: firstId });
+
+    const refetched = await fake.from("grocery_items").select("*").eq("id", firstId).maybeSingle();
+    expect(refetched.data).toMatchObject({ quantity: "2 cups, 1 cup", to_verify: true });
   });
 
   it("reviving a tombstoned row overwrites rather than merges the quantity", async () => {
@@ -151,6 +196,7 @@ describe("sync_grocery_item RPC", () => {
       p_category: "aisle",
       p_quantity: "2 cups",
       p_checked: false,
+      p_to_verify: false,
       p_base_version: null,
       p_deleted: false,
     });
@@ -161,6 +207,7 @@ describe("sync_grocery_item RPC", () => {
       p_category: "aisle",
       p_quantity: "2 cups",
       p_checked: false,
+      p_to_verify: false,
       p_base_version: 1,
       p_deleted: true,
     });
@@ -173,6 +220,7 @@ describe("sync_grocery_item RPC", () => {
       p_category: "aisle",
       p_quantity: "5 cups",
       p_checked: false,
+      p_to_verify: false,
       p_base_version: null,
       p_deleted: false,
     });
@@ -199,6 +247,7 @@ describe("sync_grocery_items RPC (batched)", () => {
       p_category: "fridge",
       p_quantity: "6",
       p_checked: false,
+      p_to_verify: false,
       p_base_version: null,
       p_deleted: false,
     });
@@ -211,6 +260,7 @@ describe("sync_grocery_items RPC (batched)", () => {
       p_category: "fridge",
       p_quantity: "1 pack",
       p_checked: false,
+      p_to_verify: false,
       p_base_version: null,
       p_deleted: false,
     });
@@ -227,6 +277,7 @@ describe("sync_grocery_items RPC (batched)", () => {
           category: "vegetables",
           quantity: "2",
           checked: false,
+          to_verify: false,
           base_version: null,
           deleted: false,
         },
@@ -237,6 +288,7 @@ describe("sync_grocery_items RPC (batched)", () => {
           category: "fridge",
           quantity: "12",
           checked: true,
+          to_verify: false,
           base_version: 1,
           deleted: false,
         },
@@ -247,6 +299,7 @@ describe("sync_grocery_items RPC (batched)", () => {
           category: "fridge",
           quantity: "1 more pack",
           checked: false,
+          to_verify: false,
           base_version: null,
           deleted: false,
         },
@@ -288,6 +341,7 @@ describe("sync_grocery_items RPC (batched)", () => {
       p_category: "vegetables",
       p_quantity: "2",
       p_checked: false,
+      p_to_verify: false,
       p_base_version: null,
       p_deleted: false,
     });
@@ -301,6 +355,7 @@ describe("sync_grocery_items RPC (batched)", () => {
           category: "vegetables",
           quantity: "99",
           checked: false,
+          to_verify: false,
           base_version: 99,
           deleted: false,
         },

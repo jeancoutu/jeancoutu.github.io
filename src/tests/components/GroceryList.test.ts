@@ -206,6 +206,101 @@ describe("GroceryList", () => {
     expect(screen.queryByText("Carrot")).not.toBeInTheDocument();
   });
 
+  it("long-press opens the edit form for a plan-derived item with no DB row yet", async () => {
+    const meal = await mealRepo.create({
+      name: "Tacos",
+      duration: "short",
+      supperDays: [],
+      url: "",
+      ingredients: [{ name: "Beef", quantity: "1 lb", category: "meat" }],
+      instructions: ["Cook"],
+    });
+    meals.all = await mealRepo.getAll();
+    weeklyPlan.plans = {
+      ...weeklyPlan.plans,
+      [weeklyPlan.selectedWeek]: { monday: { supper: meal.id } },
+    };
+
+    render(GroceryList);
+
+    const label = screen.getByText("Beef").closest("label")!;
+    fireEvent.pointerDown(label, { clientX: 0, clientY: 0 });
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    expect(await screen.findByDisplayValue("Beef")).toBeInTheDocument();
+  }, 10000);
+
+  it("'To verify' button commits pending edits and marks the item to-verify", async () => {
+    await addGroceryItem("vegetables", "Carrot", "1");
+    render(GroceryList);
+
+    const label = screen.getByText("Carrot").closest("label")!;
+    fireEvent.pointerDown(label, { clientX: 0, clientY: 0 });
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    const nameInput = await screen.findByDisplayValue("Carrot");
+    const user = userEvent.setup();
+    await user.clear(nameInput);
+    await user.type(nameInput, "Baby Carrot");
+    await user.click(screen.getByRole("button", { name: "To verify" }));
+
+    await vi.waitFor(() => {
+      const item = groceryList.itemsForWeek.find((i) => i.name === "Baby Carrot");
+      expect(item?.toVerify).toBe(true);
+    });
+    expect(screen.getByText("Baby Carrot")).toHaveClass("text-amber-700");
+  }, 10000);
+
+  it("'Remove To verify' clears the flag when re-opening the form on a to-verify item", async () => {
+    await addGroceryItem("vegetables", "Carrot", "1");
+    render(GroceryList);
+
+    let label = screen.getByText("Carrot").closest("label")!;
+    fireEvent.pointerDown(label, { clientX: 0, clientY: 0 });
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    await screen.findByDisplayValue("Carrot");
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "To verify" }));
+    await vi.waitFor(() => {
+      expect(groceryList.itemsForWeek.find((i) => i.name === "Carrot")?.toVerify).toBe(true);
+    });
+
+    label = screen.getByText("Carrot").closest("label")!;
+    fireEvent.pointerDown(label, { clientX: 0, clientY: 0 });
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    await screen.findByDisplayValue("Carrot");
+    await user.click(screen.getByRole("button", { name: "Remove To verify" }));
+
+    await vi.waitFor(() => {
+      expect(groceryList.itemsForWeek.find((i) => i.name === "Carrot")?.toVerify).toBe(false);
+    });
+  }, 10000);
+
+  it("tapping a to-verify item clears the flag without checking it", async () => {
+    await addGroceryItem("vegetables", "Carrot", "1");
+    render(GroceryList);
+
+    const label = screen.getByText("Carrot").closest("label")!;
+    fireEvent.pointerDown(label, { clientX: 0, clientY: 0 });
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    await screen.findByDisplayValue("Carrot");
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "To verify" }));
+    await vi.waitFor(() => {
+      expect(groceryList.itemsForWeek.find((i) => i.name === "Carrot")?.toVerify).toBe(true);
+    });
+
+    const checkbox = within(screen.getByText("Carrot", { exact: false }).closest("li")!).getByRole("checkbox");
+    await user.click(checkbox);
+
+    await vi.waitFor(() => {
+      const item = groceryList.itemsForWeek.find((i) => i.name === "Carrot");
+      expect(item?.toVerify).toBe(false);
+      expect(item?.checked).toBe(false);
+    });
+    expect(checkbox).not.toBeChecked();
+  }, 10000);
+
   it("remove on a plan-derived item calls dismissIngredient instead of removeGroceryItem", async () => {
     const meal = await mealRepo.create({
       name: "Tacos",

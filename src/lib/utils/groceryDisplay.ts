@@ -8,6 +8,7 @@ export interface DisplayItem {
   category: IngredientCategory;
   quantities: string[];
   checked: boolean;
+  toVerify: boolean;
   isCustom: boolean;
   mealNames: string[];
 }
@@ -21,6 +22,7 @@ interface MergedDbItem {
   category: IngredientCategory;
   quantities: string[];
   checked: boolean;
+  toVerify: boolean;
 }
 
 function mergeDbItemsByName(dbItems: GroceryDBItem[]): Map<string, MergedDbItem> {
@@ -30,12 +32,14 @@ function mergeDbItemsByName(dbItems: GroceryDBItem[]): Map<string, MergedDbItem>
     if (existing) {
       existing.quantities.push(item.quantity);
       existing.checked = existing.checked || item.checked;
+      existing.toVerify = existing.toVerify || item.toVerify;
     } else {
       merged.set(item.name, {
         id: item.id,
         category: item.category,
         quantities: [item.quantity],
         checked: item.checked,
+        toVerify: item.toVerify,
       });
     }
   }
@@ -60,6 +64,7 @@ export function buildDisplayItems(
         quantities: dbItem ? dbItem.quantities : item.quantities,
         dbId: dbItem?.id,
         checked: dbItem?.checked ?? false,
+        toVerify: dbItem?.toVerify ?? false,
         isCustom: false,
         mealNames: item.mealNames,
       };
@@ -73,6 +78,7 @@ export function buildDisplayItems(
       category: item.category,
       quantities: item.quantities,
       checked: item.checked,
+      toVerify: item.toVerify,
       isCustom: true,
       mealNames: [],
     }));

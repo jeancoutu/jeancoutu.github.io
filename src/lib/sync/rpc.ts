@@ -123,6 +123,7 @@ async function pushGroceryItem(op: SyncQueueItem): Promise<PushResult> {
       p_category: row.category,
       p_quantity: row.quantity,
       p_checked: row.checked,
+      p_to_verify: row.toVerify,
       p_base_version: op.baseVersion,
       p_deleted: true,
     });
@@ -135,6 +136,7 @@ async function pushGroceryItem(op: SyncQueueItem): Promise<PushResult> {
     p_category: row.category,
     p_quantity: row.quantity,
     p_checked: row.checked,
+    p_to_verify: row.toVerify,
     p_base_version: op.baseVersion,
     p_deleted: false,
   });
@@ -193,6 +195,7 @@ export interface PulledGroceryItem {
   quantity: string;
   category: string;
   checked: boolean;
+  to_verify: boolean;
   version: number;
   updated_at: string;
   deleted_at: string | null;
@@ -213,6 +216,7 @@ export interface GroceryItemBatchInput {
   category: string;
   quantity: string;
   checked: boolean;
+  toVerify: boolean;
   baseVersion: number | null;
   deleted: boolean;
 }
@@ -235,6 +239,7 @@ export async function pushGroceryItems(items: GroceryItemBatchInput[]): Promise<
     category: item.category,
     quantity: item.quantity,
     checked: item.checked,
+    to_verify: item.toVerify,
     base_version: item.baseVersion,
     deleted: item.deleted,
   }));
@@ -292,7 +297,7 @@ export async function refetchWeeklyPlan(id: string): Promise<PulledWeeklyPlan | 
 export async function refetchGroceryItem(id: string): Promise<PulledGroceryItem | null> {
   return selectOne<PulledGroceryItem>(
     "grocery_items",
-    "id, weekly_plan_id, name, quantity, category, checked, version, updated_at, deleted_at",
+    "id, weekly_plan_id, name, quantity, category, checked, to_verify, version, updated_at, deleted_at",
     id,
   );
 }

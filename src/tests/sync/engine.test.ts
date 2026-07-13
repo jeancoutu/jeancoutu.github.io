@@ -93,7 +93,7 @@ describe("sync engine", () => {
   it("remaps a grocery item id on merge collision without touching other entities", async () => {
     await seedPlanRow("plan-1");
     const local: LocalGroceryItem = {
-      id: "local-item", weeklyPlanId: "plan-1", name: "Carrots", quantity: "2", category: "vegetables", checked: false,
+      id: "local-item", weeklyPlanId: "plan-1", name: "Carrots", quantity: "2", category: "vegetables", checked: false, toVerify: false,
       version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
     };
     await db.groceryItems.put(local);
@@ -106,7 +106,7 @@ describe("sync engine", () => {
         id: "merged-item",
         version: 4,
         row: {
-          id: "merged-item", weekly_plan_id: "plan-1", name: "Carrots", quantity: "5", category: "vegetables", checked: false,
+          id: "merged-item", weekly_plan_id: "plan-1", name: "Carrots", quantity: "5", category: "vegetables", checked: false, to_verify: false,
           version: 4, updated_at: "2026-01-02T00:00:00.000Z", deleted_at: null,
         },
       },
@@ -124,11 +124,11 @@ describe("sync engine", () => {
   it("batches multiple queued grocery-item ops into a single sync_grocery_items call", async () => {
     await seedPlanRow("plan-1");
     const itemA: LocalGroceryItem = {
-      id: "item-a", weeklyPlanId: "plan-1", name: "Carrots", quantity: "2", category: "vegetables", checked: false,
+      id: "item-a", weeklyPlanId: "plan-1", name: "Carrots", quantity: "2", category: "vegetables", checked: false, toVerify: false,
       version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
     };
     const itemB: LocalGroceryItem = {
-      id: "item-b", weeklyPlanId: "plan-1", name: "Rice", quantity: "1", category: "aisle", checked: false,
+      id: "item-b", weeklyPlanId: "plan-1", name: "Rice", quantity: "1", category: "aisle", checked: false, toVerify: false,
       version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
     };
     await db.groceryItems.bulkPut([itemA, itemB]);
@@ -150,7 +150,7 @@ describe("sync engine", () => {
 
   it("drops queued grocery-item ops whose plan row no longer exists instead of wedging the queue", async () => {
     const orphan: LocalGroceryItem = {
-      id: "orphan-item", weeklyPlanId: "gone-plan", name: "Carrots", quantity: "2", category: "vegetables", checked: false,
+      id: "orphan-item", weeklyPlanId: "gone-plan", name: "Carrots", quantity: "2", category: "vegetables", checked: false, toVerify: false,
       version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
     };
     await enqueue("groceryItem", "orphan-item", "upsert", null, orphan);

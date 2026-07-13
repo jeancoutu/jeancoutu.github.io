@@ -10,6 +10,7 @@
     groceryList,
     removeGroceryItem,
     toggleGroceryItemChecked,
+    toggleGroceryItemToVerify,
   } from "../stores/groceryList.svelte";
   import {
     buildGroceryList,
@@ -73,8 +74,6 @@
   let editQuantity = $state("");
 
   function startEditing(item: DisplayItem) {
-    // Only allow editing items that have a DB row
-    if (!item.dbId) return;
     editingItem = item;
     editName = item.name;
     editQuantity = formatGroceryQuantities(item.quantities);
@@ -84,10 +83,18 @@
     editingItem = null;
   }
 
-  function submitEdit() {
-    if (!editingItem?.dbId || !editName.trim()) return;
-    editGroceryItem(editingItem.dbId, editName, editingItem.category, editQuantity);
+  function commitEdit(toVerify: boolean) {
+    if (!editingItem || !editName.trim()) return;
+    editGroceryItem(editingItem.dbId, editName, editingItem.category, editQuantity, toVerify);
     cancelEditing();
+  }
+
+  function submitEdit() {
+    commitEdit(editingItem?.toVerify ?? false);
+  }
+
+  function submitToVerify() {
+    commitEdit(!(editingItem?.toVerify ?? false));
   }
 
   function handleEditKeydown(event: KeyboardEvent) {
@@ -102,6 +109,18 @@
   function handleToggleChecked(item: DisplayItem) {
     const qty = formatGroceryQuantities(item.quantities);
     toggleGroceryItemChecked(item.name, qty, item.category, !item.checked);
+  }
+
+  function handleCheckboxChange(item: DisplayItem, event: Event) {
+    if (item.toVerify) {
+      // Tapping a to-verify row only clears the flag; reset the native
+      // checkbox back since the browser already flipped it on click.
+      (event.currentTarget as HTMLInputElement).checked = item.checked;
+      const qty = formatGroceryQuantities(item.quantities);
+      toggleGroceryItemToVerify(item.name, qty, item.category, false);
+      return;
+    }
+    handleToggleChecked(item);
   }
 
   function handleRemove(item: DisplayItem) {
@@ -234,7 +253,10 @@
           <ul class="mt-3 space-y-2">
             {#each group.items as item (item.name)}
               {@const isEditing = editingItem?.name === item.name}
-              <li class="flex items-start gap-3" animate:flip={{ duration: 250 }}>
+              <li
+                class="flex items-start gap-3 rounded-lg {item.toVerify ? 'bg-amber-50' : ''}"
+                animate:flip={{ duration: 250 }}
+              >
                 {#if isEditing}
                   <form
                     class="flex min-w-0 flex-1 flex-col gap-2"
@@ -269,6 +291,14 @@
                     {/if}
                     <div class="flex justify-end gap-2">
                       <button
+                        type="button"
+                        class="rounded-lg border border-amber-300 px-3 py-1.5 text-sm font-medium text-amber-700 transition hover:bg-amber-50 disabled:opacity-50"
+                        disabled={!editName.trim()}
+                        onclick={submitToVerify}
+                      >
+                        {editingItem?.toVerify ? $_("grocery.removeToVerify") : $_("grocery.toVerify")}
+                      </button>
+                      <button
                         type="submit"
                         class="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-orange-600 disabled:opacity-50"
                         disabled={!editName.trim()}
@@ -293,12 +323,14 @@
                       type="checkbox"
                       class="mt-0.5 size-4 shrink-0 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
                       checked={item.checked}
-                      onchange={() => handleToggleChecked(item)}
+                      onchange={(event) => handleCheckboxChange(item, event)}
                     />
                     <span
-                      class="text-sm text-slate-700 {item.checked
-                        ? 'line-through text-slate-400'
-                        : ''}"
+                      class="text-sm {item.toVerify
+                        ? 'text-amber-700'
+                        : item.checked
+                          ? 'line-through text-slate-400'
+                          : 'text-slate-700'}"
                     >
                       <span class="tabular-nums text-slate-500">{formatGroceryQuantities(item.quantities)}</span>
                       {item.name}

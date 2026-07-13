@@ -49,13 +49,14 @@ describe("groceryList store", () => {
     mockGetByWeek.mockResolvedValue(undefined);
     mockGetOrCreate.mockResolvedValue(PLAN_ROW);
     mockGetForPlan.mockResolvedValue([]);
-    mockUpsert.mockImplementation(async (planId: string, item: { id?: string; name: string; quantity: string; category: string; checked: boolean }) => ({
+    mockUpsert.mockImplementation(async (planId: string, item: { id?: string; name: string; quantity: string; category: string; checked: boolean; toVerify?: boolean }) => ({
       id: item.id ?? `id-${item.name}`,
       weeklyPlanId: planId,
       name: item.name,
       quantity: item.quantity,
       category: item.category,
       checked: item.checked,
+      toVerify: item.toVerify ?? false,
     }));
     mockDelete.mockResolvedValue(undefined);
   });
@@ -65,11 +66,20 @@ describe("groceryList store", () => {
     const {
       groceryList,
       toggleGroceryItemChecked,
+      toggleGroceryItemToVerify,
       addGroceryItem,
       removeGroceryItem,
       editGroceryItem,
     } = await import("../../lib/stores/groceryList.svelte");
-    return { weeklyPlan, groceryList, toggleGroceryItemChecked, addGroceryItem, removeGroceryItem, editGroceryItem };
+    return {
+      weeklyPlan,
+      groceryList,
+      toggleGroceryItemChecked,
+      toggleGroceryItemToVerify,
+      addGroceryItem,
+      removeGroceryItem,
+      editGroceryItem,
+    };
   }
 
   it("starts with empty item list", async () => {
@@ -112,7 +122,7 @@ describe("groceryList store", () => {
     expect(groceryList.itemsForWeek[0]!.checked).toBe(true);
     expect(mockUpsert).toHaveBeenCalledWith(
       "plan-1",
-      { id: undefined, name: "Milk", quantity: "1 L", category: "fridge", checked: true },
+      { id: undefined, name: "Milk", quantity: "1 L", category: "fridge", checked: true, toVerify: false },
     );
   });
 
@@ -134,8 +144,57 @@ describe("groceryList store", () => {
     expect(groceryList.itemsForWeek[0]!.quantity).toBe("2 bags");
     expect(mockUpsert).toHaveBeenCalledWith(
       "plan-1",
-      { id, name: "Baby Spinach", category: "vegetables", quantity: "2 bags", checked: false },
+      { id, name: "Baby Spinach", category: "vegetables", quantity: "2 bags", checked: false, toVerify: false },
     );
+  });
+
+  it("editGroceryItem lazily creates a DB row when no id is given yet", async () => {
+    const { groceryList, editGroceryItem } = await importStore();
+    editGroceryItem(undefined, "Kale", "vegetables", "1 bunch");
+    await vi.waitFor(() => expect(groceryList.itemsForWeek).toHaveLength(1));
+    expect(groceryList.itemsForWeek[0]!.name).toBe("Kale");
+    expect(mockUpsert).toHaveBeenCalledWith(
+      "plan-1",
+      { id: undefined, name: "Kale", category: "vegetables", quantity: "1 bunch", checked: false, toVerify: false },
+    );
+  });
+
+  it("editGroceryItem sets toVerify when passed true, committing pending edits in the same call", async () => {
+    const { groceryList, addGroceryItem, editGroceryItem } = await importStore();
+    await addGroceryItem("vegetables", "Spinach", "1 bag");
+    const id = groceryList.itemsForWeek[0]!.id;
+    editGroceryItem(id, "Spinach", "vegetables", "2 bags", true);
+    await vi.waitFor(() => expect(groceryList.itemsForWeek[0]!.quantity).toBe("2 bags"));
+    expect(groceryList.itemsForWeek[0]!.toVerify).toBe(true);
+  });
+
+  it("toggleGroceryItemToVerify upserts via the repo and updates store", async () => {
+    const { groceryList, addGroceryItem, toggleGroceryItemToVerify } = await importStore();
+    await addGroceryItem("vegetables", "Spinach", "1 bag");
+    toggleGroceryItemToVerify("Spinach", "1 bag", "vegetables", true);
+    await vi.waitFor(() => expect(groceryList.itemsForWeek[0]!.toVerify).toBe(true));
+  });
+
+  it("toggleGroceryItemToVerify lazily creates a row for a meal-plan item with no DB row yet", async () => {
+    const { groceryList, toggleGroceryItemToVerify } = await importStore();
+    toggleGroceryItemToVerify("Kale", "1 bunch", "vegetables", true);
+    await vi.waitFor(() => expect(groceryList.itemsForWeek).toHaveLength(1));
+    expect(groceryList.itemsForWeek[0]!.toVerify).toBe(true);
+    expect(mockUpsert).toHaveBeenCalledWith(
+      "plan-1",
+      { id: undefined, name: "Kale", quantity: "1 bunch", category: "vegetables", checked: false, toVerify: true },
+    );
+  });
+
+  it("toggleGroceryItemChecked clears toVerify when checking an item", async () => {
+    const { groceryList, addGroceryItem, toggleGroceryItemToVerify, toggleGroceryItemChecked } = await importStore();
+    await addGroceryItem("vegetables", "Spinach", "1 bag");
+    toggleGroceryItemToVerify("Spinach", "1 bag", "vegetables", true);
+    await vi.waitFor(() => expect(groceryList.itemsForWeek[0]!.toVerify).toBe(true));
+
+    toggleGroceryItemChecked("Spinach", "1 bag", "vegetables", true);
+    await vi.waitFor(() => expect(groceryList.itemsForWeek[0]!.checked).toBe(true));
+    expect(groceryList.itemsForWeek[0]!.toVerify).toBe(false);
   });
 
   it("addGroceryItem merges into an existing item with the same name instead of duplicating it", async () => {

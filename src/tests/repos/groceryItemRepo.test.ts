@@ -80,7 +80,46 @@ describe("groceryItemRepo", () => {
     expect(items.map((i) => i.name)).toEqual(["Bread"]);
   });
 
+  it("upsert persists toVerify and defaults it to false when omitted", async () => {
+    const item = await groceryItemRepo.upsert(PLAN_ID, {
+      name: "Carrots",
+      quantity: "2",
+      category: "vegetables",
+      checked: false,
+    });
+    expect(item.toVerify).toBe(false);
+
+    const verified = await groceryItemRepo.upsert(PLAN_ID, {
+      id: item.id,
+      name: "Carrots",
+      quantity: "2",
+      category: "vegetables",
+      checked: false,
+      toVerify: true,
+    });
+    expect(verified.toVerify).toBe(true);
+    expect((await db.groceryItems.get(item.id))?.toVerify).toBe(true);
+  });
+
   describe("applyAdjustments", () => {
+    it("preserves an existing item's toVerify flag across a quantity-only update", async () => {
+      const item = await groceryItemRepo.upsert(PLAN_ID, {
+        name: "Carrots",
+        quantity: "1",
+        category: "vegetables",
+        checked: false,
+        toVerify: true,
+      });
+
+      const items = await groceryItemRepo.applyAdjustments(PLAN_ID, [
+        { name: "Carrots", category: "vegetables", addQuantities: ["2"], removeQuantities: [] },
+      ]);
+
+      const updated = items.find((i) => i.id === item.id);
+      expect(updated?.quantity).toBe("3");
+      expect(updated?.toVerify).toBe(true);
+    });
+
     it("inserts a new item when the adjustment only adds quantity", async () => {
       const items = await groceryItemRepo.applyAdjustments(PLAN_ID, [
         { name: "Carrots", category: "vegetables", addQuantities: ["2"], removeQuantities: [] },

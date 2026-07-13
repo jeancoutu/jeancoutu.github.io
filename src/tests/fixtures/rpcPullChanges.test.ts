@@ -39,6 +39,7 @@ describe("pull_changes RPC", () => {
       p_category: "vegetables",
       p_quantity: "2",
       p_checked: false,
+      p_to_verify: false,
       p_base_version: null,
       p_deleted: false,
     });

@@ -13,6 +13,7 @@ function dbItem(overrides: Partial<GroceryDBItem> & { id: string; name: string }
     category: "vegetables",
     quantity: "1",
     checked: false,
+    toVerify: false,
     version: 1,
     updatedAt: "2026-01-01T00:00:00.000Z",
     deletedAt: null,
@@ -28,7 +29,7 @@ describe("buildDisplayItems", () => {
       new Set(),
     );
     expect(result).toEqual([
-      { name: "Carrots", category: "vegetables", quantities: ["1"], dbId: "1", checked: true, isCustom: false, mealNames: [] },
+      { name: "Carrots", category: "vegetables", quantities: ["1"], dbId: "1", checked: true, toVerify: false, isCustom: false, mealNames: [] },
     ]);
   });
 
@@ -39,8 +40,29 @@ describe("buildDisplayItems", () => {
       new Set(),
     );
     expect(result).toEqual([
-      { name: "Carrots", category: "vegetables", quantities: ["2"], dbId: undefined, checked: false, isCustom: false, mealNames: [] },
+      { name: "Carrots", category: "vegetables", quantities: ["2"], dbId: undefined, checked: false, toVerify: false, isCustom: false, mealNames: [] },
     ]);
+  });
+
+  it("carries toVerify through for meal-plan items with a matching DB row", () => {
+    const result = buildDisplayItems(
+      [mealPlanItem({ name: "Carrots", quantities: ["2"] })],
+      [dbItem({ id: "1", name: "Carrots", toVerify: true })],
+      new Set(),
+    );
+    expect(result[0]!.toVerify).toBe(true);
+  });
+
+  it("ORs toVerify across merged DB rows sharing a name", () => {
+    const result = buildDisplayItems(
+      [],
+      [
+        dbItem({ id: "1", name: "Chocolate", toVerify: false }),
+        dbItem({ id: "2", name: "Chocolate", toVerify: true }),
+      ],
+      new Set(),
+    );
+    expect(result[0]!.toVerify).toBe(true);
   });
 
   it("excludes dismissed meal-plan items", () => {
@@ -59,7 +81,7 @@ describe("buildDisplayItems", () => {
       new Set(),
     );
     expect(result).toEqual([
-      { dbId: "2", name: "Chocolate", category: "vegetables", quantities: ["1 bar"], checked: false, isCustom: true, mealNames: [] },
+      { dbId: "2", name: "Chocolate", category: "vegetables", quantities: ["1 bar"], checked: false, toVerify: false, isCustom: true, mealNames: [] },
     ]);
   });
 
@@ -73,7 +95,7 @@ describe("buildDisplayItems", () => {
       new Set(),
     );
     expect(result).toEqual([
-      { dbId: "1", name: "1", category: "vegetables", quantities: ["1", "2"], checked: true, isCustom: true, mealNames: [] },
+      { dbId: "1", name: "1", category: "vegetables", quantities: ["1", "2"], checked: true, toVerify: false, isCustom: true, mealNames: [] },
     ]);
   });
 

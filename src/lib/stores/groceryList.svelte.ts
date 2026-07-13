@@ -85,7 +85,14 @@ export function toggleGroceryItemChecked(
 
   (async () => {
     const plan = await weeklyPlanRepo.getOrCreate(weekKey);
-    return groceryItemRepo.upsert(plan.id, { id: existing?.id, name, quantity, category, checked });
+    return groceryItemRepo.upsert(plan.id, {
+      id: existing?.id,
+      name,
+      quantity,
+      category,
+      checked,
+      toVerify: checked ? false : (existing?.toVerify ?? false),
+    });
   })()
     .then((item) => upsertInStore(weekKey, item))
     .catch(console.error);
@@ -127,6 +134,32 @@ export async function addGroceryItem(
   }
 }
 
+export function toggleGroceryItemToVerify(
+  name: string,
+  quantity: string,
+  category: IngredientCategory,
+  toVerify: boolean,
+): void {
+  const weekKey = weeklyPlan.selectedWeek;
+  const existing = (groceryList.itemsByWeek[weekKey] ?? []).find(
+    (i) => i.name === name && i.category === category,
+  );
+
+  (async () => {
+    const plan = await weeklyPlanRepo.getOrCreate(weekKey);
+    return groceryItemRepo.upsert(plan.id, {
+      id: existing?.id,
+      name,
+      quantity,
+      category,
+      checked: existing?.checked ?? false,
+      toVerify,
+    });
+  })()
+    .then((item) => upsertInStore(weekKey, item))
+    .catch(console.error);
+}
+
 export function removeGroceryItem(id: string): void {
   const weekKey = weeklyPlan.selectedWeek;
   groceryList.itemsByWeek = {
@@ -137,18 +170,18 @@ export function removeGroceryItem(id: string): void {
 }
 
 export function editGroceryItem(
-  id: string,
+  id: string | undefined,
   name: string,
   category: IngredientCategory,
   quantity: string,
+  toVerify = false,
 ): void {
   const trimmedName = name.trim();
   if (!trimmedName) return;
   const trimmedQty = quantity.trim() || "1";
   const weekKey = weeklyPlan.selectedWeek;
   const items = groceryList.itemsByWeek[weekKey] ?? [];
-  const current = items.find((i) => i.id === id);
-  if (!current) return;
+  const current = id ? items.find((i) => i.id === id) : undefined;
 
   // Renaming onto an existing item's name+category would collide with its unique
   // constraint; merge into that item instead of creating a duplicate.
@@ -168,8 +201,9 @@ export function editGroceryItem(
         category: collision.category,
         quantity: mergedQuantity,
         checked: collision.checked,
+        toVerify: toVerify || collision.toVerify,
       });
-      await groceryItemRepo.delete(id);
+      if (id) await groceryItemRepo.delete(id);
       groceryList.itemsByWeek = {
         ...groceryList.itemsByWeek,
         [weekKey]: items.filter((i) => i.id !== id).map((i) => (i.id === merged.id ? merged : i)),
@@ -182,11 +216,12 @@ export function editGroceryItem(
       name: trimmedName,
       category,
       quantity: trimmedQty,
-      checked: current.checked,
+      checked: current?.checked ?? false,
+      toVerify,
     });
     groceryList.itemsByWeek = {
       ...groceryList.itemsByWeek,
-      [weekKey]: items.map((i) => (i.id === id ? updated : i)),
+      [weekKey]: id ? items.map((i) => (i.id === id ? updated : i)) : [...items, updated],
     };
   })().catch(console.error);
 }

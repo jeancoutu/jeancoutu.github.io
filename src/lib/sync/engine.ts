@@ -151,6 +151,7 @@ function applyGroceryItem(row: PulledGroceryItem): Promise<unknown> {
     quantity: row.quantity,
     category: row.category as LocalGroceryItem["category"],
     checked: row.checked,
+    toVerify: row.to_verify,
     version: row.version,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
@@ -311,6 +312,7 @@ async function flushGroceryItemBatch(ops: CoalescedOp[]): Promise<void> {
           category: row.category,
           quantity: row.quantity,
           checked: row.checked,
+          toVerify: row.toVerify,
           baseVersion: await refreshBaseVersion(op),
           deleted: op.op === "delete",
         };

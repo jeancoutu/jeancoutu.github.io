@@ -78,6 +78,8 @@
   "grocery.addConfirm": "Add",
   "grocery.addCancel": "Cancel",
   "grocery.editConfirm": "Update",
+  "grocery.toVerify": "To verify",
+  "grocery.removeToVerify": "Remove To verify",
   "grocery.category.vegetables": "Vegetables",
   "grocery.category.bakery": "Bakery",
   "grocery.category.meat": "Meat",

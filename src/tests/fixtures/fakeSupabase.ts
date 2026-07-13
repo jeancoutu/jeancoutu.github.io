@@ -45,7 +45,7 @@ const SELECT_QUERIES: Record<string, string> = {
     from weekly_plans wp where wp.id = $1
   `,
   grocery_items: `
-    select gi.id, gi.weekly_plan_id, gi.name, gi.quantity, gi.category, gi.checked,
+    select gi.id, gi.weekly_plan_id, gi.name, gi.quantity, gi.category, gi.checked, gi.to_verify,
            gi.version, gi.updated_at, gi.deleted_at
     from grocery_items gi where gi.id = $1
   `,
