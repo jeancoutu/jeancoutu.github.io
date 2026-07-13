@@ -24,6 +24,11 @@ body {
   flex-direction: column;
 }
 
+/* Prevent pinch-zoom and double-tap-to-zoom gestures on mobile */
+html {
+  touch-action: manipulation;
+}
+
 /* Prevent iOS Safari from auto-zooming on input focus */
 input,
 textarea,
