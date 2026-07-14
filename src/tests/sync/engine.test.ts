@@ -17,8 +17,8 @@ vi.mock("../../lib/sync/rpc", async () => {
 });
 
 const rpc = await import("../../lib/sync/rpc");
-const { sync } = await import("../../lib/sync/engine");
-const { syncStatus } = await import("../../lib/sync/status.svelte");
+const { sync, resetLocalCache } = await import("../../lib/sync/engine");
+const { syncStatus, onSynced } = await import("../../lib/sync/status.svelte");
 
 const pushOp = vi.mocked(rpc.pushOp);
 const pushGroceryItems = vi.mocked(rpc.pushGroceryItems);
@@ -214,5 +214,75 @@ describe("sync engine", () => {
 
     expect(pushOp).not.toHaveBeenCalled();
     expect(pullChanges).not.toHaveBeenCalled();
+  });
+
+  describe("resetLocalCache", () => {
+    it("discards local data and any queued (even unsynced) ops, then does a fresh full pull", async () => {
+      // Establish a cursor from a prior sync so we can tell the reset
+      // actually forces a full pull (since=null) rather than a delta one.
+      pullChanges.mockResolvedValueOnce({ ...emptyPull, watermark: "2026-02-01T00:00:00.000Z" });
+      await sync();
+      expect(await getCursor()).toBe("2026-02-01T00:00:00.000Z");
+
+      const local: LocalMeal = {
+        id: "m1", name: "Local edit", duration: "short", url: "", supperDays: [], instructions: [], ingredients: [],
+        version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
+      };
+      await db.meals.put(local);
+      await enqueue("meal", "m1", "upsert", 1, local); // never pushed
+
+      pullChanges.mockResolvedValueOnce({
+        ...emptyPull,
+        watermark: "2026-04-01T00:00:00.000Z",
+        meals: [{
+          id: "server-meal", name: "Fresh from server", duration: "short", url: "", supper_days: [], instructions: [], ingredients: [],
+          version: 1, updated_at: "2026-04-01T00:00:00.000Z", deleted_at: null,
+        }],
+      });
+
+      await resetLocalCache();
+
+      expect(pushOp).not.toHaveBeenCalled(); // the queued op was dropped, not flushed
+      expect(pullChanges).toHaveBeenLastCalledWith(null);
+      expect(await db.syncQueue.count()).toBe(0);
+      expect(await db.meals.get("m1")).toBeUndefined();
+      expect((await db.meals.get("server-meal"))?.name).toBe("Fresh from server");
+      expect(await getCursor()).toBe("2026-04-01T00:00:00.000Z");
+      expect(syncStatus.pendingCount).toBe(0);
+      expect(syncStatus.state).toBe("idle");
+    });
+
+    it("notifies synced listeners immediately (so stores clear right away) and again once the pull lands", async () => {
+      await db.meals.put({
+        id: "m1", name: "Stale", duration: "short", url: "", supperDays: [], instructions: [], ingredients: [],
+        version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
+      } satisfies LocalMeal);
+
+      const seenMealCounts: number[] = [];
+      const unsubscribe = onSynced(() => {
+        seenMealCounts.push(-1); // sentinel; overwritten below once we can read Dexie
+      });
+
+      pullChanges.mockResolvedValueOnce(emptyPull);
+      await resetLocalCache();
+      unsubscribe();
+
+      expect(seenMealCounts.length).toBe(2);
+    });
+
+    it("leaves data cleared but does not repopulate while offline", async () => {
+      syncStatus.online = false;
+      await db.meals.put({
+        id: "m1", name: "Stale", duration: "short", url: "", supperDays: [], instructions: [], ingredients: [],
+        version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
+      } satisfies LocalMeal);
+
+      await resetLocalCache();
+
+      expect(pullChanges).not.toHaveBeenCalled();
+      expect(await db.meals.get("m1")).toBeUndefined();
+      expect(await getCursor()).toBeNull();
+      expect(syncStatus.pendingCount).toBe(0);
+    });
   });
 });

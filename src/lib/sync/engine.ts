@@ -3,6 +3,7 @@ import {
   enqueue,
   getCursor,
   setCursor,
+  wipeLocalDb,
   type LocalGroceryItem,
   type LocalGroceryPreset,
   type LocalMeal,
@@ -465,6 +466,21 @@ export function sync(): Promise<void> {
     });
   }
   return inFlight;
+}
+
+// Recovery path for a stuck sync queue (e.g. a queued op that keeps
+// conflicting and never drains). Wiping local state discards any unsynced
+// edits, but leaves the server as the sole source of truth — the immediate
+// emitSynced() clears stores to empty right away, and the pull triggered by
+// sync() repopulates them from scratch (cursor is gone too, so it's a full
+// pull, not a delta).
+export async function resetLocalCache(): Promise<void> {
+  await wipeLocalDb();
+  syncStatus.pendingCount = 0;
+  syncStatus.lastSyncAt = null;
+  syncStatus.state = "idle";
+  emitSynced();
+  await sync();
 }
 
 function scheduleBackoffRetry(): void {
