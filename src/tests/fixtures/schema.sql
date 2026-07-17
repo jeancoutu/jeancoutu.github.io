@@ -198,6 +198,7 @@ create table meals (
   url          text not null default '',
   supper_days  day_key[] not null default '{}',
   instructions text[] not null default '{}',
+  tags         text[] not null default '{}',
   created_at   timestamptz not null default now(),
   version      int not null default 1,
   updated_at   timestamptz not null default now(),
@@ -474,7 +475,11 @@ create or replace function upsert_meal(
   p_url text,
   p_supper_days day_key[],
   p_instructions text[],
-  p_ingredients jsonb -- [{name, quantity, category}]
+  p_ingredients jsonb, -- [{name, quantity, category}]
+  -- Appended with `default null`: null = "leave existing tags untouched"
+  -- (coalesce below), protecting against stale cached PWA clients still
+  -- calling the old 8-arg signature.
+  p_tags text[] default null
 ) returns jsonb
   language plpgsql security definer set search_path = public
   as $$
@@ -484,11 +489,12 @@ create or replace function upsert_meal(
     v_rows_affected int;
   begin
     if p_base_version is null then
-      insert into meals (id, household_id, name, duration, url, supper_days, instructions)
-      values (p_id, v_household_id, p_name, p_duration, p_url, p_supper_days, p_instructions)
+      insert into meals (id, household_id, name, duration, url, supper_days, instructions, tags)
+      values (p_id, v_household_id, p_name, p_duration, p_url, p_supper_days, p_instructions, coalesce(p_tags, '{}'))
       on conflict (id) do update set
         name = excluded.name, duration = excluded.duration, url = excluded.url,
-        supper_days = excluded.supper_days, instructions = excluded.instructions
+        supper_days = excluded.supper_days, instructions = excluded.instructions,
+        tags = coalesce(p_tags, meals.tags)
       where meals.household_id = v_household_id
       returning * into v_row;
 
@@ -498,7 +504,8 @@ create or replace function upsert_meal(
     else
       update meals set
         name = p_name, duration = p_duration, url = p_url,
-        supper_days = p_supper_days, instructions = p_instructions
+        supper_days = p_supper_days, instructions = p_instructions,
+        tags = coalesce(p_tags, meals.tags)
       where id = p_id and household_id = v_household_id
         and version = p_base_version and deleted_at is null
       returning * into v_row;
@@ -973,7 +980,7 @@ create or replace function pull_changes(p_since timestamptz) returns jsonb
   begin
     select coalesce(jsonb_agg(jsonb_build_object(
       'id', m.id, 'name', m.name, 'duration', m.duration, 'url', m.url,
-      'supper_days', m.supper_days, 'instructions', m.instructions,
+      'supper_days', m.supper_days, 'instructions', m.instructions, 'tags', m.tags,
       'version', m.version, 'updated_at', m.updated_at, 'deleted_at', m.deleted_at,
       'ingredients', coalesce((
         select jsonb_agg(jsonb_build_object('name', mi.name, 'quantity', mi.quantity, 'category', mi.category))

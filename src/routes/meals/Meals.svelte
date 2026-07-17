@@ -46,6 +46,25 @@
         <option {value}>{$_(durationOptionKey(value))}</option>
       {/each}
     </select>
+
+    {#if meals.allTags.length > 0}
+      <div class="flex gap-2 overflow-x-auto pb-1">
+        {#each meals.allTags as tag (tag)}
+          <button
+            type="button"
+            aria-pressed={meals.tagFilter === tag}
+            onclick={() => (meals.tagFilter = meals.tagFilter === tag ? null : tag)}
+            class={`shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition ${
+              meals.tagFilter === tag
+                ? "bg-orange-500 text-white"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            {tag}
+          </button>
+        {/each}
+      </div>
+    {/if}
   </div>
 
   {#if meals.filtered.length === 0}

@@ -24,6 +24,7 @@ export function resetStores(): void {
   meals.all = [];
   meals.search = "";
   meals.durationFilter = "all";
+  meals.tagFilter = null;
   weeklyPlan.plans = {};
   weeklyPlan.dismissedNamesPerWeek = {};
   weeklyPlan.selectedWeek = toWeekKey(getWeekSaturday());

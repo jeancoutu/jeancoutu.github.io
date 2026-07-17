@@ -88,4 +88,76 @@ describe("Meals", () => {
 
     expect(router.current).toEqual({ name: "meal", id: meal.id });
   });
+
+  it("shows a tag pill row sorted alphabetically", async () => {
+    await seedMeal({ name: "Tacos", tags: ["mexican", "quick"] });
+    await seedMeal({ name: "Pasta", tags: ["italian"] });
+    render(Meals);
+
+    const pills = screen.getAllByRole("button", { pressed: false });
+    const pillLabels = pills.map((p) => p.textContent?.trim());
+
+    expect(pillLabels).toEqual(["italian", "mexican", "quick"]);
+  });
+
+  it("tapping a tag pill filters the list, tapping again clears it", async () => {
+    await seedMeal({ name: "Tacos", tags: ["mexican"] });
+    await seedMeal({ name: "Pasta", tags: ["italian"] });
+    render(Meals);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "mexican" }));
+
+    expect(screen.getByText("Tacos")).toBeInTheDocument();
+    expect(screen.queryByText("Pasta")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "mexican" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    await user.click(screen.getByRole("button", { name: "mexican" }));
+
+    expect(screen.getByText("Tacos")).toBeInTheDocument();
+    expect(screen.getByText("Pasta")).toBeInTheDocument();
+  });
+
+  it("tapping another tag pill switches the filter", async () => {
+    await seedMeal({ name: "Tacos", tags: ["mexican"] });
+    await seedMeal({ name: "Pasta", tags: ["italian"] });
+    render(Meals);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "mexican" }));
+    await user.click(screen.getByRole("button", { name: "italian" }));
+
+    expect(screen.queryByText("Tacos")).not.toBeInTheDocument();
+    expect(screen.getByText("Pasta")).toBeInTheDocument();
+  });
+
+  it("tag filter composes with name search and duration filter", async () => {
+    await seedMeal({ name: "Tacos", tags: ["mexican"], duration: "short" });
+    await seedMeal({ name: "Taco soup", tags: ["mexican"], duration: "long" });
+    render(Meals);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "mexican" }));
+    await user.type(screen.getByPlaceholderText("Search meals by name…"), "tac");
+
+    expect(screen.getByText("Tacos")).toBeInTheDocument();
+    expect(screen.getByText("Taco soup")).toBeInTheDocument();
+
+    const select = screen.getByRole("combobox") as HTMLSelectElement;
+    await fireEvent.change(select, { target: { value: "long" } });
+
+    expect(screen.queryByText("Tacos")).not.toBeInTheDocument();
+    expect(screen.getByText("Taco soup")).toBeInTheDocument();
+  });
+
+  it("displays muted tag chips on meal cards", async () => {
+    await seedMeal({ name: "Tacos", tags: ["mexican", "quick"] });
+    render(Meals);
+
+    expect(screen.getAllByText("mexican").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("quick").length).toBeGreaterThan(0);
+  });
 });

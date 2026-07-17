@@ -39,7 +39,7 @@ describe("sync engine", () => {
 
   it("on conflict, drops the local op and refreshes the entity from the server", async () => {
     const local: LocalMeal = {
-      id: "m1", name: "Local edit", duration: "short", url: "", supperDays: [], instructions: [], ingredients: [],
+      id: "m1", name: "Local edit", duration: "short", url: "", supperDays: [], instructions: [], tags: [], ingredients: [],
       version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
     };
     await db.meals.put(local);
@@ -47,7 +47,7 @@ describe("sync engine", () => {
 
     pushOp.mockResolvedValueOnce({ status: "conflict", id: "m1" });
     refetchMeal.mockResolvedValueOnce({
-      id: "m1", name: "Server wins", duration: "short", url: "", supper_days: [], instructions: [], ingredients: [],
+      id: "m1", name: "Server wins", duration: "short", url: "", supper_days: [], instructions: [], tags: [], ingredients: [],
       version: 2, updated_at: "2026-01-02T00:00:00.000Z", deleted_at: null,
     });
 
@@ -186,7 +186,7 @@ describe("sync engine", () => {
     pullChanges.mockResolvedValueOnce({
       ...emptyPull,
       meals: [{
-        id: "pulled-meal", name: "From server", duration: "short", url: "", supper_days: [], instructions: [], ingredients: [],
+        id: "pulled-meal", name: "From server", duration: "short", url: "", supper_days: [], instructions: [], tags: [], ingredients: [],
         version: 1, updated_at: "2026-01-01T00:00:00.000Z", deleted_at: null,
       }],
     });
@@ -197,7 +197,7 @@ describe("sync engine", () => {
     pullChanges.mockResolvedValueOnce({
       ...emptyPull,
       meals: [{
-        id: "pulled-meal", name: "From server", duration: "short", url: "", supper_days: [], instructions: [], ingredients: [],
+        id: "pulled-meal", name: "From server", duration: "short", url: "", supper_days: [], instructions: [], tags: [], ingredients: [],
         version: 2, updated_at: "2026-01-02T00:00:00.000Z", deleted_at: "2026-01-02T00:00:00.000Z",
       }],
     });
@@ -225,7 +225,7 @@ describe("sync engine", () => {
       expect(await getCursor()).toBe("2026-02-01T00:00:00.000Z");
 
       const local: LocalMeal = {
-        id: "m1", name: "Local edit", duration: "short", url: "", supperDays: [], instructions: [], ingredients: [],
+        id: "m1", name: "Local edit", duration: "short", url: "", supperDays: [], instructions: [], tags: [], ingredients: [],
         version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
       };
       await db.meals.put(local);
@@ -235,7 +235,7 @@ describe("sync engine", () => {
         ...emptyPull,
         watermark: "2026-04-01T00:00:00.000Z",
         meals: [{
-          id: "server-meal", name: "Fresh from server", duration: "short", url: "", supper_days: [], instructions: [], ingredients: [],
+          id: "server-meal", name: "Fresh from server", duration: "short", url: "", supper_days: [], instructions: [], tags: [], ingredients: [],
           version: 1, updated_at: "2026-04-01T00:00:00.000Z", deleted_at: null,
         }],
       });
@@ -254,7 +254,7 @@ describe("sync engine", () => {
 
     it("notifies synced listeners immediately (so stores clear right away) and again once the pull lands", async () => {
       await db.meals.put({
-        id: "m1", name: "Stale", duration: "short", url: "", supperDays: [], instructions: [], ingredients: [],
+        id: "m1", name: "Stale", duration: "short", url: "", supperDays: [], instructions: [], tags: [], ingredients: [],
         version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
       } satisfies LocalMeal);
 
@@ -273,7 +273,7 @@ describe("sync engine", () => {
     it("leaves data cleared but does not repopulate while offline", async () => {
       syncStatus.online = false;
       await db.meals.put({
-        id: "m1", name: "Stale", duration: "short", url: "", supperDays: [], instructions: [], ingredients: [],
+        id: "m1", name: "Stale", duration: "short", url: "", supperDays: [], instructions: [], tags: [], ingredients: [],
         version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
       } satisfies LocalMeal);
 

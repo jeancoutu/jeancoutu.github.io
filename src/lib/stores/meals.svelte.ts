@@ -14,6 +14,8 @@ export interface CustomMealInput {
   url: string;
   ingredients: Ingredient[];
   instructions: string[];
+  /** Optional until the editor is wired up (meal-tags step 2); normalized in mealRepo. */
+  tags?: string[];
 }
 
 function normalizeDays(value: DayKey[]): DayKey[] {
@@ -35,6 +37,7 @@ function buildMealInput(input: CustomMealInput): Omit<Meal, "id"> {
       };
     }),
     instructions: input.instructions.map((i) => i.trim()).filter(Boolean),
+    tags: input.tags ?? [],
   };
 }
 
@@ -42,6 +45,15 @@ class MealsStore {
   all = $state<Meal[]>([]);
   search = $state("");
   durationFilter = $state<DurationTag | "all">("all");
+  tagFilter = $state<string | null>(null);
+
+  allTags = $derived.by(() => {
+    const tags = new Set<string>();
+    for (const meal of this.all) {
+      for (const tag of meal.tags) tags.add(tag);
+    }
+    return [...tags].sort((a, b) => a.localeCompare(b));
+  });
 
   filtered = $derived.by(() => {
     const query = this.search.trim().toLowerCase();
@@ -50,7 +62,8 @@ class MealsStore {
         const matchesSearch = !query || meal.name.toLowerCase().includes(query);
         const matchesDuration =
           this.durationFilter === "all" || meal.duration === this.durationFilter;
-        return matchesSearch && matchesDuration;
+        const matchesTag = !this.tagFilter || meal.tags.includes(this.tagFilter);
+        return matchesSearch && matchesDuration && matchesTag;
       })
       .sort((a, b) => a.name.localeCompare(b.name));
   });

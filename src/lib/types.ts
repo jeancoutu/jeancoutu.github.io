@@ -31,6 +31,8 @@ export interface Meal {
   url: string;
   ingredients: Ingredient[];
   instructions: string[];
+  /** Free-text tags, stored trimmed + lowercased (see normalizeTags). */
+  tags: string[];
 }
 
 export type GroceryPresetItem = Ingredient;

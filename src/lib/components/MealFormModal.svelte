@@ -2,6 +2,7 @@
   import { _ } from "svelte-i18n";
   import Modal from "./Modal.svelte";
   import IngredientListEditor from "./IngredientListEditor.svelte";
+  import TagInput from "./TagInput.svelte";
   import { addMeal, updateMealById } from "../stores/meals.svelte";
   import type { DayKey, DurationTag, IngredientCategory, Meal } from "../types";
   import { DAYS } from "../types";
@@ -33,6 +34,7 @@
       })),
       instructions: mealToLoad.instructions.join("\n"),
       selectedDays: mealToLoad.supperDays,
+      tags: mealToLoad.tags,
     };
   }
 
@@ -50,6 +52,7 @@
           ingredientRows: [] as { name: string; quantity: string; category: IngredientCategory }[],
           instructions: "",
           selectedDays: DAYS.map((day) => day.key),
+          tags: [] as string[],
         };
 
   let name = $state(initialForm.name);
@@ -58,6 +61,7 @@
   let ingredientRows = $state(initialForm.ingredientRows);
   let instructions = $state(initialForm.instructions);
   let selectedDays = $state<DayKey[]>(initialForm.selectedDays);
+  let tags = $state<string[]>(initialForm.tags);
   let error = $state("");
 
   function close() {
@@ -68,6 +72,17 @@
     selectedDays = selectedDays.includes(day)
       ? selectedDays.filter((selectedDay) => selectedDay !== day)
       : [...selectedDays, day];
+  }
+
+  function addTag(tag: string) {
+    const normalized = tag.trim().toLowerCase();
+    if (normalized && !tags.includes(normalized)) {
+      tags = [...tags, normalized];
+    }
+  }
+
+  function removeTag(tag: string) {
+    tags = tags.filter((existing) => existing !== tag);
   }
 
   let saving = $state(false);
@@ -105,6 +120,7 @@
       url: url.trim(),
       ingredients: ingredientRows,
       instructions: parsedInstructions,
+      tags,
     };
 
     saving = true;
@@ -216,5 +232,10 @@
       ></textarea>
       <p class="mt-1 text-xs text-slate-500">{$_("meals.create.instructionsHint")}</p>
     </label>
+
+    <div class="block">
+      <span class="mb-1 block text-sm font-medium text-slate-700">{$_("meals.create.tags")}</span>
+      <TagInput {tags} onAdd={addTag} onRemove={removeTag} />
+    </div>
   </form>
 </Modal>

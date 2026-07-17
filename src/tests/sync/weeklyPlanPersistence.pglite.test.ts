@@ -108,7 +108,7 @@ describe("planner meal selection persistence", () => {
     const { db: db2 } = await import("../../lib/db");
     await db2.meals.put({
       id: mealId, name: "Tacos", duration: "short", url: "", supperDays: [],
-      instructions: [], ingredients: [], version: 1,
+      instructions: [], tags: [], ingredients: [], version: 1,
       updatedAt: new Date().toISOString(), deletedAt: null,
     });
 

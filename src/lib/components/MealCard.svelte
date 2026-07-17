@@ -20,6 +20,13 @@
     <h2 class="text-lg font-semibold text-slate-900">{meal.name}</h2>
     <DurationBadge duration={meal.duration} />
   </div>
+  {#if meal.tags.length > 0}
+    <div class="mt-2 flex flex-wrap gap-1.5">
+      {#each meal.tags as tag (tag)}
+        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">{tag}</span>
+      {/each}
+    </div>
+  {/if}
   <button
     type="button"
     onclick={viewRecipe}

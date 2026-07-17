@@ -31,6 +31,9 @@ export interface LocalMeal extends SyncMeta {
   supperDays: DayKey[];
   instructions: string[];
   ingredients: Ingredient[];
+  // Not indexed, so no Dexie version bump. Rows written before this field
+  // existed lack it — read paths default with `?? []` (mealRepo.toMeal).
+  tags: string[];
 }
 
 export interface LocalGroceryPreset extends SyncMeta {

@@ -125,16 +125,23 @@ class WeeklyPlanStore {
     const emptySuppers = DAYS.filter(({ key }) => !current[key]?.supper);
     if (emptySuppers.length > 0) {
       const usedIds = new Set<string>();
+      const placedTagsByDay = new Map<DayKey, Set<string>>();
       for (const { key } of DAYS) {
         const day = current[key];
-        if (day?.supper) usedIds.add(day.supper);
+        if (day?.supper) {
+          usedIds.add(day.supper);
+          const supperMeal = getMealById(day.supper);
+          if (supperMeal && supperMeal.tags.length > 0) {
+            placedTagsByDay.set(key, new Set(supperMeal.tags));
+          }
+        }
         if (day?.diner) usedIds.add(day.diner);
       }
       const previousWeekKey = toWeekKey(addWeeks(parseWeekKey(week), -1));
       const previousWeekIds = await weeklyPlanRepo.getMealIds(previousWeekKey);
       for (const { key } of emptySuppers) {
         const candidates = shuffle(
-          mealsEligibleForSupper(meals.all, key, usedIds, previousWeekIds),
+          mealsEligibleForSupper(meals.all, key, usedIds, previousWeekIds, placedTagsByDay),
         );
         const pick = candidates[0];
         if (!pick) continue;
@@ -142,6 +149,7 @@ class WeeklyPlanStore {
         entry.supper = pick.id;
         current[key] = entry;
         usedIds.add(pick.id);
+        if (pick.tags.length > 0) placedTagsByDay.set(key, new Set(pick.tags));
       }
     }
 

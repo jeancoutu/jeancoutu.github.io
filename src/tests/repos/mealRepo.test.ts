@@ -51,6 +51,30 @@ describe("mealRepo", () => {
     expect((queued[0]!.payload as { name: string }).name).toBe("Updated Soup");
   });
 
+  it("normalizes tags on create (trim, lowercase, drop empties, dedupe) and includes them in the sync payload", async () => {
+    const meal = await mealRepo.create({ ...input, tags: ["  Pasta ", "QUICK", "pasta", "  ", ""] });
+
+    expect(meal.tags).toEqual(["pasta", "quick"]);
+    const stored = await db.meals.get(meal.id);
+    expect(stored?.tags).toEqual(["pasta", "quick"]);
+
+    const queued = await db.syncQueue.toArray();
+    expect((queued[0]!.payload as { tags: string[] }).tags).toEqual(["pasta", "quick"]);
+  });
+
+  it("normalizes tags on update and defaults missing tags to [] on read", async () => {
+    const meal = await mealRepo.create(input);
+    // Simulate a row written before the tags field existed.
+    await db.meals.update(meal.id, { tags: undefined } as unknown as Partial<import("../../lib/db").LocalMeal>);
+
+    const all = await mealRepo.getAll();
+    expect(all.find((m) => m.id === meal.id)?.tags).toEqual([]);
+
+    const updated = await mealRepo.update(meal.id, { tags: ["Soup ", "soup"] });
+    expect(updated.tags).toEqual(["soup"]);
+    expect((await db.meals.get(meal.id))?.tags).toEqual(["soup"]);
+  });
+
   it("delete soft-deletes locally and queues a delete op", async () => {
     const meal = await mealRepo.create(input);
     await db.syncQueue.clear();

@@ -208,6 +208,32 @@ describe("MealDetail", () => {
     });
   });
 
+  describe("tags", () => {
+    it("shows tag chips in view mode", async () => {
+      const meal = await seedMeal({ tags: ["pasta", "quick"] });
+      render(MealDetail, { id: meal.id });
+
+      expect(screen.getByText("pasta")).toBeInTheDocument();
+      expect(screen.getByText("quick")).toBeInTheDocument();
+    });
+
+    it("adding and removing tags in the editor persists on save", async () => {
+      const meal = await seedMeal({ tags: ["pasta"] });
+      render(MealDetail, { id: meal.id });
+      const user = userEvent.setup();
+
+      await user.click(screen.getByRole("button", { name: "Edit" }));
+      await user.click(screen.getByRole("button", { name: "Remove tag pasta" }));
+      await user.type(screen.getByPlaceholderText("Add a tag…"), "quick{enter}");
+      await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+      await vi.waitFor(async () => {
+        const saved = await db.meals.get(meal.id);
+        expect(saved?.tags).toEqual(["quick"]);
+      });
+    });
+  });
+
   describe("ingredient editor", () => {
     it("adds a new ingredient row via the ingredient search", async () => {
       const meal = await seedMeal();

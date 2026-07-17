@@ -229,7 +229,7 @@ describe("weeklyPlan store", () => {
   });
 
   describe("autoFillWeek", () => {
-    function makeMeal(id: string, supperDays: string[]) {
+    function makeMeal(id: string, supperDays: string[], tags: string[] = []) {
       return {
         id,
         name: id,
@@ -238,6 +238,7 @@ describe("weeklyPlan store", () => {
         url: "",
         ingredients: [],
         instructions: [],
+        tags,
       };
     }
 
@@ -282,6 +283,38 @@ describe("weeklyPlan store", () => {
       await weeklyPlan.autoFillWeek();
 
       expect(weeklyPlan.current.monday?.supper).toBe("a");
+    });
+
+    it("keeps a same-tag supper off the following two days when untagged alternatives exist", async () => {
+      const { weeklyPlan, meals } = await importStore();
+      const allDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+      meals.all = [
+        makeMeal("pasta1", allDays, ["pasta"]),
+        makeMeal("pasta2", allDays, ["pasta"]),
+        makeMeal("other1", allDays),
+        makeMeal("other2", allDays),
+        makeMeal("other3", allDays),
+        makeMeal("other4", allDays),
+      ];
+      mockGetMealIds.mockResolvedValue(new Set());
+      await weeklyPlan.setDay("monday", "supper", "pasta1");
+
+      await weeklyPlan.autoFillWeek();
+
+      expect(weeklyPlan.current.tuesday?.supper).not.toBe("pasta2");
+      expect(weeklyPlan.current.wednesday?.supper).not.toBe("pasta2");
+    });
+
+    it("allows a same-tag supper once a manual placement is >= 2 gap away", async () => {
+      const { weeklyPlan, meals } = await importStore();
+      const allDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+      meals.all = [makeMeal("pasta1", allDays, ["pasta"]), makeMeal("pasta2", ["thursday"], ["pasta"])];
+      mockGetMealIds.mockResolvedValue(new Set());
+      await weeklyPlan.setDay("monday", "supper", "pasta1");
+
+      await weeklyPlan.autoFillWeek();
+
+      expect(weeklyPlan.current.thursday?.supper).toBe("pasta2");
     });
   });
 });

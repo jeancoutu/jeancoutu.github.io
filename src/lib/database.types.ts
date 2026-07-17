@@ -128,6 +128,7 @@ export interface Database {
           url: string;
           supper_days: DayKeyEnum[];
           instructions: string[];
+          tags: string[];
           created_at: string;
         };
         Insert: {
@@ -138,6 +139,7 @@ export interface Database {
           url?: string;
           supper_days?: DayKeyEnum[];
           instructions?: string[];
+          tags?: string[];
           created_at?: string;
         };
         Update: {
@@ -148,6 +150,7 @@ export interface Database {
           url?: string;
           supper_days?: DayKeyEnum[];
           instructions?: string[];
+          tags?: string[];
           created_at?: string;
         };
         Relationships: [];

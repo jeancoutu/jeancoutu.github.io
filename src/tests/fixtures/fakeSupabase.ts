@@ -12,7 +12,7 @@ const schemaSql = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "sc
 // translator.
 const SELECT_QUERIES: Record<string, string> = {
   meals: `
-    select m.id, m.name, m.duration, m.url, m.supper_days, m.instructions,
+    select m.id, m.name, m.duration, m.url, m.supper_days, m.instructions, m.tags,
            m.version, m.updated_at, m.deleted_at,
            coalesce((
              select jsonb_agg(jsonb_build_object('name', mi.name, 'quantity', mi.quantity, 'category', mi.category))
@@ -71,7 +71,7 @@ function toArrayLiteral(value: string[]): string {
 // `{}` (an empty Postgres array literal) for an empty jsonb param, and
 // `{}`::jsonb parses as a JSON object, not an array, breaking
 // `jsonb_array_length()` downstream.
-const NATIVE_ARRAY_PARAMS = new Set(["p_supper_days", "p_instructions", "p_preset_ids"]);
+const NATIVE_ARRAY_PARAMS = new Set(["p_supper_days", "p_instructions", "p_preset_ids", "p_tags"]);
 
 function formatRpcArgs(args: Record<string, unknown>): Record<string, unknown> {
   const formatted: Record<string, unknown> = {};

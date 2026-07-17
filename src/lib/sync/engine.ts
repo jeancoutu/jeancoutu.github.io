@@ -102,6 +102,7 @@ function applyMeal(row: PulledMeal): Promise<unknown> {
     url: row.url ?? "",
     supperDays: (row.supper_days ?? []) as LocalMeal["supperDays"],
     instructions: row.instructions ?? [],
+    tags: row.tags ?? [],
     ingredients: (row.ingredients ?? []).map((i) => ({
       name: i.name,
       quantity: i.quantity,

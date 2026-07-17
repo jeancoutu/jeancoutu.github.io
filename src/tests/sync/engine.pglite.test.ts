@@ -54,6 +54,7 @@ describe("sync engine against a real PGlite-backed Supabase", () => {
       url: "",
       supperDays: [],
       instructions: [],
+      tags: ["soup", "comfort"],
       ingredients: [{ name: "Chicken", quantity: "1 lb", category: "meat" as const }],
       version: 1,
       updatedAt: "2026-01-01T00:00:00.000Z",
@@ -69,7 +70,7 @@ describe("sync engine against a real PGlite-backed Supabase", () => {
     expect(stored?.version).toBe(1);
 
     const serverRow = await fake.from("meals").select("*").eq("id", local.id).maybeSingle();
-    expect(serverRow.data).toMatchObject({ name: "Chicken Soup" });
+    expect(serverRow.data).toMatchObject({ name: "Chicken Soup", tags: ["soup", "comfort"] });
   });
 
   it("on a server-side conflict, drops the local op and adopts the server row (server wins)", async () => {
@@ -94,6 +95,7 @@ describe("sync engine against a real PGlite-backed Supabase", () => {
       p_supper_days: [],
       p_instructions: [],
       p_ingredients: [],
+      p_tags: ["server-tag"],
     });
 
     // This client still thinks it's at version 1 and queues a conflicting edit.
@@ -104,6 +106,7 @@ describe("sync engine against a real PGlite-backed Supabase", () => {
       url: "",
       supperDays: [],
       instructions: [],
+      tags: ["local-tag"],
       ingredients: [],
       version: 1,
       updatedAt: "2026-01-01T00:00:00.000Z",
@@ -118,6 +121,7 @@ describe("sync engine against a real PGlite-backed Supabase", () => {
     const stored = await db.meals.get(mealId);
     expect(stored?.name).toBe("Server wins");
     expect(stored?.version).toBe(2);
+    expect(stored?.tags).toEqual(["server-tag"]);
   });
 
   it("pulls changes made directly on the server and applies them to Dexie, advancing the cursor", async () => {
@@ -131,6 +135,7 @@ describe("sync engine against a real PGlite-backed Supabase", () => {
       p_supper_days: ["friday"],
       p_instructions: ["Roast"],
       p_ingredients: [{ name: "Turkey", quantity: "1", category: "meat" }],
+      p_tags: ["holiday"],
     });
 
     expect(await db.meals.get(mealId)).toBeUndefined();
@@ -140,6 +145,7 @@ describe("sync engine against a real PGlite-backed Supabase", () => {
     const stored = await db.meals.get(mealId);
     expect(stored).toMatchObject({ name: "From another device", duration: "long", version: 1 });
     expect(stored?.ingredients).toEqual([{ name: "Turkey", quantity: "1", category: "meat" }]);
+    expect(stored?.tags).toEqual(["holiday"]);
   });
 
   it("converges local state after a push-then-pull round trip involving a second device", async () => {
@@ -152,6 +158,7 @@ describe("sync engine against a real PGlite-backed Supabase", () => {
       url: "",
       supperDays: [],
       instructions: [],
+      tags: [],
       ingredients: [],
       version: 1,
       updatedAt: "2026-01-01T00:00:00.000Z",

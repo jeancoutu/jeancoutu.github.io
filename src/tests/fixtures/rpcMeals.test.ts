@@ -146,6 +146,100 @@ describe("upsert_meal / delete_meal RPCs", () => {
     expect(data).toMatchObject({ status: "conflict", id: mealId, version: 1 });
   });
 
+  it("round-trips tags through insert, update, and refetch", async () => {
+    const fake = await createFakeSupabase();
+    await fake._testHelpers.signInAsNewUser();
+
+    const mealId = crypto.randomUUID();
+    const { error } = await fake.rpc("upsert_meal", {
+      p_id: mealId,
+      p_base_version: null,
+      p_name: "Spaghetti",
+      p_duration: "short",
+      p_url: "",
+      p_supper_days: [],
+      p_instructions: [],
+      p_ingredients: [],
+      p_tags: ["pasta", "quick"],
+    });
+    expect(error).toBeNull();
+
+    let refetched = await fake.from("meals").select("*").eq("id", mealId).maybeSingle();
+    expect((refetched.data as { tags: string[] }).tags).toEqual(["pasta", "quick"]);
+
+    await fake.rpc("upsert_meal", {
+      p_id: mealId,
+      p_base_version: 1,
+      p_name: "Spaghetti",
+      p_duration: "short",
+      p_url: "",
+      p_supper_days: [],
+      p_instructions: [],
+      p_ingredients: [],
+      p_tags: ["pasta"],
+    });
+
+    refetched = await fake.from("meals").select("*").eq("id", mealId).maybeSingle();
+    expect((refetched.data as { tags: string[] }).tags).toEqual(["pasta"]);
+  });
+
+  it("an upsert call without p_tags (old cached client) leaves existing tags untouched", async () => {
+    const fake = await createFakeSupabase();
+    await fake._testHelpers.signInAsNewUser();
+
+    const mealId = crypto.randomUUID();
+    await fake.rpc("upsert_meal", {
+      p_id: mealId,
+      p_base_version: null,
+      p_name: "Spaghetti",
+      p_duration: "short",
+      p_url: "",
+      p_supper_days: [],
+      p_instructions: [],
+      p_ingredients: [],
+      p_tags: ["pasta"],
+    });
+
+    // Old-client simulation: the 8-arg signature, no p_tags key at all —
+    // the parameter defaults to null and coalesce keeps the stored tags.
+    const { data, error } = await fake.rpc("upsert_meal", {
+      p_id: mealId,
+      p_base_version: 1,
+      p_name: "Renamed by old client",
+      p_duration: "long",
+      p_url: "",
+      p_supper_days: [],
+      p_instructions: [],
+      p_ingredients: [],
+    });
+    expect(error).toBeNull();
+    expect(data).toMatchObject({ status: "ok", id: mealId, version: 2 });
+
+    const refetched = await fake.from("meals").select("*").eq("id", mealId).maybeSingle();
+    expect(refetched.data).toMatchObject({ name: "Renamed by old client", tags: ["pasta"] });
+  });
+
+  it("an insert without p_tags defaults tags to an empty array", async () => {
+    const fake = await createFakeSupabase();
+    await fake._testHelpers.signInAsNewUser();
+
+    const mealId = crypto.randomUUID();
+    const { error } = await fake.rpc("upsert_meal", {
+      p_id: mealId,
+      p_base_version: null,
+      p_name: "Untagged",
+      p_duration: "short",
+      p_url: "",
+      p_supper_days: [],
+      p_instructions: [],
+      p_ingredients: [],
+    });
+    expect(error).toBeNull();
+
+    const refetched = await fake.from("meals").select("*").eq("id", mealId).maybeSingle();
+    expect((refetched.data as { tags: string[] }).tags).toEqual([]);
+  });
+
   it("delete_meal is idempotent once the meal is already deleted", async () => {
     const fake = await createFakeSupabase();
     await fake._testHelpers.signInAsNewUser();

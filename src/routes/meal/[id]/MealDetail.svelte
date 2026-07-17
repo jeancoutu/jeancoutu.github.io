@@ -68,6 +68,13 @@
           {$_("mealDetail.duplicate")}
         </button>
       </div>
+      {#if meal.tags.length > 0}
+        <div class="mt-2 flex flex-wrap gap-2">
+          {#each meal.tags as tag (tag)}
+            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">{tag}</span>
+          {/each}
+        </div>
+      {/if}
       {#if meal.url}
         <a
           href={meal.url}
