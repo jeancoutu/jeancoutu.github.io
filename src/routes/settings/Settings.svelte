@@ -7,10 +7,21 @@
   import { signOut } from "../../lib/auth";
   import { syncStatus } from "../../lib/sync/status.svelte";
   import { resetLocalCache } from "../../lib/sync/engine";
+  import { checkForAppUpdate } from "../../lib/pwa";
 
   let confirmSignOutOpen = $state(false);
   let confirmClearCacheOpen = $state(false);
   let clearingCache = $state(false);
+  let checkingForUpdate = $state(false);
+
+  async function handleCheckForUpdate() {
+    checkingForUpdate = true;
+    try {
+      await checkForAppUpdate();
+    } finally {
+      checkingForUpdate = false;
+    }
+  }
 
   function handleSignOutClick() {
     if (syncStatus.pendingCount > 0) {
@@ -49,6 +60,17 @@
       class="mt-3 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
     >
       {$_("settings.presets.manage")}
+    </button>
+  </SettingsCard>
+  <SettingsCard title={$_("settings.update.title")}>
+    <p class="text-sm text-slate-600">{$_("settings.update.description")}</p>
+    <button
+      type="button"
+      onclick={handleCheckForUpdate}
+      disabled={checkingForUpdate}
+      class="mt-3 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100 disabled:opacity-50"
+    >
+      {checkingForUpdate ? $_("settings.update.checking") : $_("settings.update.check")}
     </button>
   </SettingsCard>
   <SettingsCard title={$_("settings.cache.title")}>

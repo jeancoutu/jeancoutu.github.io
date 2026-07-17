@@ -1,14 +1,12 @@
 import { mount } from "svelte";
 import { waitLocale } from "svelte-i18n";
-import { registerSW } from "virtual:pwa-register";
 import "./app.css";
+import "./lib/pwa";
 import App from "./App.svelte";
 import { setupI18n } from "./lib/i18n";
 import { initRouter, router, isAppRoot, pathFor } from "./lib/utils/router.svelte";
 import { initSyncEngine } from "./lib/sync/engine";
 import { initRealtimeSync } from "./lib/sync/realtime";
-
-registerSW({ immediate: true });
 
 async function bootstrap() {
   await setupI18n();
