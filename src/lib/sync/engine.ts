@@ -27,6 +27,7 @@ import {
   type PulledWeeklyPlan,
 } from "./rpc";
 import { emitConflict, emitSynced, syncStatus } from "./status.svelte";
+import { onUserChange } from "../stores/auth.svelte";
 
 const LOCK_NAME = "mealplanner-sync";
 const MIN_BACKOFF_MS = 2_000;
@@ -512,6 +513,13 @@ export function initSyncEngine(): void {
     scheduleDebouncedSync();
   });
 
+  // The engine's own triggers (queue writes, online/visibility events) don't
+  // fire just because a session appeared — without this, logging in on an
+  // already-loaded, already-visible, already-online tab would never pull.
+  onUserChange((session) => {
+    if (session) void sync();
+  });
+
   if (typeof window !== "undefined") {
     window.addEventListener("online", () => {
       syncStatus.online = true;
@@ -525,6 +533,12 @@ export function initSyncEngine(): void {
     });
   }
 
+  // No unconditional sync() here: calling pull_changes before the session
+  // resolves would run it unauthenticated. RLS then yields an empty result
+  // set (get_my_household_id() is null) but the RPC still returns a real
+  // watermark, and advancing the cursor to it would permanently hide the
+  // household's existing data once the session actually arrives — the
+  // onUserChange trigger above covers both a session already cached at
+  // launch and one that resolves after (see its comment).
   void updatePendingCount();
-  void sync();
 }
