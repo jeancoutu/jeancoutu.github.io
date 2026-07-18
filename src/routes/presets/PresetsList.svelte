@@ -38,20 +38,20 @@
   }
 </script>
 
-<div class="space-y-4">
-  <header>
-    <h1 class="text-2xl font-bold text-slate-900">{$_("presets.title")}</h1>
-    <p class="mt-1 text-sm text-slate-600">{$_("presets.subtitle")}</p>
+<div>
+  <header class="mb-4">
+    <h1 class="m-0 mb-1 font-display text-[clamp(1.4rem,5vw+0.4rem,1.75rem)] font-bold tracking-[-0.015em] text-ink">{$_("presets.title")}</h1>
+    <p class="m-0 text-sm leading-[1.45] text-ink-2">{$_("presets.subtitle")}</p>
   </header>
 
   {#if error}
-    <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+    <p class="mb-4 rounded-input border border-danger bg-danger-tint px-3 py-2 text-sm text-danger">
       {error}
     </p>
   {/if}
 
   <form
-    class="flex gap-2"
+    class="mb-6 flex gap-2"
     onsubmit={(event) => {
       event.preventDefault();
       createPreset();
@@ -64,33 +64,33 @@
         bind:value={newName}
         maxlength={50}
         placeholder={$_("presets.namePlaceholder")}
-        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+        class="w-full rounded-input border border-rule bg-surface px-3.5 py-2.5 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
       />
     </label>
     <button
       type="submit"
       disabled={!newName.trim() || creating}
-      class="shrink-0 rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50"
+      class="shrink-0 rounded-pill bg-accent px-4 py-2.5 text-sm font-semibold text-surface shadow-btn-cast transition hover:-translate-y-px hover:bg-accent-deep active:translate-y-0 active:shadow-none disabled:pointer-events-none disabled:opacity-50"
     >
       {$_("presets.create")}
     </button>
   </form>
 
   {#if groceryPresets.all.length === 0}
-    <p class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+    <p class="rounded-card border-[1.5px] border-dashed border-rule p-6 text-center text-sm text-ink-3">
       {$_("presets.empty")}
     </p>
   {:else}
-    <ul class="space-y-3">
+    <div>
       {#each groceryPresets.all as preset (preset.id)}
-        <li class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex items-center gap-2 border-b border-rule py-[0.85rem] last:border-b-0">
           <button
             type="button"
             onclick={() => navigate(`/preset/${encodeURIComponent(preset.id)}`)}
-            class="min-w-0 flex-1 text-left"
+            class="min-w-0 flex-1 rounded-input py-1 text-left transition hover:bg-paper-2"
           >
-            <span class="block truncate text-lg font-semibold text-slate-900">{preset.name}</span>
-            <span class="block text-sm text-slate-500">
+            <span class="mb-0.5 block truncate text-[0.9375rem] font-semibold text-ink">{preset.name}</span>
+            <span class="block text-[0.8125rem] text-ink-2">
               {$_("presets.itemCount", { values: { n: preset.items.length } })}
             </span>
           </button>
@@ -98,14 +98,14 @@
             <button
               type="button"
               onclick={() => removePreset(preset.id)}
-              class="shrink-0 rounded-lg bg-red-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-red-600"
+              class="shrink-0 rounded-pill bg-danger px-3 py-1.5 text-sm font-semibold text-surface transition hover:brightness-95"
             >
               {$_("presets.deleteConfirm")}
             </button>
             <button
               type="button"
               onclick={() => (confirmingDeleteId = null)}
-              class="shrink-0 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              class="shrink-0 rounded-pill border border-rule px-3 py-1.5 text-sm font-semibold text-ink-2 transition hover:bg-paper-2"
             >
               {$_("presets.deleteCancel")}
             </button>
@@ -113,16 +113,16 @@
             <button
               type="button"
               onclick={() => removePreset(preset.id)}
-              class="shrink-0 rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-red-500"
+              class="flex size-[1.9rem] shrink-0 items-center justify-center rounded-icon text-ink-3 transition hover:bg-danger-tint hover:text-danger"
               aria-label={$_("presets.delete")}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" class="size-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-[15px]">
+                <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6h14z" />
               </svg>
             </button>
           {/if}
-        </li>
+        </div>
       {/each}
-    </ul>
+    </div>
   {/if}
 </div>

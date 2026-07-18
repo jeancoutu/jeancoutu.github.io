@@ -16,9 +16,9 @@
 {#if visible}
   <div
     class="flex items-center justify-center gap-1.5 border-t px-3 py-1 text-xs font-medium
-      {isError ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-800'}"
+      {isError ? 'border-danger-tint bg-danger-tint text-danger' : 'border-warn-tint bg-warn-tint text-warn'}"
   >
-    <span class="h-1.5 w-1.5 rounded-full {isError ? 'bg-red-500' : 'bg-amber-500'}"></span>
+    <span class="h-1.5 w-1.5 rounded-full {isError ? 'bg-danger' : 'bg-warn'}"></span>
     {label}
   </div>
 {/if}

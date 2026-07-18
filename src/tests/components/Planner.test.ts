@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, userEvent, resetDb, resetStores } from "../componentTestUtils";
+import { render, screen, within, userEvent, resetDb, resetStores } from "../componentTestUtils";
 import Planner from "../../routes/planner/Planner.svelte";
 import { meals } from "../../lib/stores/meals.svelte";
 import { weeklyPlan } from "../../lib/stores/weeklyPlan.svelte";
@@ -26,6 +26,22 @@ async function seedMeal(name: string, supperDays: DayKey[] = ALL_DAYS): Promise<
   return meal;
 }
 
+function daySection(dayLabel: string): HTMLElement {
+  return screen.getByText(dayLabel).closest("section") as HTMLElement;
+}
+
+async function pickMealForSlot(
+  user: ReturnType<typeof userEvent.setup>,
+  dayLabel: string,
+  slotLabel: string,
+  mealName: string,
+): Promise<void> {
+  const section = daySection(dayLabel);
+  await user.click(within(section).getByRole("button", { name: new RegExp(slotLabel, "i") }));
+  const dialog = screen.getByRole("dialog");
+  await user.click(within(dialog).getByRole("button", { name: mealName }));
+}
+
 describe("Planner", () => {
   beforeEach(async () => {
     await resetDb();
@@ -39,7 +55,8 @@ describe("Planner", () => {
     render(Planner);
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole("heading", { level: 1 }).closest("button")!);
+    const weekPillButton = screen.getAllByText("this week").find((el) => !el.closest("dialog"))!.closest("button")!;
+    await user.click(weekPillButton);
     expect(screen.getByText("Select week")).toBeInTheDocument();
 
     // The week with a stored plan shows a "Has plan" tag.
@@ -105,13 +122,12 @@ describe("Planner", () => {
     expect(weeklyPlan.current.monday?.supper).toBe(chosen.id);
   });
 
-  it("Clear empties all day selects and the grocery list for the week", async () => {
+  it("Clear empties all days' assigned meals and the grocery list for the week", async () => {
     const meal = await seedMeal("Chicken");
     render(Planner);
     const user = userEvent.setup();
 
-    const select = document.getElementById("day-monday-supper") as HTMLSelectElement;
-    await user.selectOptions(select, meal.id);
+    await pickMealForSlot(user, "Monday", "Supper", meal.name);
     await vi.waitFor(() => expect(weeklyPlan.current.monday?.supper).toBe(meal.id));
     await vi.waitFor(() => expect(groceryList.itemsForWeek.length).toBeGreaterThan(0));
 
@@ -120,7 +136,7 @@ describe("Planner", () => {
 
     await vi.waitFor(() => expect(weeklyPlan.current).toEqual({}));
     expect(groceryList.itemsForWeek).toEqual([]);
-    expect(select.value).toBe("");
+    expect(within(daySection("Monday")).queryByText(meal.name)).not.toBeInTheDocument();
   });
 
   it("Clear Week shows a confirmation dialog and does nothing until confirmed", async () => {
@@ -128,8 +144,7 @@ describe("Planner", () => {
     render(Planner);
     const user = userEvent.setup();
 
-    const select = document.getElementById("day-monday-supper") as HTMLSelectElement;
-    await user.selectOptions(select, meal.id);
+    await pickMealForSlot(user, "Monday", "Supper", meal.name);
     await vi.waitFor(() => expect(weeklyPlan.current.monday?.supper).toBe(meal.id));
 
     await user.click(screen.getByRole("button", { name: "Clear Week" }));
@@ -152,19 +167,17 @@ describe("Planner", () => {
     render(Planner);
     const user = userEvent.setup();
 
-    const mondaySelect = document.getElementById("day-monday-supper") as HTMLSelectElement;
-    await user.selectOptions(mondaySelect, chicken.id);
+    await pickMealForSlot(user, "Monday", "Supper", chicken.name);
     await vi.waitFor(() => expect(weeklyPlan.current.monday?.supper).toBe(chicken.id));
 
-    const tuesdaySelect = document.getElementById("day-tuesday-supper") as HTMLSelectElement;
-    await user.selectOptions(tuesdaySelect, beef.id);
+    await pickMealForSlot(user, "Tuesday", "Supper", beef.name);
     await vi.waitFor(() => expect(weeklyPlan.current.tuesday?.supper).toBe(beef.id));
 
     // Both selections must still show as selected (a dropped save resets
-    // the <select> back to blank on the next render) and both must have
+    // the slot back to empty on the next render) and both must have
     // actually landed in Dexie, not just in-memory state.
-    expect(mondaySelect.value).toBe(chicken.id);
-    expect(tuesdaySelect.value).toBe(beef.id);
+    expect(within(daySection("Monday")).getByText(chicken.name)).toBeInTheDocument();
+    expect(within(daySection("Tuesday")).getByText(beef.name)).toBeInTheDocument();
     await vi.waitFor(async () => {
       const savedRow = await db.weeklyPlans.where("weekStart").equals(weeklyPlan.selectedWeek).first();
       expect(savedRow?.plan.monday?.supper).toBe(chicken.id);
@@ -194,7 +207,6 @@ describe("Planner", () => {
     await vi.waitFor(() => expect(weeklyPlan.current.tuesday?.supper).toBe(meal.id));
     await vi.waitFor(() => expect(groceryList.itemsForWeek.map((i) => i.name)).toContain("Chicken ingredient"));
 
-    const select = document.getElementById("day-tuesday-supper") as HTMLSelectElement;
-    expect(select.value).toBe(meal.id);
+    expect(within(daySection("Tuesday")).getByText(meal.name)).toBeInTheDocument();
   });
 });

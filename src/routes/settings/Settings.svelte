@@ -47,38 +47,41 @@
   }
 </script>
 
-<div class="flex flex-col gap-6">
-  <h1 class="text-xl font-bold text-slate-900">{$_("settings.title")}</h1>
+<div class="flex flex-col gap-4">
+  <h1 class="m-0 font-display text-[clamp(1.4rem,5vw+0.4rem,1.75rem)] font-bold tracking-[-0.015em] text-ink">{$_("settings.title")}</h1>
   <SettingsCard title={$_("settings.household.title")}>
     <HouseholdSettings />
   </SettingsCard>
   <SettingsCard title={$_("settings.presets.title")}>
-    <p class="text-sm text-slate-600">{$_("settings.presets.description")}</p>
+    <p class="m-0 mb-3 text-sm leading-[1.45] text-ink-2">{$_("settings.presets.description")}</p>
     <button
       type="button"
       onclick={() => navigate("/presets")}
-      class="mt-3 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
+      class="w-full rounded-pill border border-rule bg-transparent px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-rule-strong hover:bg-paper-2"
     >
       {$_("settings.presets.manage")}
     </button>
   </SettingsCard>
   <SettingsCard title={$_("settings.update.title")}>
-    <p class="text-sm text-slate-600">{$_("settings.update.description")}</p>
+    <p class="m-0 mb-3 text-sm leading-[1.45] text-ink-2">{$_("settings.update.description")}</p>
     <button
       type="button"
       onclick={handleCheckForUpdate}
       disabled={checkingForUpdate}
-      class="mt-3 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100 disabled:opacity-50"
+      class="flex w-full items-center justify-center gap-1.5 rounded-pill border border-rule bg-transparent px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-rule-strong hover:bg-paper-2 disabled:opacity-50"
     >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
+        <path d="M4 4v5h5M20 20v-5h-5M4.5 15a8 8 0 0 0 14.7 3.3M19.5 9A8 8 0 0 0 4.8 5.7" />
+      </svg>
       {checkingForUpdate ? $_("settings.update.checking") : $_("settings.update.check")}
     </button>
   </SettingsCard>
   <SettingsCard title={$_("settings.cache.title")}>
-    <p class="text-sm text-slate-600">{$_("settings.cache.description")}</p>
+    <p class="m-0 mb-3 text-sm leading-[1.45] text-ink-2">{$_("settings.cache.description")}</p>
     <button
       type="button"
       onclick={() => (confirmClearCacheOpen = true)}
-      class="mt-3 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
+      class="w-full rounded-pill border border-rule bg-transparent px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-rule-strong hover:bg-paper-2"
     >
       {$_("settings.cache.clear")}
     </button>
@@ -87,7 +90,7 @@
     <button
       type="button"
       onclick={handleSignOutClick}
-      class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50 active:bg-red-100"
+      class="w-full rounded-pill border border-danger bg-transparent px-4 py-2.5 text-sm font-semibold text-danger transition hover:bg-danger-tint"
     >
       {$_("settings.account.signOut")}
     </button>
@@ -103,19 +106,19 @@
     <button
       type="button"
       onclick={() => (confirmSignOutOpen = false)}
-      class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
+      class="rounded-pill border border-rule bg-transparent px-4 py-2.5 text-sm font-semibold text-ink-2 transition hover:border-rule-strong hover:bg-paper-2"
     >
       {$_("settings.account.cancel")}
     </button>
     <button
       type="button"
       onclick={confirmSignOut}
-      class="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 active:bg-red-800"
+      class="rounded-pill bg-danger px-4 py-2.5 text-sm font-semibold text-surface transition hover:brightness-95"
     >
       {$_("settings.account.signOutAnyway")}
     </button>
   {/snippet}
-  <p class="text-sm text-slate-600">
+  <p class="text-sm text-ink-2">
     {$_("settings.account.signOutWarning", { values: { n: syncStatus.pendingCount } })}
   </p>
 </Modal>
@@ -130,7 +133,7 @@
       type="button"
       onclick={() => (confirmClearCacheOpen = false)}
       disabled={clearingCache}
-      class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100 disabled:opacity-50"
+      class="rounded-pill border border-rule bg-transparent px-4 py-2.5 text-sm font-semibold text-ink-2 transition hover:border-rule-strong hover:bg-paper-2 disabled:opacity-50"
     >
       {$_("settings.cache.cancel")}
     </button>
@@ -138,12 +141,12 @@
       type="button"
       onclick={confirmClearCache}
       disabled={clearingCache}
-      class="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 active:bg-red-800 disabled:opacity-50"
+      class="rounded-pill bg-danger px-4 py-2.5 text-sm font-semibold text-surface transition hover:brightness-95 disabled:opacity-50"
     >
       {clearingCache ? $_("settings.cache.clearing") : $_("settings.cache.confirmAction")}
     </button>
   {/snippet}
-  <p class="text-sm text-slate-600">
+  <p class="text-sm text-ink-2">
     {$_("settings.cache.confirmMessage", { values: { n: syncStatus.pendingCount } })}
   </p>
 </Modal>

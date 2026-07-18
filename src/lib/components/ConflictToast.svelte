@@ -42,16 +42,18 @@
   >
     {#each toasts as toast (toast.id)}
       <div
-        class="flex w-full max-w-md items-start justify-between gap-3 rounded-lg bg-slate-900 px-4 py-3 text-sm text-white shadow-lg"
+        class="flex w-full max-w-md items-start justify-between gap-3 rounded-card bg-ink px-4 py-3 text-sm text-surface shadow-float"
       >
-        <span>{toast.message}</span>
+        <span class="min-w-0 [overflow-wrap:anywhere]">{toast.message}</span>
         <button
           type="button"
           onclick={() => dismiss(toast.id)}
-          class="shrink-0 text-slate-300 transition hover:text-white"
+          class="flex size-5 shrink-0 items-center justify-center rounded-full text-ink-3 transition hover:bg-white/10 hover:text-surface"
           aria-label={$_("sync.dismiss")}
         >
-          ✕
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" class="size-3">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
         </button>
       </div>
     {/each}

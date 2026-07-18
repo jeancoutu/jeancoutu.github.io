@@ -56,63 +56,66 @@
 
 {#if !preset}
   <div class="space-y-4 text-center">
-    <p class="text-slate-600">{$_("presets.notFound")}</p>
+    <p class="text-ink-2">{$_("presets.notFound")}</p>
     <button
       type="button"
       onclick={goBack}
-      class="text-sm font-medium text-orange-600 hover:text-orange-700"
+      class="text-sm font-semibold text-accent-deep hover:underline"
     >
       {$_("presets.back")}
     </button>
   </div>
 {:else}
-  <div class="space-y-6">
+  <div class="flex flex-col pb-4">
     <button
       type="button"
       onclick={goBack}
-      class="text-sm font-medium text-orange-600 hover:text-orange-700"
+      class="group mb-4 inline-flex items-center gap-1.5 self-start py-1 text-sm font-semibold text-accent-deep"
     >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="size-[15px] transition-transform group-hover:-translate-x-0.5">
+        <path d="M15 6l-6 6 6 6" />
+      </svg>
       {$_("presets.back")}
     </button>
 
     <form
-      class="space-y-4"
+      class="flex flex-col gap-4"
       onsubmit={(event) => {
         event.preventDefault();
         save();
       }}
     >
       {#if error}
-        <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p class="rounded-input border border-danger bg-danger-tint px-3 py-2 text-sm text-danger">
           {error}
         </p>
       {/if}
 
       <label class="block">
-        <span class="mb-1 block text-sm font-medium text-slate-700">{$_("presets.name")}</span>
+        <span class="mb-1.5 block text-[0.8125rem] font-semibold text-ink">{$_("presets.name")}</span>
         <input
           type="text"
           bind:value={name}
           maxlength={50}
-          class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+          class="w-full rounded-input border border-rule bg-surface px-3.5 py-2.5 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
           placeholder={$_("presets.namePlaceholder")}
         />
       </label>
 
       <IngredientListEditor legend={$_("presets.ingredients")} bind:rows />
 
-      <div class="flex justify-end gap-2">
+      <div class="sticky bottom-0 -mx-4 -mb-4 flex justify-end gap-2 border-t border-rule bg-surface px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         <button
           type="button"
           onclick={goBack}
-          class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
+          class="rounded-pill border border-rule bg-transparent px-4 py-2.5 text-sm font-semibold text-ink-2 transition hover:border-rule-strong hover:bg-paper-2"
         >
           {$_("presets.cancel")}
         </button>
         <button
           type="submit"
           disabled={saving}
-          class="rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50"
+          class="rounded-pill bg-accent px-4 py-2.5 text-sm font-semibold text-surface shadow-btn-cast transition hover:-translate-y-px hover:bg-accent-deep active:translate-y-0 active:shadow-none disabled:pointer-events-none disabled:opacity-50"
         >
           {$_("presets.save")}
         </button>

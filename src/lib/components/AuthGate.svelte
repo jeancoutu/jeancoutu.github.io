@@ -34,19 +34,19 @@
 </script>
 
 {#if auth.loading}
-  <div class="flex min-h-screen items-center justify-center">
-    <div class="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-800"></div>
+  <div class="flex min-h-screen items-center justify-center bg-paper-2">
+    <div class="h-6 w-6 animate-spin rounded-full border-2 border-rule border-t-accent"></div>
   </div>
 {:else if auth.session}
   {@render children()}
 {:else}
-  <div class="flex min-h-screen items-center justify-center px-4">
-    <div class="flex w-full max-w-sm flex-col gap-4">
-      <h1 class="text-center text-xl font-semibold">Sign in</h1>
+  <div class="flex min-h-screen items-center justify-center bg-paper-2 px-4">
+    <div class="flex w-full max-w-sm flex-col gap-4 rounded-card border border-rule bg-surface p-6 shadow-card">
+      <h1 class="text-center font-display text-xl font-semibold text-ink">Sign in</h1>
       <button
         onclick={handleSignIn}
         disabled={loading}
-        class="flex items-center justify-center gap-3 rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        class="flex items-center justify-center gap-3 rounded-pill border border-rule bg-surface px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-paper-2 disabled:opacity-50"
       >
         <svg viewBox="0 0 24 24" class="h-5 w-5" aria-hidden="true">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -57,27 +57,27 @@
         {loading ? 'Redirecting…' : 'Sign in with Google'}
       </button>
       {#if error}
-        <p class="text-center text-sm text-red-600">{error}</p>
+        <p class="text-center text-sm text-danger">{error}</p>
       {/if}
       {#if import.meta.env.DEV}
-        <div class="mt-4 flex flex-col gap-2 border-t pt-4">
-          <p class="text-center text-xs text-gray-400">Dev login</p>
+        <div class="mt-4 flex flex-col gap-2 border-t border-rule pt-4">
+          <p class="text-center text-xs text-ink-3">Dev login</p>
           <input
             bind:value={devEmail}
             type="email"
             placeholder="Email"
-            class="rounded border border-gray-300 px-3 py-2 text-sm"
+            class="rounded-input border border-rule bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
           />
           <input
             bind:value={devPassword}
             type="password"
             placeholder="Password"
-            class="rounded border border-gray-300 px-3 py-2 text-sm"
+            class="rounded-input border border-rule bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
           />
           <button
             onclick={handleDevSignIn}
             disabled={loading}
-            class="rounded bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+            class="rounded-pill bg-accent px-4 py-2.5 text-sm font-semibold text-surface shadow-btn-cast transition hover:bg-accent-deep disabled:opacity-50"
           >
             Sign in with email
           </button>

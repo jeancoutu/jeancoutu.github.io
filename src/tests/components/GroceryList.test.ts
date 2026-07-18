@@ -95,8 +95,7 @@ describe("GroceryList", () => {
     await vi.waitFor(() => {
       expect(groceryList.itemsForWeek.find((i) => i.name === "Apple")?.checked).toBe(true);
     });
-    const appleLi = screen.getByText("Apple", { exact: false }).closest("li")!;
-    const appleTextSpan = appleLi.querySelector("span.text-sm")!;
+    const appleTextSpan = screen.getByText("Apple", { exact: false });
     expect(appleTextSpan).toHaveClass("line-through");
 
     const items = screen.getAllByRole("listitem").map((li) => li.textContent ?? "");
@@ -248,7 +247,7 @@ describe("GroceryList", () => {
       const item = groceryList.itemsForWeek.find((i) => i.name === "Baby Carrot");
       expect(item?.toVerify).toBe(true);
     });
-    expect(screen.getByText("Baby Carrot")).toHaveClass("text-amber-700");
+    expect(screen.getByText("Baby Carrot")).toHaveClass("text-warn");
   }, 10000);
 
   it("'Remove To verify' clears the flag when re-opening the form on a to-verify item", async () => {

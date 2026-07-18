@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, userEvent, resetDb, resetStores } from "../componentTestUtils";
+import { render, screen, within, userEvent, resetDb, resetStores } from "../componentTestUtils";
 import DaySelector from "../../lib/components/DaySelector.svelte";
 import { meals } from "../../lib/stores/meals.svelte";
 import { weeklyPlan } from "../../lib/stores/weeklyPlan.svelte";
@@ -32,13 +32,14 @@ describe("DaySelector", () => {
   it("selecting a meal in a slot saves to day_plans, selects it, and generates the grocery list", async () => {
     const meal = await seedMeal();
     render(DaySelector, { day: "monday" });
-    const select = document.getElementById("day-monday-supper") as HTMLSelectElement;
     const user = userEvent.setup();
 
-    await user.selectOptions(select, meal.id);
+    await user.click(screen.getByRole("button", { name: /Supper/i }));
+    const dialog = screen.getByRole("dialog");
+    await user.click(within(dialog).getByRole("button", { name: meal.name }));
 
-    expect(select.value).toBe(meal.id);
     await vi.waitFor(() => expect(weeklyPlan.current.monday?.supper).toBe(meal.id));
+    expect(screen.getByRole("button", { name: new RegExp(`Supper.*${meal.name}`, "s") })).toBeInTheDocument();
 
     await vi.waitFor(async () => {
       const savedRow = await db.weeklyPlans.where("weekStart").equals(weeklyPlan.selectedWeek).first();
@@ -50,31 +51,32 @@ describe("DaySelector", () => {
     });
   });
 
-  it("clearing a slot (blank option) removes that meal from the day", async () => {
+  it("removing a meal via the picker's 'Remove meal' row clears that day's slot", async () => {
     const meal = await seedMeal();
     render(DaySelector, { day: "tuesday" });
-    const select = document.getElementById("day-tuesday-supper") as HTMLSelectElement;
     const user = userEvent.setup();
 
-    await user.selectOptions(select, meal.id);
+    await user.click(screen.getByRole("button", { name: /Supper/i }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: meal.name }));
     await vi.waitFor(() => expect(weeklyPlan.current.tuesday?.supper).toBe(meal.id));
 
-    await user.selectOptions(select, "");
-    expect(select.value).toBe("");
+    await user.click(screen.getByRole("button", { name: new RegExp(`Supper.*${meal.name}`, "s") }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Remove meal" }));
+
     await vi.waitFor(() => expect(weeklyPlan.current.tuesday?.supper).toBeUndefined());
   });
 
-  it("the eye icon is only rendered when the slot has a meal, and navigates to /meal/:id", async () => {
+  it("the view-recipe button is only rendered when the slot has a meal, and navigates to /meal/:id", async () => {
     const meal = await seedMeal();
     render(DaySelector, { day: "wednesday" });
     expect(screen.queryByRole("button", { name: "View Recipe" })).not.toBeInTheDocument();
 
-    const select = document.getElementById("day-wednesday-supper") as HTMLSelectElement;
     const user = userEvent.setup();
-    await user.selectOptions(select, meal.id);
+    await user.click(screen.getByRole("button", { name: /Supper/i }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: meal.name }));
 
-    const eyeButton = await screen.findByRole("button", { name: "View Recipe" });
-    await user.click(eyeButton);
+    const viewButton = await screen.findByRole("button", { name: "View Recipe" });
+    await user.click(viewButton);
 
     expect(router.current).toEqual({ name: "meal", id: meal.id });
   });

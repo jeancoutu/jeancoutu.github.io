@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent, userEvent, resetDb, resetStores } from "../componentTestUtils";
+import { render, screen, within, fireEvent, userEvent, resetDb, resetStores } from "../componentTestUtils";
 import MealDetail from "../../routes/meal/[id]/MealDetail.svelte";
 import { meals } from "../../lib/stores/meals.svelte";
 import { mealRepo } from "../../lib/repos/mealRepo";
@@ -254,11 +254,12 @@ describe("MealDetail", () => {
       const user = userEvent.setup();
 
       await user.click(screen.getByRole("button", { name: "Edit" }));
-      expect(screen.getByText("Beef")).toBeInTheDocument();
+      const dialog = screen.getByRole("dialog");
+      expect(within(dialog).getByText("Beef")).toBeInTheDocument();
 
-      await user.click(screen.getByRole("button", { name: "Remove" }));
+      await user.click(within(dialog).getByRole("button", { name: "Remove" }));
 
-      expect(screen.queryByText("Beef")).not.toBeInTheDocument();
+      expect(within(dialog).queryByText("Beef")).not.toBeInTheDocument();
     });
 
     it("edits an ingredient's quantity inline", async () => {

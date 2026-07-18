@@ -85,13 +85,13 @@
     onfocus={() => (focused = true)}
     onblur={() => (focused = false)}
     placeholder={$_("meals.create.ingredientSearch.placeholder")}
-    class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+    class="w-full rounded-input border border-rule bg-surface px-3.5 py-2.5 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
     autocomplete="off"
   />
 
   {#if focused && suggestions.length > 0}
-    <ul class="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
-      {#each suggestions as suggestion}
+    <ul class="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-input border border-rule bg-surface shadow-float">
+      {#each suggestions as suggestion (suggestion.name)}
         <li>
           <button
             type="button"
@@ -100,8 +100,8 @@
               selectSuggestion(suggestion);
             }}
             class={[
-              "w-full px-3 py-2.5 text-left text-sm transition hover:bg-slate-50 active:bg-slate-100",
-              suggestion.isNew ? "border-t border-slate-100 text-orange-600 font-medium" : "text-slate-800",
+              "w-full px-3.5 py-2.5 text-left text-[0.9375rem] transition hover:bg-paper-2",
+              suggestion.isNew ? "border-t border-rule font-semibold text-accent-deep" : "text-ink",
             ].join(" ")}
           >
             {#if suggestion.isNew}
@@ -121,12 +121,12 @@
   title={$_("meals.create.ingredientSearch.categoryTitle")}
   onclose={() => (showCategoryModal = false)}
 >
-  <div class="grid grid-cols-1 gap-2">
-    {#each INGREDIENT_CATEGORIES as category}
+  <div class="flex flex-col gap-2">
+    {#each INGREDIENT_CATEGORIES as category (category)}
       <button
         type="button"
         onclick={() => selectCategory(category)}
-        class="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-700 active:bg-orange-100"
+        class="w-full rounded-input border border-rule bg-surface px-4 py-3 text-left text-[0.9375rem] font-medium text-ink transition hover:border-accent hover:bg-accent-tint hover:text-accent-deep"
       >
         {$_(`grocery.category.${category}`)}
       </button>

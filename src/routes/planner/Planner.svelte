@@ -43,120 +43,65 @@
 
 <div class="space-y-4">
 
-  <button
-
-    type="button"
-
-    onclick={() => (weekPickerOpen = true)}
-
-    class="flex w-full items-center justify-between gap-3 rounded-lg text-left transition hover:bg-slate-100/80 active:bg-slate-100"
-
-  >
-
-    <h1 class="text-2xl font-bold text-slate-900">{weekLabel}</h1>
-
-    <span class="flex shrink-0 items-center gap-1 text-sm text-orange-600">
-
+  <header class="flex items-start justify-between gap-3">
+    <h1 class="min-w-0 font-display text-[clamp(1.25rem,4vw+0.4rem,1.5rem)] font-semibold tracking-[-0.01em] break-words text-ink">
+      {weekLabel}
+    </h1>
+    <button
+      type="button"
+      onclick={() => (weekPickerOpen = true)}
+      class="flex shrink-0 items-center gap-1 rounded-pill border border-rule bg-surface px-3 py-1.5 text-[0.8125rem] font-medium whitespace-nowrap text-ink-2 transition hover:border-rule-strong hover:bg-paper-2"
+    >
       {#if isCurrentWeek(activeWeek)}
-
-        <span class="text-slate-500">{$_("planner.thisWeek")}</span>
-
+        {$_("planner.thisWeek")}
       {/if}
-
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
-
-        <path
-
-          fill-rule="evenodd"
-
-          d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z"
-
-          clip-rule="evenodd"
-
-        />
-
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5">
+        <path d="M6 9l6 6 6-6" />
       </svg>
-
-    </span>
-
-  </button>
-
-
+    </button>
+  </header>
 
   <div class="flex gap-2">
-
     <button
-
       type="button"
-
       onclick={async () => { await weeklyPlan.autoFillWeek(); await reloadGroceryItemsForWeek(weeklyPlan.selectedWeek); }}
-
-      class="min-w-0 flex-1 truncate rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-orange-600 active:bg-orange-700"
-
+      class="flex min-w-0 flex-1 items-center justify-center gap-1.5 truncate rounded-pill bg-accent px-4 py-2.5 text-sm font-semibold text-surface shadow-btn-cast transition hover:-translate-y-px hover:bg-accent-deep active:translate-y-0 active:shadow-none"
     >
-
-      {$_("planner.autoFill")}
-
-    </button>
-
-    <button
-
-      type="button"
-
-      onclick={() => (clearConfirmOpen = true)}
-
-      class="min-w-0 flex-1 truncate rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
-
-    >
-
-      {$_("planner.clear")}
-
-    </button>
-
-    <button
-
-      type="button"
-
-      onclick={async () => { await weeklyPlan.reloadWeek(); await reloadGroceryItemsForWeek(weeklyPlan.selectedWeek); }}
-
-      class="shrink-0 rounded-lg border border-slate-300 bg-white p-2.5 text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
-
-      title={$_("planner.refresh")}
-
-    >
-
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
-
-        <path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clip-rule="evenodd" />
-
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0">
+        <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18" />
       </svg>
-
+      <span class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{$_("planner.autoFill")}</span>
     </button>
-
+    <button
+      type="button"
+      onclick={() => (clearConfirmOpen = true)}
+      class="min-w-0 flex-1 truncate rounded-pill border border-rule px-4 py-2.5 text-sm font-semibold text-ink-2 transition hover:border-danger hover:bg-danger-tint hover:text-danger"
+    >
+      {$_("planner.clear")}
+    </button>
+    <button
+      type="button"
+      onclick={async () => { await weeklyPlan.reloadWeek(); await reloadGroceryItemsForWeek(weeklyPlan.selectedWeek); }}
+      class="group flex size-[2.6rem] shrink-0 items-center justify-center rounded-icon border border-rule text-ink-2 transition hover:bg-paper-2 hover:text-ink"
+      title={$_("planner.refresh")}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 transition-transform duration-200 ease-in-out group-active:rotate-90">
+        <path d="M4 4v5h5M20 20v-5h-5M4.5 15a8 8 0 0 0 14.7 3.3M19.5 9A8 8 0 0 0 4.8 5.7" />
+      </svg>
+    </button>
   </div>
 
-
-
-  <div class="space-y-3">
-
-    {#each DAYS as day}
-
+  <div>
+    {#each DAYS as day (day.key)}
       <DaySelector day={day.key} />
-
     {/each}
-
   </div>
-
-
 
   <GroceryList />
 
 </div>
 
-
-
 <WeekPickerModal open={weekPickerOpen} onclose={() => (weekPickerOpen = false)} />
-
 <Modal
   open={clearConfirmOpen}
   title={$_("planner.clearConfirmTitle")}
@@ -166,19 +111,19 @@
     <button
       type="button"
       onclick={() => (clearConfirmOpen = false)}
-      class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
+      class="rounded-pill border border-rule bg-transparent px-4 py-2.5 text-sm font-semibold text-ink-2 transition hover:border-rule-strong hover:bg-paper-2"
     >
       {$_("planner.clearCancel")}
     </button>
     <button
       type="button"
       onclick={confirmClearWeek}
-      class="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 active:bg-red-800"
+      class="rounded-pill bg-danger px-4 py-2.5 text-sm font-semibold text-surface transition hover:brightness-95"
     >
       {$_("planner.clearConfirm")}
     </button>
   {/snippet}
-  <p class="text-sm text-slate-600">
+  <p class="text-sm text-ink-2">
     {$_("planner.clearConfirmMessage")}
   </p>
 </Modal>

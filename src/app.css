@@ -1,5 +1,166 @@
 @import "tailwindcss";
 
+/* Hallmark · genre: modern-minimal · macrostructure: Index-First · theme: Coral
+ * Ported from mockup/tokens.css — design-system: mockup/ (screen-by-screen static HTML reference)
+ */
+
+@font-face {
+  font-family: "Inter Tight";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/InterTight-500.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter Tight";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/InterTight-500-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter Tight";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/InterTight-600.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter Tight";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/InterTight-600-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter Tight";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/InterTight-700.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter Tight";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/InterTight-700-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/Inter-400.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/Inter-400-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/Inter-500.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/Inter-500-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/Inter-600.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/Inter-600-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@theme {
+  /* paper / ink */
+  --color-paper: oklch(98% 0.004 40);
+  --color-paper-2: oklch(95.5% 0.006 40);
+  --color-surface: oklch(100% 0 0);
+  --color-rule: oklch(90% 0.007 40);
+  --color-rule-strong: oklch(84% 0.009 40);
+  --color-ink: oklch(21% 0.012 40);
+  --color-ink-2: oklch(45% 0.012 40);
+  --color-ink-3: oklch(60% 0.01 40);
+
+  /* accent — coral (primary) */
+  --color-accent: oklch(66% 0.16 35);
+  --color-accent-deep: oklch(55% 0.17 33);
+  --color-accent-tint: oklch(93% 0.03 35);
+  --color-accent-tint-2: oklch(89% 0.05 35);
+  --color-focus: oklch(60% 0.15 35);
+
+  /* accent — sage (secondary, sparing: "done" / success only) */
+  --color-sage: oklch(68% 0.09 150);
+  --color-sage-tint: oklch(93% 0.03 150);
+
+  /* difficulty badges */
+  --color-badge-easy: oklch(68% 0.11 150);
+  --color-badge-easy-tint: oklch(93% 0.03 150);
+  --color-badge-mid: oklch(70% 0.12 70);
+  --color-badge-mid-tint: oklch(93% 0.035 70);
+  --color-badge-hard: oklch(62% 0.15 25);
+  --color-badge-hard-tint: oklch(93% 0.035 25);
+
+  /* danger (destructive actions only) */
+  --color-danger: oklch(56% 0.16 25);
+  --color-danger-tint: oklch(94% 0.03 25);
+
+  /* warn (uncertain / needs-review states) */
+  --color-warn: oklch(58% 0.14 70);
+  --color-warn-tint: oklch(93% 0.035 70);
+
+  /* type */
+  --font-display: "Inter Tight", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+
+  /* radii */
+  --radius-card: 14px;
+  --radius-input: 10px;
+  --radius-pill: 999px;
+  --radius-icon: 10px;
+
+  /* shadow */
+  --shadow-card: 0 1px 2px oklch(21% 0.012 40 / 0.04);
+  --shadow-float: 0 10px 24px -12px oklch(21% 0.012 40 / 0.18);
+  --shadow-btn-cast: 0 8px 16px -8px oklch(55% 0.17 33 / 0.4);
+
+  /* motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur-med: 200ms;
+}
+
 html,
 body {
   height: 100%;
@@ -7,15 +168,10 @@ body {
 
 body {
   margin: 0;
-  font-family:
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    sans-serif;
-  background-color: #f8fafc;
-  color: #0f172a;
+  font-family: var(--font-body);
+  background-color: var(--color-paper-2);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
 }
 
 #app {

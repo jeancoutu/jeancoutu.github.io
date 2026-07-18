@@ -38,7 +38,7 @@
     <button
       type="button"
       onclick={onclose}
-      class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
+      class="rounded-pill border border-rule bg-transparent px-4 py-2.5 text-sm font-semibold text-ink-2 transition hover:border-rule-strong hover:bg-paper-2"
     >
       {$_("planner.note.cancel")}
     </button>
@@ -46,7 +46,7 @@
       <button
         type="button"
         onclick={clear}
-        class="rounded-lg border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 active:bg-red-100"
+        class="rounded-pill border border-danger bg-transparent px-4 py-2.5 text-sm font-semibold text-danger transition hover:bg-danger-tint"
       >
         {$_("planner.note.clear")}
       </button>
@@ -54,7 +54,7 @@
     <button
       type="button"
       onclick={save}
-      class="rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-orange-600 active:bg-orange-700"
+      class="rounded-pill bg-accent px-4 py-2.5 text-sm font-semibold text-surface shadow-btn-cast transition hover:-translate-y-px hover:bg-accent-deep active:translate-y-0 active:shadow-none"
     >
       {$_("planner.note.save")}
     </button>
@@ -64,6 +64,6 @@
     maxlength={MAX_LENGTH}
     bind:value
     placeholder={$_("planner.note.placeholder")}
-    class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+    class="min-h-26 w-full rounded-input border border-rule bg-paper px-3.5 py-3 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
   ></textarea>
 </Modal>

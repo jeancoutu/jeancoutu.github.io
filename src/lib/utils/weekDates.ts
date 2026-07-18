@@ -57,3 +57,22 @@ export function formatWeekRange(weekStartKey: string, locale = "en"): string {
 export function isCurrentWeek(weekStartKey: string): boolean {
   return weekStartKey === toWeekKey(getWeekSaturday());
 }
+
+const DAY_OFFSETS: Record<string, number> = {
+  saturday: 0,
+  sunday: 1,
+  monday: 2,
+  tuesday: 3,
+  wednesday: 4,
+  thursday: 5,
+  friday: 6,
+};
+
+/** Whether `dayKey` within the week starting at `weekStartKey` is today. */
+export function isToday(weekStartKey: string, dayKey: string): boolean {
+  const offset = DAY_OFFSETS[dayKey];
+  if (offset === undefined) return false;
+  const date = parseWeekKey(weekStartKey);
+  date.setDate(date.getDate() + offset);
+  return toWeekKey(date) === toWeekKey(new Date());
+}

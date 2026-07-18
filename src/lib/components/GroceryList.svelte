@@ -148,7 +148,7 @@
 
 <section class="mt-6">
   <div class="mb-4 flex items-center gap-3">
-    <h2 class="shrink-0 text-lg font-semibold text-slate-900">
+    <h2 class="shrink-0 font-display text-[clamp(1.4rem,5vw+0.4rem,1.75rem)] font-bold tracking-[-0.015em] text-ink">
       {$_("grocery.title")}
     </h2>
     {#if groceryPresets.all.length > 0}
@@ -160,10 +160,10 @@
             onclick={() => handlePresetToggle(preset.id)}
             disabled={togglingPresetId !== null}
             aria-pressed={active}
-            class="shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition disabled:opacity-50
+            class="shrink-0 rounded-pill border px-3 py-1.5 text-[0.8125rem] font-semibold whitespace-nowrap transition disabled:opacity-50
               {active
-              ? 'border-orange-500 bg-orange-500 text-white hover:bg-orange-600'
-              : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}"
+              ? 'border-accent bg-accent text-surface hover:bg-accent-deep'
+              : 'border-rule bg-surface text-ink-2 hover:border-rule-strong hover:bg-paper-2'}"
           >
             {preset.name}
           </button>
@@ -173,35 +173,33 @@
   </div>
 
   {#if allDisplayItems.length === 0}
-    <p class="mb-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+    <p class="mb-4 rounded-card border-[1.5px] border-dashed border-rule p-6 text-center text-sm text-ink-3">
       {$_("grocery.empty")}
     </p>
   {/if}
 
-  <div class="space-y-4">
+  <div>
     {#each groupedItems as group (group.category)}
-      <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div class="flex items-center justify-between gap-2">
-          <h3 class="text-sm font-semibold uppercase tracking-wide text-orange-600">
+      <div class="mb-6">
+        <div class="mb-2 flex items-center justify-between gap-2">
+          <h3 class="font-body text-xs font-bold tracking-[0.06em] text-accent-deep uppercase">
             {$_(`grocery.category.${group.category}`)}
           </h3>
           <button
             type="button"
-            class="flex size-7 shrink-0 items-center justify-center rounded-full border border-orange-200 text-orange-600 transition hover:bg-orange-50 active:bg-orange-100"
+            class="flex size-7 shrink-0 items-center justify-center rounded-full border-[1.5px] border-accent text-accent-deep transition hover:bg-accent-tint"
             aria-label={$_("grocery.add")}
             onclick={() => startAdding(group.category)}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
-              <path
-                d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z"
-              />
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-[15px]">
+              <path d="M12 5v14M5 12h14" />
             </svg>
           </button>
         </div>
 
         {#if addingCategory === group.category}
           <form
-            class="mt-3 flex flex-col gap-2"
+            class="mb-2 flex flex-col gap-2 rounded-card border border-rule bg-paper-2 p-3"
             onsubmit={(event) => {
               event.preventDefault();
               submitAdd();
@@ -215,51 +213,48 @@
                   bind:value={newItemName}
                   {@attach autofocus}
                   placeholder={$_("grocery.addName")}
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  class="w-full min-w-0 rounded-input border border-rule bg-surface px-3 py-2.5 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
                   onkeydown={handleAddKeydown}
                 />
               </label>
-              <label class="w-16 shrink-0">
+              <label class="w-22 shrink-0">
                 <span class="sr-only">{$_("grocery.addQuantity")}</span>
                 <input
                   type="text"
                   bind:value={newItemQuantity}
                   placeholder={$_("grocery.addQuantity")}
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                  class="w-full min-w-0 rounded-input border border-rule bg-surface px-3 py-2.5 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
                   onkeydown={handleAddKeydown}
                 />
               </label>
             </div>
             <div class="flex justify-end gap-2">
               <button
-                type="submit"
-                class="rounded-lg bg-orange-500 px-3 py-2 text-sm font-medium text-white transition hover:bg-orange-600 disabled:opacity-50"
-                disabled={!newItemName.trim()}
-              >
-                {$_("grocery.addConfirm")}
-              </button>
-              <button
                 type="button"
-                class="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                class="rounded-pill border border-rule bg-transparent px-4 py-2.5 text-[0.8125rem] font-semibold text-ink-2 transition hover:border-rule-strong hover:bg-surface"
                 onclick={cancelAdding}
               >
                 {$_("grocery.addCancel")}
+              </button>
+              <button
+                type="submit"
+                class="rounded-pill bg-accent px-4 py-2.5 text-[0.8125rem] font-semibold text-surface shadow-btn-cast transition hover:-translate-y-px hover:bg-accent-deep active:translate-y-0 active:shadow-none disabled:pointer-events-none disabled:opacity-50"
+                disabled={!newItemName.trim()}
+              >
+                {$_("grocery.addConfirm")}
               </button>
             </div>
           </form>
         {/if}
 
         {#if group.items.length > 0}
-          <ul class="mt-3 space-y-2">
+          <ul class="m-0 list-none p-0">
             {#each group.items as item (item.name)}
               {@const isEditing = editingItem?.name === item.name}
-              <li
-                class="flex items-start gap-3 rounded-lg {item.toVerify ? 'bg-amber-50' : ''}"
-                animate:flip={{ duration: 250 }}
-              >
+              <li animate:flip={{ duration: 250 }}>
                 {#if isEditing}
                   <form
-                    class="flex min-w-0 flex-1 flex-col gap-2"
+                    class="mb-2 flex flex-col gap-2 rounded-card border-[1.5px] border-accent bg-paper-2 p-3 shadow-[0_0_0_3px_var(--color-accent-tint)]"
                     onsubmit={(event) => { event.preventDefault(); submitEdit(); }}
                   >
                     <div class="flex gap-2">
@@ -269,85 +264,99 @@
                           type="text"
                           bind:value={editName}
                           placeholder={$_("grocery.addName")}
-                          class="w-full rounded-lg border border-orange-400 px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                          class="w-full min-w-0 rounded-input border border-rule bg-surface px-3 py-2.5 font-body text-[0.9375rem] text-ink focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
                           onkeydown={handleEditKeydown}
                         />
                       </label>
-                      <label class="w-16 shrink-0">
+                      <label class="w-22 shrink-0">
                         <span class="sr-only">{$_("grocery.addQuantity")}</span>
                         <input
                           type="text"
                           bind:value={editQuantity}
                           placeholder={$_("grocery.addQuantity")}
-                          class="w-full rounded-lg border border-orange-400 px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                          class="w-full min-w-0 rounded-input border border-rule bg-surface px-3 py-2.5 font-body text-[0.9375rem] text-ink focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
                           onkeydown={handleEditKeydown}
                         />
                       </label>
                     </div>
                     {#if editingItem && editingItem.mealNames.length > 0}
-                      <p class="text-xs text-slate-500">
+                      <p class="flex items-center gap-1.5 text-[0.8125rem] text-ink-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-[13px] shrink-0 text-ink-3">
+                          <path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z" />
+                        </svg>
                         {editingItem.mealNames.join(" · ")}
                       </p>
                     {/if}
-                    <div class="flex justify-end gap-2">
+                    <div class="mt-0.5 flex flex-wrap justify-end gap-2">
                       <button
                         type="button"
-                        class="rounded-lg border border-amber-300 px-3 py-1.5 text-sm font-medium text-amber-700 transition hover:bg-amber-50 disabled:opacity-50"
+                        class="mr-auto rounded-pill border border-warn bg-transparent px-4 py-2.5 text-[0.8125rem] font-semibold text-warn transition hover:bg-warn-tint disabled:pointer-events-none disabled:opacity-50"
                         disabled={!editName.trim()}
                         onclick={submitToVerify}
                       >
                         {editingItem?.toVerify ? $_("grocery.removeToVerify") : $_("grocery.toVerify")}
                       </button>
                       <button
-                        type="submit"
-                        class="rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-orange-600 disabled:opacity-50"
-                        disabled={!editName.trim()}
-                      >
-                        {$_("grocery.editConfirm")}
-                      </button>
-                      <button
                         type="button"
-                        class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        class="rounded-pill border border-rule bg-transparent px-4 py-2.5 text-[0.8125rem] font-semibold text-ink-2 transition hover:border-rule-strong hover:bg-surface"
                         onclick={cancelEditing}
                       >
                         {$_("grocery.addCancel")}
                       </button>
+                      <button
+                        type="submit"
+                        class="rounded-pill bg-accent px-4 py-2.5 text-[0.8125rem] font-semibold text-surface shadow-btn-cast transition hover:-translate-y-px hover:bg-accent-deep active:translate-y-0 active:shadow-none disabled:pointer-events-none disabled:opacity-50"
+                        disabled={!editName.trim()}
+                      >
+                        {$_("grocery.editConfirm")}
+                      </button>
                     </div>
                   </form>
                 {:else}
-                  <label
-                    class="flex min-w-0 flex-1 cursor-pointer select-none items-start gap-3"
-                    use:longpress={{ onLongPress: () => startEditing(item) }}
-                  >
-                    <input
-                      type="checkbox"
-                      class="mt-0.5 size-4 shrink-0 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
-                      checked={item.checked}
-                      onchange={(event) => handleCheckboxChange(item, event)}
-                    />
-                    <span
-                      class="text-sm {item.toVerify
-                        ? 'text-amber-700'
-                        : item.checked
-                          ? 'line-through text-slate-400'
-                          : 'text-slate-700'}"
+                  <div class="flex items-center gap-2 py-[0.55rem]">
+                    <label
+                      class="flex min-w-0 flex-1 cursor-pointer items-center gap-2 select-none"
+                      use:longpress={{ onLongPress: () => startEditing(item) }}
                     >
-                      <span class="tabular-nums text-slate-500">{formatGroceryQuantities(item.quantities)}</span>
-                      {item.name}
-                    </span>
-                  </label>
-                  <button
-                    type="button"
-                    class="shrink-0 rounded p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-                    aria-label={$_("grocery.remove")}
-                    onclick={() => handleRemove(item)}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
-                      <path
-                        d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
+                      <input
+                        type="checkbox"
+                        class="sr-only"
+                        checked={item.checked}
+                        onchange={(event) => handleCheckboxChange(item, event)}
                       />
-                    </svg>
-                  </button>
+                      <span
+                        class="flex size-[21px] shrink-0 items-center justify-center rounded-[6px] border-[1.5px] transition
+                          {item.checked ? 'border-accent bg-accent text-surface' : 'border-rule-strong bg-surface text-surface'}"
+                      >
+                        {#if item.checked}
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="size-[13px]">
+                            <path d="M20 6L9 17l-5-5" />
+                          </svg>
+                        {/if}
+                      </span>
+                      <span class="shrink-0 rounded-[6px] border border-rule bg-paper-2 px-[0.45rem] py-[0.1rem] font-body text-xs font-bold whitespace-nowrap text-ink-2 tabular-nums transition {item.checked ? 'opacity-55' : ''}">
+                        {formatGroceryQuantities(item.quantities)}
+                      </span>
+                      <span class="min-w-0 [overflow-wrap:anywhere] text-[0.9375rem] {item.toVerify ? 'text-warn' : item.checked ? 'text-ink-3 line-through' : 'text-ink'}">
+                        {item.name}
+                      </span>
+                    </label>
+                    {#if item.toVerify}
+                      <span class="shrink-0 rounded-pill bg-warn-tint px-2 py-0.5 text-[0.6875rem] font-semibold whitespace-nowrap text-warn uppercase tracking-wide">
+                        {$_("grocery.toVerify")}
+                      </span>
+                    {/if}
+                    <button
+                      type="button"
+                      class="flex size-7 shrink-0 items-center justify-center rounded-icon text-ink-3 transition hover:bg-danger-tint hover:text-danger"
+                      aria-label={$_("grocery.remove")}
+                      onclick={() => handleRemove(item)}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="size-[14px]">
+                        <path d="M6 6l12 12M18 6L6 18" />
+                      </svg>
+                    </button>
+                  </div>
                 {/if}
               </li>
             {/each}

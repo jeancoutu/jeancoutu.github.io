@@ -38,31 +38,49 @@
     };
   }
 
-  // Snapshot the props once at mount: the caller keys this component by
-  // meal/duplicateOf identity, so a new value always means a remount.
-  // svelte-ignore state_referenced_locally
-  const initialForm = meal
-    ? formFromMeal(meal)
-    : duplicateOf
-      ? formFromMeal(duplicateOf, buildDuplicateName(duplicateOf.name, $_("meals.duplicate.suffix")))
-      : {
-          name: "",
-          duration: "short" as DurationTag,
-          url: "",
-          ingredientRows: [] as { name: string; quantity: string; category: IngredientCategory }[],
-          instructions: "",
-          selectedDays: DAYS.map((day) => day.key),
-          tags: [] as string[],
-        };
+  function buildInitialForm() {
+    return meal
+      ? formFromMeal(meal)
+      : duplicateOf
+        ? formFromMeal(duplicateOf, buildDuplicateName(duplicateOf.name, $_("meals.duplicate.suffix")))
+        : {
+            name: "",
+            duration: "short" as DurationTag,
+            url: "",
+            ingredientRows: [] as { name: string; quantity: string; category: IngredientCategory }[],
+            instructions: "",
+            selectedDays: DAYS.map((day) => day.key),
+            tags: [] as string[],
+          };
+  }
 
-  let name = $state(initialForm.name);
-  let duration = $state<DurationTag>(initialForm.duration);
-  let url = $state(initialForm.url);
-  let ingredientRows = $state(initialForm.ingredientRows);
-  let instructions = $state(initialForm.instructions);
-  let selectedDays = $state<DayKey[]>(initialForm.selectedDays);
-  let tags = $state<string[]>(initialForm.tags);
+  let name = $state("");
+  let duration = $state<DurationTag>("short");
+  let url = $state("");
+  let ingredientRows = $state<{ name: string; quantity: string; category: IngredientCategory }[]>([]);
+  let instructions = $state("");
+  let selectedDays = $state<DayKey[]>([]);
+  let tags = $state<string[]>([]);
   let error = $state("");
+
+  // The component stays mounted while closed (for a smoother open animation),
+  // so the form must reset itself on every open transition rather than relying
+  // on a fresh mount.
+  let wasOpen = false;
+  $effect(() => {
+    if (open && !wasOpen) {
+      const form = buildInitialForm();
+      name = form.name;
+      duration = form.duration;
+      url = form.url;
+      ingredientRows = form.ingredientRows;
+      instructions = form.instructions;
+      selectedDays = form.selectedDays;
+      tags = form.tags;
+      error = "";
+    }
+    wasOpen = open;
+  });
 
   function close() {
     onclose();
@@ -144,7 +162,7 @@
     <button
       type="button"
       onclick={close}
-      class="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 active:bg-slate-100"
+      class="rounded-pill border border-rule bg-transparent px-4 py-2.5 text-sm font-semibold text-ink-2 transition hover:border-rule-strong hover:bg-paper-2"
     >
       {$_("meals.create.cancel")}
     </button>
@@ -152,69 +170,79 @@
       type="button"
       onclick={saveMeal}
       disabled={saving}
-      class="rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50"
+      class="rounded-pill bg-accent px-4 py-2.5 text-sm font-semibold text-surface shadow-btn-cast transition hover:-translate-y-px hover:bg-accent-deep active:translate-y-0 active:shadow-none disabled:pointer-events-none disabled:opacity-50"
     >
       {$_(submitKey)}
     </button>
   {/snippet}
   <form
-    class="space-y-4"
+    class="flex flex-col gap-4"
     onsubmit={(event) => {
       event.preventDefault();
       saveMeal();
     }}
   >
     {#if error}
-      <p class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+      <p class="rounded-input border border-danger bg-danger-tint px-3 py-2 text-sm text-danger">
         {error}
       </p>
     {/if}
 
     <label class="block">
-      <span class="mb-1 block text-sm font-medium text-slate-700">{$_("meals.create.name")}</span>
+      <span class="mb-1.5 block text-[0.8125rem] font-semibold text-ink">{$_("meals.create.name")}</span>
       <input
         type="text"
         bind:value={name}
         maxlength={50}
-        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+        class="w-full rounded-input border border-rule bg-surface px-3.5 py-2.5 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
         placeholder={$_("meals.create.namePlaceholder")}
       />
     </label>
 
     <label class="block">
-      <span class="mb-1 block text-sm font-medium text-slate-700">{$_("meals.create.duration")}</span>
+      <span class="mb-1.5 block text-[0.8125rem] font-semibold text-ink">{$_("meals.create.duration")}</span>
       <select
         bind:value={duration}
-        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+        class="w-full appearance-none rounded-input border border-rule bg-surface bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23606b73%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%209l6%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:15px] bg-[right_0.85rem_center] bg-no-repeat px-3.5 py-2.5 pr-10 font-body text-[0.9375rem] text-ink focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
       >
-        {#each durations as value}
-          <option value={value}>{$_(`duration.${value}`)}</option>
+        {#each durations as value (value)}
+          <option {value}>{$_(`duration.${value}`)}</option>
         {/each}
       </select>
     </label>
 
     <label class="block">
-      <span class="mb-1 block text-sm font-medium text-slate-700">{$_("meals.create.url")}</span>
+      <span class="mb-1.5 block text-[0.8125rem] font-semibold text-ink">{$_("meals.create.url")}</span>
       <input
         type="url"
         bind:value={url}
-        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+        class="w-full rounded-input border border-rule bg-surface px-3.5 py-2.5 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
         placeholder="https://example.com/recipe"
       />
     </label>
 
-    <fieldset class="space-y-2">
-      <legend class="text-sm font-medium text-slate-700">{$_("meals.create.days")}</legend>
+    <fieldset class="block">
+      <legend class="mb-1.5 block text-[0.8125rem] font-semibold text-ink">{$_("meals.create.days")}</legend>
       <div class="grid grid-cols-2 gap-2">
-        {#each DAYS as day}
-          <label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+        {#each DAYS as day (day.key)}
+          {@const checked = selectedDays.includes(day.key)}
+          <label class="flex cursor-pointer items-center gap-2.5 rounded-input border px-3.5 py-2.5 text-[0.9375rem] text-ink transition
+            {checked ? 'border-accent bg-accent-tint' : 'border-rule hover:border-rule-strong'}">
             <input
               type="checkbox"
               checked={selectedDays.includes(day.key)}
               onchange={() => toggleDay(day.key)}
-              class="size-4 rounded border-slate-300 text-orange-500 focus:ring-orange-500"
+              class="sr-only"
             />
-            <span>{$_(`day.${day.key}`)}</span>
+            <span class="flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px] transition
+              {checked ? 'border-accent bg-accent text-surface' : 'border-rule-strong bg-surface text-surface'}">
+              {#if checked}
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="size-[11px]">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              {/if}
+            </span>
+            {$_(`day.${day.key}`)}
           </label>
         {/each}
       </div>
@@ -223,18 +251,18 @@
     <IngredientListEditor legend={$_("meals.create.ingredients")} bind:rows={ingredientRows} />
 
     <label class="block">
-      <span class="mb-1 block text-sm font-medium text-slate-700">{$_("meals.create.instructions")}</span>
+      <span class="mb-1.5 block text-[0.8125rem] font-semibold text-ink">{$_("meals.create.instructions")}</span>
       <textarea
         bind:value={instructions}
         rows={5}
-        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200"
+        class="min-h-26 w-full resize-y rounded-input border border-rule bg-surface px-3.5 py-2.5 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
         placeholder={$_("meals.create.instructionsPlaceholder")}
       ></textarea>
-      <p class="mt-1 text-xs text-slate-500">{$_("meals.create.instructionsHint")}</p>
+      <p class="mt-1.5 text-xs text-ink-3">{$_("meals.create.instructionsHint")}</p>
     </label>
 
     <div class="block">
-      <span class="mb-1 block text-sm font-medium text-slate-700">{$_("meals.create.tags")}</span>
+      <span class="mb-1.5 block text-[0.8125rem] font-semibold text-ink">{$_("meals.create.tags")}</span>
       <TagInput {tags} onAdd={addTag} onRemove={removeTag} />
     </div>
   </form>

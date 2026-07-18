@@ -84,100 +84,99 @@
   let isShared = $derived(allMembers.length > 1);
 </script>
 
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-4">
   <!-- My household: other members -->
-  <div class="flex flex-col gap-4">
-    <div class="flex items-center justify-between">
-      <h2 class="text-sm font-medium text-slate-700">{$_("household.settings.myHousehold")}</h2>
-      {#if isShared}
+  <div>
+    {#if isShared}
+      <div class="mb-1 flex items-center justify-end">
         <button
           onclick={handleLeave}
-          class="text-xs font-medium text-red-600 hover:underline"
+          class="rounded-input px-1.5 py-1 text-[0.8125rem] font-semibold text-danger transition hover:bg-danger-tint"
         >
           {$_("household.settings.leave")}
         </button>
-      {/if}
-    </div>
+      </div>
+    {/if}
 
     {#if otherMembers.length > 0}
-      <ul class="flex flex-col gap-2">
+      <div>
         {#each otherMembers as m (m.user_id)}
-          <li class="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
-            <span class="text-slate-700">{m.email}</span>
+          <div class="flex items-center justify-between gap-2 border-b border-rule py-2.5 last:border-b-0">
+            <span class="min-w-0 [overflow-wrap:anywhere] text-[0.9375rem] text-ink">{m.email}</span>
             <button
               onclick={() => handleRemoveMember(m.user_id)}
-              class="text-xs font-medium text-red-600 hover:underline"
+              class="shrink-0 rounded-input px-1.5 py-1 text-[0.8125rem] font-semibold text-danger transition hover:bg-danger-tint"
             >
               {$_("household.settings.remove")}
             </button>
-          </li>
+          </div>
         {/each}
-      </ul>
+      </div>
     {/if}
 
     {#if outgoingInvites.length > 0}
-      <ul class="flex flex-col gap-2">
+      <div>
         {#each outgoingInvites as inv (inv.id)}
-          <li class="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-            <span class="text-slate-500">{inv.invite_email}</span>
-            <div class="flex items-center gap-3">
-              <span class="text-xs text-slate-400">{$_("household.settings.pending")}</span>
+          <div class="flex items-center justify-between gap-2 border-b border-rule py-2.5 last:border-b-0">
+            <span class="min-w-0 [overflow-wrap:anywhere] text-[0.9375rem] text-ink-3">{inv.invite_email}</span>
+            <div class="flex shrink-0 items-center gap-2">
+              <span class="text-xs text-ink-3">{$_("household.settings.pending")}</span>
               <button
                 onclick={() => handleCancelInvite(inv.id)}
-                class="text-xs font-medium text-slate-500 hover:underline"
+                class="rounded-input px-1.5 py-1 text-[0.8125rem] font-semibold text-ink-3 transition hover:bg-paper-2 hover:text-ink"
               >
                 {$_("household.settings.cancelInvite")}
               </button>
             </div>
-          </li>
+          </div>
         {/each}
-      </ul>
+      </div>
     {/if}
 
     {#if otherMembers.length === 0 && outgoingInvites.length === 0}
-      <p class="text-sm text-slate-400">{$_("household.settings.noMembers")}</p>
+      <p class="text-sm text-ink-3">{$_("household.settings.noMembers")}</p>
     {/if}
 
-    <div class="flex gap-2">
+    <div class="mt-3 flex gap-2">
       <input
         type="email"
         bind:value={emailInput}
         placeholder={$_("household.settings.emailPlaceholder")}
-        class="min-w-0 flex-1 rounded border border-slate-300 px-3 py-2 text-sm focus:border-orange-400 focus:outline-none"
+        class="min-w-0 flex-1 rounded-input border border-rule bg-paper px-3.5 py-2.5 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
         onkeydown={(e) => e.key === "Enter" && handleInvite()}
       />
       <button
         onclick={handleInvite}
         disabled={inviting || !emailInput.trim()}
-        class="shrink-0 rounded bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50"
+        class="shrink-0 rounded-pill bg-accent px-4 py-2.5 text-sm font-semibold text-surface shadow-btn-cast transition hover:-translate-y-px hover:bg-accent-deep active:translate-y-0 active:shadow-none disabled:pointer-events-none disabled:opacity-50"
       >
         {$_("household.settings.invite")}
       </button>
     </div>
     {#if inviteError}
-      <p class="text-xs text-red-600">{inviteError}</p>
+      <p class="mt-1.5 text-xs text-danger">{inviteError}</p>
     {/if}
   </div>
 
   <!-- Incoming invites for the current user -->
   {#if incomingInvites.length > 0}
-    <div class="flex flex-col gap-3">
-      <h2 class="text-sm font-medium text-slate-700">{$_("household.settings.pendingInvites")}</h2>
-      <ul class="flex flex-col gap-2">
+    <div>
+      <h2 class="mb-2 font-body text-[0.8125rem] font-semibold text-ink">{$_("household.settings.pendingInvites")}</h2>
+      <div class="flex flex-col gap-2">
         {#each incomingInvites as inv (inv.id)}
-          <li class="flex items-center justify-between rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm">
-            <span class="text-slate-700">
+          <div class="flex items-center justify-between gap-2 rounded-input border border-accent-tint-2 bg-accent-tint px-3 py-2.5 text-sm">
+            <span class="min-w-0 [overflow-wrap:anywhere] text-ink">
               {$_("household.settings.invitedBy", { values: { email: inv.invited_by_email } })}
             </span>
             <button
               onclick={() => handleAccept(inv.id)}
-              class="text-xs font-medium text-orange-600 hover:underline"
+              class="shrink-0 rounded-input px-1.5 py-1 text-xs font-semibold text-accent-deep transition hover:bg-accent-tint-2"
             >
               {$_("household.settings.accept")}
             </button>
-          </li>
+          </div>
         {/each}
-      </ul>
+      </div>
     </div>
   {/if}
 </div>

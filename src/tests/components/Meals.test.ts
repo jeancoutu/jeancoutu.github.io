@@ -79,12 +79,12 @@ describe("Meals", () => {
     expect(screen.getByText("No meals match your search.")).toBeInTheDocument();
   });
 
-  it("clicking View recipe navigates to /meal/:id", async () => {
+  it("clicking a meal row navigates to /meal/:id", async () => {
     const meal = await seedMeal({ name: "Tacos" });
     render(Meals);
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "View Recipe" }));
+    await user.click(screen.getByRole("button", { name: /Tacos/ }));
 
     expect(router.current).toEqual({ name: "meal", id: meal.id });
   });

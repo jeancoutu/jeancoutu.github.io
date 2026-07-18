@@ -9,14 +9,14 @@
   let { duration }: Props = $props();
 
   const colors: Record<DurationTag, string> = {
-    short: "bg-emerald-100 text-emerald-800",
-    medium: "bg-amber-100 text-amber-800",
-    long: "bg-rose-100 text-rose-800",
+    short: "bg-badge-easy-tint text-badge-easy",
+    medium: "bg-badge-mid-tint text-badge-mid",
+    long: "bg-badge-hard-tint text-badge-hard",
   };
 </script>
 
 <span
-  class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium {colors[
+  class="inline-block rounded-pill px-2.5 py-0.5 text-[0.6875rem] font-semibold whitespace-nowrap {colors[
     duration
   ]}"
 >
