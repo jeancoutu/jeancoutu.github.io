@@ -30,10 +30,12 @@ function buildMealInput(input: CustomMealInput): Omit<Meal, "id"> {
     url: input.url.trim(),
     ingredients: input.ingredients.map((ingredient) => {
       const name = ingredient.name.trim();
+      const section = ingredient.section?.trim();
       return {
         name,
         quantity: ingredient.quantity.trim() || "1",
         category: ingredient.category,
+        section: section || null,
       };
     }),
     instructions: input.instructions.map((i) => i.trim()).filter(Boolean),

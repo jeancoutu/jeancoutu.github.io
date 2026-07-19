@@ -106,6 +106,7 @@ async function seed() {
         name: ing.name,
         quantity: ing.quantity,
         category: ing.category,
+        section: ing.section ?? null,
       })),
     );
     if (ingError) {

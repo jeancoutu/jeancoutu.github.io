@@ -31,6 +31,7 @@
         name: ing.name,
         quantity: ing.quantity,
         category: getIngredientCategory(ing.name) ?? ing.category,
+        section: ing.section ?? null,
       })),
       instructions: mealToLoad.instructions.join("\n"),
       selectedDays: mealToLoad.supperDays,
@@ -47,7 +48,7 @@
             name: "",
             duration: "short" as DurationTag,
             url: "",
-            ingredientRows: [] as { name: string; quantity: string; category: IngredientCategory }[],
+            ingredientRows: [] as { name: string; quantity: string; category: IngredientCategory; section?: string | null }[],
             instructions: "",
             selectedDays: DAYS.map((day) => day.key),
             tags: [] as string[],
@@ -57,7 +58,9 @@
   let name = $state("");
   let duration = $state<DurationTag>("short");
   let url = $state("");
-  let ingredientRows = $state<{ name: string; quantity: string; category: IngredientCategory }[]>([]);
+  let ingredientRows = $state<{ name: string; quantity: string; category: IngredientCategory; section?: string | null }[]>(
+    [],
+  );
   let instructions = $state("");
   let selectedDays = $state<DayKey[]>([]);
   let tags = $state<string[]>([]);

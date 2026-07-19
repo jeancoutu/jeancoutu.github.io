@@ -214,7 +214,8 @@ create table meal_ingredients (
   meal_id  uuid not null references meals(id) on delete cascade,
   name     text not null,
   quantity text not null default '',
-  category ingredient_category not null
+  category ingredient_category not null,
+  section  text
 );
 
 -- ============================================================
@@ -475,7 +476,7 @@ create or replace function upsert_meal(
   p_url text,
   p_supper_days day_key[],
   p_instructions text[],
-  p_ingredients jsonb, -- [{name, quantity, category}]
+  p_ingredients jsonb, -- [{name, quantity, category, section}]
   -- Appended with `default null`: null = "leave existing tags untouched"
   -- (coalesce below), protecting against stale cached PWA clients still
   -- calling the old 8-arg signature.
@@ -522,8 +523,8 @@ create or replace function upsert_meal(
 
     delete from meal_ingredients where meal_id = v_row.id;
     if jsonb_array_length(p_ingredients) > 0 then
-      insert into meal_ingredients (meal_id, name, quantity, category)
-      select v_row.id, (item->>'name'), coalesce(item->>'quantity', ''), (item->>'category')::ingredient_category
+      insert into meal_ingredients (meal_id, name, quantity, category, section)
+      select v_row.id, (item->>'name'), coalesce(item->>'quantity', ''), (item->>'category')::ingredient_category, item->>'section'
       from jsonb_array_elements(p_ingredients) as item;
     end if;
 
@@ -983,7 +984,7 @@ create or replace function pull_changes(p_since timestamptz) returns jsonb
       'supper_days', m.supper_days, 'instructions', m.instructions, 'tags', m.tags,
       'version', m.version, 'updated_at', m.updated_at, 'deleted_at', m.deleted_at,
       'ingredients', coalesce((
-        select jsonb_agg(jsonb_build_object('name', mi.name, 'quantity', mi.quantity, 'category', mi.category))
+        select jsonb_agg(jsonb_build_object('name', mi.name, 'quantity', mi.quantity, 'category', mi.category, 'section', mi.section))
         from meal_ingredients mi where mi.meal_id = m.id
       ), '[]'::jsonb)
     )), '[]'::jsonb) into v_meals

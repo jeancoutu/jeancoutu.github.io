@@ -108,6 +108,7 @@ function applyMeal(row: PulledMeal): Promise<unknown> {
       name: i.name,
       quantity: i.quantity,
       category: i.category as LocalMeal["ingredients"][number]["category"],
+      section: i.section ?? null,
     })),
     version: row.version,
     updatedAt: row.updated_at,

@@ -166,7 +166,7 @@ export interface PulledMeal {
   supper_days: string[];
   instructions: string[];
   tags: string[];
-  ingredients: { name: string; quantity: string; category: string }[];
+  ingredients: { name: string; quantity: string; category: string; section: string | null }[];
   version: number;
   updated_at: string;
   deleted_at: string | null;
@@ -263,7 +263,7 @@ export async function refetchMeal(id: string): Promise<PulledMeal | null> {
     Omit<PulledMeal, "ingredients"> & { meal_ingredients: PulledMeal["ingredients"] }
   >(
     "meals",
-    "id, name, duration, url, supper_days, instructions, tags, version, updated_at, deleted_at, meal_ingredients(name, quantity, category)",
+    "id, name, duration, url, supper_days, instructions, tags, version, updated_at, deleted_at, meal_ingredients(name, quantity, category, section)",
     id,
   );
   if (!data) return null;

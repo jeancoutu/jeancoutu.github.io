@@ -19,6 +19,7 @@ export interface Ingredient {
   name: string;
   quantity: string;
   category: IngredientCategory;
+  section?: string | null;
 }
 
 export interface Meal {

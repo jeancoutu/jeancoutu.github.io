@@ -4,6 +4,7 @@
   import MealFormModal from "../../../lib/components/MealFormModal.svelte";
   import { meals } from "../../../lib/stores/meals.svelte";
   import { navigate, hasNavigatedInApp } from "../../../lib/utils/router.svelte";
+  import { groupIngredientsBySection } from "../../../lib/utils/ingredientSections";
 
   interface Props {
     id: string;
@@ -12,6 +13,7 @@
   let { id }: Props = $props();
 
   let meal = $derived(meals.all.find((candidate) => candidate.id === id));
+  let ingredientSections = $derived(meal ? groupIngredientsBySection(meal.ingredients) : []);
   let editMealOpen = $state(false);
   let duplicateMealOpen = $state(false);
 
@@ -100,14 +102,23 @@
 
     <section>
       <h2 class="mb-2 font-body text-[0.8125rem] font-bold tracking-[0.03em] text-ink-2 uppercase">{$_("mealDetail.ingredients")}</h2>
-      <ul class="mb-6 flex list-none flex-col gap-2.5 rounded-card border border-rule bg-surface p-4">
-        {#each meal.ingredients as ingredient, i (i)}
-          <li class="flex items-baseline gap-2.5 text-[0.9375rem] text-ink">
-            <span class="mt-2 size-[5px] shrink-0 self-start rounded-full bg-accent"></span>
-            <span><span class="tabular-nums">{ingredient.quantity}</span> {ingredient.name}</span>
-          </li>
+      <div class="mb-6 flex flex-col gap-4 rounded-card border border-rule bg-surface p-4">
+        {#each ingredientSections as block (block.section ?? "__unlabeled")}
+          <div>
+            {#if block.section}
+              <h3 class="mb-1.5 font-body text-[0.75rem] font-bold tracking-[0.03em] text-ink-3 uppercase">{block.section}</h3>
+            {/if}
+            <ul class="flex list-none flex-col gap-2.5">
+              {#each block.ingredients as ingredient, i (i)}
+                <li class="flex items-baseline gap-2.5 text-[0.9375rem] text-ink">
+                  <span class="mt-2 size-[5px] shrink-0 self-start rounded-full bg-accent"></span>
+                  <span><span class="tabular-nums">{ingredient.quantity}</span> {ingredient.name}</span>
+                </li>
+              {/each}
+            </ul>
+          </div>
         {/each}
-      </ul>
+      </div>
     </section>
 
     <section>

@@ -162,6 +162,7 @@ export interface Database {
           name: string;
           quantity: string;
           category: IngredientCategoryEnum;
+          section: string | null;
         };
         Insert: {
           id?: string;
@@ -169,6 +170,7 @@ export interface Database {
           name: string;
           quantity?: string;
           category: IngredientCategoryEnum;
+          section?: string | null;
         };
         Update: {
           id?: string;
@@ -176,6 +178,7 @@ export interface Database {
           name?: string;
           quantity?: string;
           category?: IngredientCategoryEnum;
+          section?: string | null;
         };
         Relationships: [
           {

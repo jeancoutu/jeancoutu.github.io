@@ -185,6 +185,23 @@ describe("buildGroceryList", () => {
     const result = buildGroceryList(meals);
     expect(result.map((i) => i.name)).toEqual(["Ail", "Zeste citron", "Poulet"]);
   });
+
+  it("merges same-named ingredients across different sections into one line", () => {
+    const meals: Meal[] = [
+      makeMeal({
+        id: "m1",
+        name: "Tacos",
+        ingredients: [
+          { name: "Tomate", category: "vegetables", quantity: "1", section: "Sauce" },
+          { name: "Tomate", category: "vegetables", quantity: "1", section: "Tacos" },
+        ],
+      }),
+    ];
+    const result = buildGroceryList(meals);
+    expect(result).toEqual([
+      { name: "Tomate", category: "vegetables", quantities: ["1", "1"], mealNames: ["Tacos"] },
+    ]);
+  });
 });
 
 describe("getPlannedMeals", () => {

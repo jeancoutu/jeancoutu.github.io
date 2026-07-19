@@ -47,6 +47,7 @@
   "meals.create.ingredientSearch.placeholder": "Rechercher un ingrédient…",
   "meals.create.ingredientSearch.createNew": "Créer : {name}",
   "meals.create.ingredientSearch.categoryTitle": "Choisir une catégorie",
+  "meals.create.ingredientSection.placeholder": "Section",
   "meals.create.tags": "Étiquettes",
   "meals.create.tagInput.placeholder": "Ajouter une étiquette…",
   "meals.create.tagInput.createNew": "Créer : {name}",

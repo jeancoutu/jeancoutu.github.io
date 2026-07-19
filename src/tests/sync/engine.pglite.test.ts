@@ -144,7 +144,7 @@ describe("sync engine against a real PGlite-backed Supabase", () => {
 
     const stored = await db.meals.get(mealId);
     expect(stored).toMatchObject({ name: "From another device", duration: "long", version: 1 });
-    expect(stored?.ingredients).toEqual([{ name: "Turkey", quantity: "1", category: "meat" }]);
+    expect(stored?.ingredients).toEqual([{ name: "Turkey", quantity: "1", category: "meat", section: null }]);
     expect(stored?.tags).toEqual(["holiday"]);
   });
 

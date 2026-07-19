@@ -169,7 +169,9 @@ describe("pull_changes RPC", () => {
       }[];
     };
 
-    expect(result.meals[0]!.ingredients).toEqual([{ name: "Chicken", quantity: "1 lb", category: "meat" }]);
+    expect(result.meals[0]!.ingredients).toEqual([
+      { name: "Chicken", quantity: "1 lb", category: "meat", section: null },
+    ]);
     expect(result.grocery_presets[0]!.items).toEqual([{ name: "Milk", quantity: "1L", category: "fridge" }]);
     expect(result.weekly_plans[0]!.day_plans).toEqual([
       { day_key: "monday", note: "note", supper_meal_id: mealId, diner_meal_id: null },
