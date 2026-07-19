@@ -28,6 +28,7 @@ import {
 } from "./rpc";
 import { emitConflict, emitSynced, syncStatus } from "./status.svelte";
 import { onUserChange } from "../stores/auth.svelte";
+import { refreshHousehold } from "../stores/household.svelte";
 
 const LOCK_NAME = "mealplanner-sync";
 const MIN_BACKOFF_MS = 2_000;
@@ -476,14 +477,23 @@ export function sync(): Promise<void> {
 // edits, but leaves the server as the sole source of truth — the immediate
 // emitSynced() clears stores to empty right away, and the pull triggered by
 // sync() repopulates them from scratch (cursor is gone too, so it's a full
-// pull, not a delta).
+// pull, not a delta). Household members/invites aren't part of pull_changes
+// (see src/lib/stores/household.svelte.ts) so they need their own explicit
+// refresh here — wipeLocalDb() clears their Dexie cache too, but nothing
+// else would tell the in-memory household store to re-fetch. Skipped while
+// offline (mirrors sync()'s own online guard) and never left to reject the
+// whole reset — a failed household refresh shouldn't undo the rest of the
+// recovery.
 export async function resetLocalCache(): Promise<void> {
   await wipeLocalDb();
   syncStatus.pendingCount = 0;
   syncStatus.lastSyncAt = null;
   syncStatus.state = "idle";
   emitSynced();
-  await sync();
+  const householdRefresh = syncStatus.online
+    ? refreshHousehold().catch((err) => console.error("[household] refresh failed", err))
+    : Promise.resolve();
+  await Promise.all([sync(), householdRefresh]);
 }
 
 function scheduleBackoffRetry(): void {

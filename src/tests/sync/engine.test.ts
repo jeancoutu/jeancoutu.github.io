@@ -16,6 +16,13 @@ vi.mock("../../lib/sync/rpc", async () => {
   };
 });
 
+// Household refresh is a separate Supabase-backed cache (src/lib/stores/household.svelte.ts),
+// out of scope for this sync-engine unit test — the global supabase mock (src/tests/setup.ts)
+// only stubs `auth`, so an unmocked call here would hit `supabase.from` and throw.
+vi.mock("../../lib/stores/household.svelte", () => ({
+  refreshHousehold: vi.fn().mockResolvedValue(undefined),
+}));
+
 const rpc = await import("../../lib/sync/rpc");
 const { sync, resetLocalCache } = await import("../../lib/sync/engine");
 const { syncStatus, onSynced } = await import("../../lib/sync/status.svelte");

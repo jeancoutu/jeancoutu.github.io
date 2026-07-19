@@ -77,7 +77,7 @@ create table household_invites (
   invited_by       uuid not null references auth.users(id) on delete cascade,
   invited_by_email text not null,
   invite_email     text not null,
-  status           text not null default 'pending', -- 'pending' | 'accepted'
+  status           text not null default 'pending', -- always 'pending'; accepted/left invites are deleted, not archived (see accept_household_invite / remove_from_household)
   created_at       timestamptz not null default now(),
   unique (household_id, invite_email)
 );
@@ -105,7 +105,10 @@ create trigger on_auth_user_created
 -- ============================================================
 -- RPC: accept_household_invite
 -- Atomically: verify invite is for current user, move membership,
--- mark invite accepted.
+-- consume the invite. Deletes rather than archiving as 'accepted' —
+-- the unique (household_id, invite_email) constraint means a leftover
+-- row of any status would block re-inviting the same email later, and
+-- nothing in the app reads past-tense invite history.
 -- ============================================================
 
 create or replace function accept_household_invite(invite_id uuid) returns void
@@ -137,9 +140,7 @@ create or replace function accept_household_invite(invite_id uuid) returns void
     set    household_id = target_hh_id
     where  user_id = auth.uid();
 
-    update household_invites
-    set    status = 'accepted'
-    where  id = invite_id;
+    delete from household_invites where id = invite_id;
   end;
   $$;
 
@@ -154,12 +155,14 @@ create or replace function remove_from_household(target_user_id uuid) returns vo
   language plpgsql security definer set search_path = public
   as $$
   declare
-    new_hh_id    uuid;
-    my_hh_id     uuid;
-    target_hh_id uuid;
+    new_hh_id     uuid;
+    my_hh_id      uuid;
+    target_hh_id  uuid;
+    target_email  text;
   begin
-    select household_id into my_hh_id     from household_memberships where user_id = auth.uid();
-    select household_id into target_hh_id from household_memberships where user_id = target_user_id;
+    select household_id into my_hh_id from household_memberships where user_id = auth.uid();
+    select household_id, email into target_hh_id, target_email
+    from household_memberships where user_id = target_user_id;
 
     if target_user_id != auth.uid() and target_hh_id != my_hh_id then
       raise exception 'Not authorized to remove this user';
@@ -171,6 +174,14 @@ create or replace function remove_from_household(target_user_id uuid) returns vo
 
     insert into households default values returning id into new_hh_id;
     update household_memberships set household_id = new_hh_id where user_id = target_user_id;
+
+    -- Consume the invite the departing member joined through (if any — the
+    -- original household creator never had one) so the household can
+    -- re-invite that email later without hitting the unique
+    -- (household_id, invite_email) constraint.
+    delete from household_invites
+    where household_id = target_hh_id
+      and invite_email = target_email;
   end;
   $$;
 

@@ -8,11 +8,26 @@
   import { syncStatus } from "../../lib/sync/status.svelte";
   import { resetLocalCache } from "../../lib/sync/engine";
   import { checkForAppUpdate } from "../../lib/pwa";
+  import { household, leaveCurrentHousehold } from "../../lib/stores/household.svelte";
 
   let confirmSignOutOpen = $state(false);
   let confirmClearCacheOpen = $state(false);
   let clearingCache = $state(false);
   let checkingForUpdate = $state(false);
+  let leavingHousehold = $state(false);
+  let isSharedHousehold = $derived(household.members.length > 1);
+
+  async function handleLeaveHousehold() {
+    if (leavingHousehold) return;
+    leavingHousehold = true;
+    try {
+      await leaveCurrentHousehold();
+      window.location.reload();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to leave household");
+      leavingHousehold = false;
+    }
+  }
 
   async function handleCheckForUpdate() {
     checkingForUpdate = true;
@@ -50,6 +65,17 @@
 <div class="flex flex-col gap-4">
   <h1 class="m-0 font-display text-[clamp(1.4rem,5vw+0.4rem,1.75rem)] font-bold tracking-[-0.015em] text-ink">{$_("settings.title")}</h1>
   <SettingsCard title={$_("settings.household.title")}>
+    {#snippet headerAction()}
+      {#if isSharedHousehold}
+        <button
+          onclick={handleLeaveHousehold}
+          disabled={leavingHousehold}
+          class="shrink-0 rounded-input px-1.5 py-1 text-[0.8125rem] font-semibold text-danger transition hover:bg-danger-tint disabled:pointer-events-none disabled:opacity-50"
+        >
+          {$_("household.settings.leave")}
+        </button>
+      {/if}
+    {/snippet}
     <HouseholdSettings />
   </SettingsCard>
   <SettingsCard title={$_("settings.presets.title")}>

@@ -12,7 +12,7 @@ export interface HouseholdInvite {
   invited_by: string;
   invited_by_email: string;
   invite_email: string;
-  status: "pending" | "accepted";
+  status: "pending";
   created_at: string;
 }
 
@@ -44,6 +44,22 @@ export async function getHouseholdInvites(userEmail: string): Promise<HouseholdI
     .select("id, household_id, invited_by, invited_by_email, invite_email, status, created_at")
     .eq("status", "pending")
     .neq("invite_email", userEmail);
+  if (error) throw error;
+  return data as HouseholdInvite[];
+}
+
+/**
+ * All pending invites visible to the current user: outgoing (sent from
+ * their household) and incoming (sent to their email) in one query — RLS
+ * already scopes rows to `household_id = get_my_household_id() OR
+ * invite_email = auth.jwt() email`, so a single unfiltered select covers
+ * both instead of two round trips.
+ */
+export async function getAllPendingInvites(): Promise<HouseholdInvite[]> {
+  const { data, error } = await supabase
+    .from("household_invites")
+    .select("id, household_id, invited_by, invited_by_email, invite_email, status, created_at")
+    .eq("status", "pending");
   if (error) throw error;
   return data as HouseholdInvite[];
 }

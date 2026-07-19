@@ -12,6 +12,15 @@ navigator.serviceWorker?.addEventListener("controllerchange", () => {
   window.location.reload();
 });
 
+// check for updates whenever the app becomes visible again
+// the down side of this is that the app can refresh while we are using it
+// for now manually update the version with the parameters button
+// document.addEventListener("visibilitychange", async () => {
+//   if (document.visibilityState !== "visible") return;
+//   const registration = await navigator.serviceWorker?.getRegistration();
+//   await registration?.update();
+// });
+
 export async function checkForAppUpdate(): Promise<void> {
   const registration = await navigator.serviceWorker?.getRegistration();
   await registration?.update();

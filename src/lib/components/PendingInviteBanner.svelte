@@ -1,34 +1,31 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
   import { auth } from "../stores/auth.svelte";
-  import { getPendingInvites, acceptInvite, type HouseholdInvite } from "../api/household";
+  import { household, acceptHouseholdInvite } from "../stores/household.svelte";
+  import type { HouseholdInvite } from "../api/household";
 
-  let invites = $state<HouseholdInvite[]>([]);
   let dismissed = $state<Set<string>>(new Set());
+  let accepting = $state(false);
   let myEmail = $derived(auth.session?.user?.email ?? null);
 
-  $effect(() => {
-    if (!myEmail) return;
-    const email = myEmail;
-    getPendingInvites(email)
-      .then((result) => {
-        invites = result;
-      })
-      .catch(() => {
-        // silently ignore — user may not be authenticated yet
-      });
-  });
-
   async function accept(invite: HouseholdInvite) {
-    await acceptInvite(invite.id);
-    window.location.reload();
+    if (accepting) return;
+    accepting = true;
+    try {
+      await acceptHouseholdInvite(invite.id);
+      window.location.reload();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Failed to accept invite");
+      accepting = false;
+    }
   }
 
   function dismiss(id: string) {
     dismissed = new Set([...dismissed, id]);
   }
 
-  let visible = $derived(invites.filter((i) => !dismissed.has(i.id)));
+  let incomingInvites = $derived(household.invites.filter((inv) => inv.invite_email === myEmail));
+  let visible = $derived(incomingInvites.filter((i) => !dismissed.has(i.id)));
 </script>
 
 {#each visible as invite (invite.id)}
@@ -37,7 +34,8 @@
     <div class="flex shrink-0 gap-2">
       <button
         onclick={() => accept(invite)}
-        class="rounded-pill bg-accent px-3 py-1 text-xs font-semibold text-surface transition hover:bg-accent-deep"
+        disabled={accepting}
+        class="rounded-pill bg-accent px-3 py-1 text-xs font-semibold text-surface transition hover:bg-accent-deep disabled:pointer-events-none disabled:opacity-50"
       >
         {$_("household.accept")}
       </button>

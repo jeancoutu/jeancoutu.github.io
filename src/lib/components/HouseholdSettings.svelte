@@ -1,40 +1,15 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
   import { auth } from "../stores/auth.svelte";
-  import {
-    getHouseholdMembers,
-    getHouseholdInvites,
-    getPendingInvites,
-    inviteMember,
-    cancelInvite,
-    acceptInvite,
-    removeMember,
-    leaveHousehold,
-    type HouseholdMember,
-    type HouseholdInvite,
-  } from "../api/household";
+  import { household, refreshHousehold, acceptHouseholdInvite } from "../stores/household.svelte";
+  import { inviteMember, cancelInvite, removeMember } from "../api/household";
 
-  let allMembers = $state<HouseholdMember[]>([]);
-  let outgoingInvites = $state<HouseholdInvite[]>([]);
-  let incomingInvites = $state<HouseholdInvite[]>([]);
   let myUserId = $derived(auth.session?.user?.id ?? null);
   let myEmail = $derived(auth.session?.user?.email ?? null);
   let emailInput = $state("");
   let inviting = $state(false);
   let inviteError = $state("");
-
-  $effect(() => {
-    if (myEmail) void reload();
-  });
-
-  async function reload() {
-    if (!myEmail) return;
-    [allMembers, outgoingInvites, incomingInvites] = await Promise.all([
-      getHouseholdMembers(),
-      getHouseholdInvites(myEmail),
-      getPendingInvites(myEmail),
-    ]);
-  }
+  let accepting = $state(false);
 
   async function handleInvite() {
     const email = emailInput.trim();
@@ -44,7 +19,7 @@
     try {
       await inviteMember(email);
       emailInput = "";
-      if (myEmail) outgoingInvites = await getHouseholdInvites(myEmail);
+      await refreshHousehold();
     } catch (e) {
       inviteError = e instanceof Error ? e.message : $_("household.settings.inviteError");
     } finally {
@@ -54,50 +29,34 @@
 
   async function handleCancelInvite(id: string) {
     await cancelInvite(id);
-    if (myEmail) outgoingInvites = await getHouseholdInvites(myEmail);
+    await refreshHousehold();
   }
 
   async function handleRemoveMember(userId: string) {
     await removeMember(userId);
-    allMembers = await getHouseholdMembers();
-  }
-
-  async function handleLeave() {
-    try {
-      await leaveHousehold();
-      window.location.reload();
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to leave household");
-    }
+    await refreshHousehold();
   }
 
   async function handleAccept(id: string) {
+    if (accepting) return;
+    accepting = true;
     try {
-      await acceptInvite(id);
+      await acceptHouseholdInvite(id);
       window.location.reload();
     } catch (e) {
       alert(e instanceof Error ? e.message : "Failed to accept invite");
+      accepting = false;
     }
   }
 
-  let otherMembers = $derived(allMembers.filter((m) => m.user_id !== myUserId));
-  let isShared = $derived(allMembers.length > 1);
+  let otherMembers = $derived(household.members.filter((m) => m.user_id !== myUserId));
+  let outgoingInvites = $derived(household.invites.filter((inv) => inv.invite_email !== myEmail));
+  let incomingInvites = $derived(household.invites.filter((inv) => inv.invite_email === myEmail));
 </script>
 
 <div class="flex flex-col gap-4">
   <!-- My household: other members -->
   <div>
-    {#if isShared}
-      <div class="mb-1 flex items-center justify-end">
-        <button
-          onclick={handleLeave}
-          class="rounded-input px-1.5 py-1 text-[0.8125rem] font-semibold text-danger transition hover:bg-danger-tint"
-        >
-          {$_("household.settings.leave")}
-        </button>
-      </div>
-    {/if}
-
     {#if otherMembers.length > 0}
       <div>
         {#each otherMembers as m (m.user_id)}
@@ -170,7 +129,8 @@
             </span>
             <button
               onclick={() => handleAccept(inv.id)}
-              class="shrink-0 rounded-input px-1.5 py-1 text-xs font-semibold text-accent-deep transition hover:bg-accent-tint-2"
+              disabled={accepting}
+              class="shrink-0 rounded-input px-1.5 py-1 text-xs font-semibold text-accent-deep transition hover:bg-accent-tint-2 disabled:pointer-events-none disabled:opacity-50"
             >
               {$_("household.settings.accept")}
             </button>
