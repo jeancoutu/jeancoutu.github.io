@@ -43,6 +43,17 @@
 
   let activeWeek = $derived(weeklyPlan.selectedWeek);
 
+  let listEl = $state<HTMLDivElement | null>(null);
+
+  $effect(() => {
+    if (open && listEl) {
+      const container = listEl;
+      requestAnimationFrame(() => {
+        container.querySelector('[data-active="true"]')?.scrollIntoView({ block: "center" });
+      });
+    }
+  });
+
   function selectWeek(weekKey: string) {
     weeklyPlan.setSelectedWeek(weekKey);
     onclose();
@@ -54,10 +65,11 @@
     {$_("weekPicker.intro")}
   </p>
 
-  <div class="-mx-4 max-h-80 overflow-y-auto">
+  <div class="-mx-4 max-h-80 overflow-y-auto" bind:this={listEl}>
     {#each weekOptions as week (week.key)}
       <button
         type="button"
+        data-active={week.key === activeWeek}
         onclick={() => selectWeek(week.key)}
         class="flex w-full items-center justify-between gap-2 border-b border-rule px-4 py-3 text-left font-body text-[0.9375rem] text-ink transition last:border-b-0 hover:bg-paper-2
           {week.key === activeWeek ? 'bg-accent-tint font-semibold hover:bg-accent-tint-2' : ''}"
