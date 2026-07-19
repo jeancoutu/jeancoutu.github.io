@@ -79,16 +79,6 @@
     >
       {$_("planner.clear")}
     </button>
-    <button
-      type="button"
-      onclick={async () => { await weeklyPlan.reloadWeek(); await reloadGroceryItemsForWeek(weeklyPlan.selectedWeek); }}
-      class="group flex size-[2.6rem] shrink-0 items-center justify-center rounded-icon border border-rule text-ink-2 transition hover:bg-paper-2 hover:text-ink"
-      title={$_("planner.refresh")}
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 transition-transform duration-200 ease-in-out group-active:rotate-90">
-        <path d="M4 4v5h5M20 20v-5h-5M4.5 15a8 8 0 0 0 14.7 3.3M19.5 9A8 8 0 0 0 4.8 5.7" />
-      </svg>
-    </button>
   </div>
 
   <div>

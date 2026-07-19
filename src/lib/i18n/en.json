@@ -11,7 +11,6 @@
   "planner.clearConfirmMessage": "This will remove all meals and notes planned for this week. This can't be undone.",
   "planner.clearConfirm": "Clear week",
   "planner.clearCancel": "Cancel",
-  "planner.refresh": "Refresh",
   "planner.today": "Today",
   "planner.pickMeal.title": "Choose a meal",
   "planner.pickMeal.subtitle": "{day} · {slot}",

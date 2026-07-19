@@ -11,7 +11,6 @@
   "planner.clearConfirmMessage": "Cela supprimera tous les repas et notes planifiés pour cette semaine. Cette action est irréversible.",
   "planner.clearConfirm": "Effacer la semaine",
   "planner.clearCancel": "Annuler",
-  "planner.refresh": "Actualiser",
   "planner.today": "Aujourd'hui",
   "planner.pickMeal.title": "Choisir un repas",
   "planner.pickMeal.subtitle": "{day} · {slot}",

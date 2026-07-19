@@ -6,7 +6,6 @@ import { weeklyPlan } from "../../lib/stores/weeklyPlan.svelte";
 import { groceryList } from "../../lib/stores/groceryList.svelte";
 import { mealRepo } from "../../lib/repos/mealRepo";
 import { weeklyPlanRepo } from "../../lib/repos/weeklyPlanRepo";
-import { groceryItemRepo } from "../../lib/repos/groceryItemRepo";
 import { db } from "../../lib/db";
 import { addWeeks, getWeekSaturday, toWeekKey } from "../../lib/utils/weekDates";
 import type { DayKey, Meal } from "../../lib/types";
@@ -185,28 +184,4 @@ describe("Planner", () => {
     });
   });
 
-  it("Refresh reloads the week's plan and grocery items from Dexie", async () => {
-    const meal = await seedMeal("Chicken");
-    render(Planner);
-
-    // Simulate a change that landed in Dexie without going through this store instance
-    // (e.g. a background sync pull), which the UI won't see until refreshed.
-    const row = await weeklyPlanRepo.setPlan(weeklyPlan.selectedWeek, { tuesday: { supper: meal.id } });
-    await groceryItemRepo.upsert(row.id, {
-      name: "Chicken ingredient",
-      quantity: "2",
-      category: "meat",
-      checked: false,
-    });
-
-    expect(weeklyPlan.current.tuesday?.supper).toBeUndefined();
-
-    const user = userEvent.setup();
-    await user.click(screen.getByTitle("Refresh"));
-
-    await vi.waitFor(() => expect(weeklyPlan.current.tuesday?.supper).toBe(meal.id));
-    await vi.waitFor(() => expect(groceryList.itemsForWeek.map((i) => i.name)).toContain("Chicken ingredient"));
-
-    expect(within(daySection("Tuesday")).getByText(meal.name)).toBeInTheDocument();
-  });
 });
