@@ -6,3 +6,5 @@ dist-ssr
 .claude
 .env
 schema.md
+.agents
+.codex
