@@ -12,6 +12,7 @@
 
   let { onAdd }: Props = $props();
 
+  let inputEl: HTMLInputElement | undefined = $state();
   let query = $state("");
   let focused = $state(false);
   let showCategoryModal = $state(false);
@@ -60,6 +61,12 @@
     return [...matches, { name: trimmed, category: null, isNew: true }];
   });
 
+  function scrollInputIntoView() {
+    requestAnimationFrame(() => {
+      inputEl?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }
+
   function selectSuggestion(suggestion: Suggestion) {
     if (suggestion.isNew) {
       pendingName = query.trim();
@@ -67,6 +74,7 @@
     } else {
       onAdd({ name: suggestion.name, category: suggestion.category });
       query = "";
+      scrollInputIntoView();
     }
   }
 
@@ -75,11 +83,13 @@
     showCategoryModal = false;
     query = "";
     pendingName = "";
+    scrollInputIntoView();
   }
 </script>
 
 <div class="relative">
   <input
+    bind:this={inputEl}
     type="text"
     bind:value={query}
     onfocus={() => (focused = true)}
