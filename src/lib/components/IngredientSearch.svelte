@@ -26,6 +26,7 @@
   let focused = $state(false);
   let showCategoryModal = $state(false);
   let pendingName = $state("");
+  let cancelPendingScroll: (() => void) | undefined;
 
   type KnownSuggestion = { name: string; category: IngredientCategory; isNew: false };
   type NewSuggestion = { name: string; category: null; isNew: true };
@@ -75,33 +76,54 @@
   // input near the top of the visible area since half its reference height
   // is hidden behind the keyboard.
   function scrollInputToCenter() {
-    if (!inputEl) return;
+    if (!inputEl || document.activeElement !== inputEl) return;
     const vv = window.visualViewport;
     const viewportHeight = vv?.height ?? window.innerHeight;
     const viewportTop = vv?.offsetTop ?? 0;
     const rect = inputEl.getBoundingClientRect();
     const delta = rect.top + rect.height / 2 - (viewportTop + viewportHeight / 2);
-    window.scrollBy({ top: delta, behavior: "smooth" });
+    window.scrollBy({ top: delta, behavior: "auto" });
   }
 
-  // Waits for the keyboard to finish animating in (visualViewport "resize")
-  // before measuring, with a timeout fallback in case it never fires
-  // (e.g. the keyboard is already open so no resize occurs).
-  function scrollInputToCenterAfterLayout() {
+  // The keyboard emits several visualViewport resize events while it animates.
+  // Centering on the first one races the browser's remaining viewport adjustment,
+  // producing the visible down-then-up scroll. Wait until those events have
+  // settled, then make one immediate adjustment using the final viewport size.
+  function scrollInputToCenterAfterKeyboardSettles() {
     const vv = window.visualViewport;
     if (!vv) {
       requestAnimationFrame(scrollInputToCenter);
-      return;
+      return () => {};
     }
-    let done = false;
+
+    let settled = false;
+    let settleTimer: ReturnType<typeof setTimeout> | undefined;
+    let maxWaitTimer: ReturnType<typeof setTimeout> | undefined;
+
     const settle = () => {
-      if (done) return;
-      done = true;
-      vv.removeEventListener("resize", settle);
+      if (settled) return;
+      settled = true;
+      if (settleTimer) clearTimeout(settleTimer);
+      if (maxWaitTimer) clearTimeout(maxWaitTimer);
+      vv.removeEventListener("resize", deferUntilSettled);
       scrollInputToCenter();
     };
-    vv.addEventListener("resize", settle);
-    setTimeout(settle, 350);
+    const deferUntilSettled = () => {
+      if (settleTimer) clearTimeout(settleTimer);
+      settleTimer = setTimeout(settle, 120);
+    };
+
+    vv.addEventListener("resize", deferUntilSettled);
+    deferUntilSettled();
+    maxWaitTimer = setTimeout(settle, 700);
+
+    return () => {
+      if (settled) return;
+      settled = true;
+      if (settleTimer) clearTimeout(settleTimer);
+      if (maxWaitTimer) clearTimeout(maxWaitTimer);
+      vv.removeEventListener("resize", deferUntilSettled);
+    };
   }
 
   function selectSuggestion(suggestion: Suggestion) {
@@ -111,7 +133,6 @@
     } else {
       onAdd({ name: suggestion.name, category: suggestion.category });
       query = "";
-      requestAnimationFrame(() => requestAnimationFrame(scrollInputToCenter));
     }
   }
 
@@ -130,9 +151,14 @@
     bind:value={query}
     onfocus={() => {
       focused = true;
-      scrollInputToCenterAfterLayout();
+      cancelPendingScroll?.();
+      cancelPendingScroll = scrollInputToCenterAfterKeyboardSettles();
     }}
-    onblur={() => (focused = false)}
+    onblur={() => {
+      focused = false;
+      cancelPendingScroll?.();
+      cancelPendingScroll = undefined;
+    }}
     placeholder={$_("meals.create.ingredientSearch.placeholder")}
     use:focusOnMount
     class="w-full rounded-input border border-rule bg-surface px-3.5 py-2.5 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
