@@ -61,10 +61,38 @@
     return [...matches, { name: trimmed, category: null, isNew: true }];
   });
 
-  function scrollInputIntoView() {
-    requestAnimationFrame(() => {
-      inputEl?.scrollIntoView({ block: "center", behavior: "smooth" });
-    });
+  // Centers against the visible area above the keyboard (window.visualViewport),
+  // not the full layout viewport — scrollIntoView's "center" would land the
+  // input near the top of the visible area since half its reference height
+  // is hidden behind the keyboard.
+  function scrollInputToCenter() {
+    if (!inputEl) return;
+    const vv = window.visualViewport;
+    const viewportHeight = vv?.height ?? window.innerHeight;
+    const viewportTop = vv?.offsetTop ?? 0;
+    const rect = inputEl.getBoundingClientRect();
+    const delta = rect.top + rect.height / 2 - (viewportTop + viewportHeight / 2);
+    window.scrollBy({ top: delta, behavior: "smooth" });
+  }
+
+  // Waits for the keyboard to finish animating in (visualViewport "resize")
+  // before measuring, with a timeout fallback in case it never fires
+  // (e.g. the keyboard is already open so no resize occurs).
+  function scrollInputToCenterAfterLayout() {
+    const vv = window.visualViewport;
+    if (!vv) {
+      requestAnimationFrame(scrollInputToCenter);
+      return;
+    }
+    let done = false;
+    const settle = () => {
+      if (done) return;
+      done = true;
+      vv.removeEventListener("resize", settle);
+      scrollInputToCenter();
+    };
+    vv.addEventListener("resize", settle);
+    setTimeout(settle, 350);
   }
 
   function selectSuggestion(suggestion: Suggestion) {
@@ -74,7 +102,7 @@
     } else {
       onAdd({ name: suggestion.name, category: suggestion.category });
       query = "";
-      scrollInputIntoView();
+      requestAnimationFrame(() => requestAnimationFrame(scrollInputToCenter));
     }
   }
 
@@ -83,7 +111,6 @@
     showCategoryModal = false;
     query = "";
     pendingName = "";
-    scrollInputIntoView();
   }
 </script>
 
@@ -92,7 +119,10 @@
     bind:this={inputEl}
     type="text"
     bind:value={query}
-    onfocus={() => (focused = true)}
+    onfocus={() => {
+      focused = true;
+      scrollInputToCenterAfterLayout();
+    }}
     onblur={() => (focused = false)}
     placeholder={$_("meals.create.ingredientSearch.placeholder")}
     class="w-full rounded-input border border-rule bg-surface px-3.5 py-2.5 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
