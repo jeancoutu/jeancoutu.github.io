@@ -13,8 +13,12 @@
 
   let { onAdd, autofocus = false }: Props = $props();
 
+  // preventScroll avoids a competing native scroll-into-view: this focus is
+  // programmatic (not a direct tap), and the browser's own scroll races with
+  // scrollInputToCenterAfterLayout below, which is the one that accounts for
+  // the keyboard's final height.
   function focusOnMount(node: HTMLInputElement) {
-    if (autofocus) node.focus();
+    if (autofocus) node.focus({ preventScroll: true });
   }
 
   let inputEl: HTMLInputElement | undefined = $state();
