@@ -241,6 +241,7 @@ describe("MealDetail", () => {
       const user = userEvent.setup();
 
       await user.click(screen.getByRole("button", { name: "Edit" }));
+      await user.click(screen.getByRole("button", { name: "+ Add ingredient" }));
       await user.type(screen.getByPlaceholderText("Search for an ingredient…"), "Carrots");
       await user.click(screen.getByRole("button", { name: "Create: Carrots" }));
       await user.click(screen.getByRole("button", { name: "Vegetables" }));

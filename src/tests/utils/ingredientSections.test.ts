@@ -55,4 +55,21 @@ describe("groupIngredientsBySection", () => {
 
     expect(blocks.map((b) => b.section)).toEqual(["Sauce", null]);
   });
+
+  it("puts the unlabeled block first when unsectionedFirst is set", () => {
+    const noSection = makeIngredient({ name: "Salt" });
+    const sectioned = makeIngredient({ name: "Tomato", section: "Sauce" });
+
+    const blocks = groupIngredientsBySection([noSection, sectioned], { unsectionedFirst: true });
+
+    expect(blocks.map((b) => b.section)).toEqual([null, "Sauce"]);
+  });
+
+  it("omits the unlabeled block entirely when there are no unsectioned ingredients, regardless of unsectionedFirst", () => {
+    const sectioned = makeIngredient({ name: "Tomato", section: "Sauce" });
+
+    const blocks = groupIngredientsBySection([sectioned], { unsectionedFirst: true });
+
+    expect(blocks.map((b) => b.section)).toEqual(["Sauce"]);
+  });
 });

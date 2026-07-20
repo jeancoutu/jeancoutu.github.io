@@ -8,9 +8,14 @@
 
   interface Props {
     onAdd: (ingredient: { name: string; category: IngredientCategory }) => void;
+    autofocus?: boolean;
   }
 
-  let { onAdd }: Props = $props();
+  let { onAdd, autofocus = false }: Props = $props();
+
+  function focusOnMount(node: HTMLInputElement) {
+    if (autofocus) node.focus();
+  }
 
   let inputEl: HTMLInputElement | undefined = $state();
   let query = $state("");
@@ -125,6 +130,7 @@
     }}
     onblur={() => (focused = false)}
     placeholder={$_("meals.create.ingredientSearch.placeholder")}
+    use:focusOnMount
     class="w-full rounded-input border border-rule bg-surface px-3.5 py-2.5 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
     autocomplete="off"
   />

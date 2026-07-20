@@ -5,9 +5,17 @@ export interface IngredientSectionBlock {
   ingredients: Ingredient[];
 }
 
+export interface GroupIngredientsOptions {
+  /** Places the unlabeled block first instead of last (used by the editor). */
+  unsectionedFirst?: boolean;
+}
+
 // Groups by first-appearance order, case-insensitive; ingredients with no
-// section land in one trailing unlabeled block.
-export function groupIngredientsBySection(ingredients: Ingredient[]): IngredientSectionBlock[] {
+// section land in one unlabeled block, trailing by default.
+export function groupIngredientsBySection(
+  ingredients: Ingredient[],
+  options: GroupIngredientsOptions = {},
+): IngredientSectionBlock[] {
   const blocks = new Map<string, IngredientSectionBlock>();
   const unlabeled: Ingredient[] = [];
 
@@ -27,8 +35,9 @@ export function groupIngredientsBySection(ingredients: Ingredient[]): Ingredient
   }
 
   const result = [...blocks.values()];
-  if (unlabeled.length > 0) {
-    result.push({ section: null, ingredients: unlabeled });
+  if (unlabeled.length === 0) {
+    return result;
   }
-  return result;
+  const unlabeledBlock: IngredientSectionBlock = { section: null, ingredients: unlabeled };
+  return options.unsectionedFirst ? [unlabeledBlock, ...result] : [...result, unlabeledBlock];
 }
