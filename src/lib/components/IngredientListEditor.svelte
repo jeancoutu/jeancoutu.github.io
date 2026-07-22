@@ -11,14 +11,21 @@
 
   let { legend, rows = $bindable() }: Props = $props();
 
+  // Sections the user created but that have no ingredients yet — kept here (not in `rows`)
+  // so they render as a full block (rename/delete, movable-into target) and are silently
+  // dropped on save since nothing in `rows` references them.
+  let pendingSections: string[] = $state([]);
+
   // Unsectioned is always shown, first, even with zero ingredients in it —
   // groupIngredientsBySection omits an empty unlabeled block, so it's added back here.
   const blocks = $derived.by<IngredientSectionBlock[]>(() => {
     const grouped = groupIngredientsBySection(rows, { unsectionedFirst: true });
-    if (grouped[0]?.section !== null) {
-      return [{ section: null, ingredients: [] }, ...grouped];
-    }
-    return grouped;
+    const result = grouped[0]?.section !== null ? [{ section: null, ingredients: [] }, ...grouped] : grouped;
+    const existingKeys = new Set(result.filter((b) => b.section !== null).map((b) => b.section!.toLowerCase()));
+    const pendingBlocks = pendingSections
+      .filter((s) => !existingKeys.has(s.toLowerCase()))
+      .map((s) => ({ section: s, ingredients: [] }));
+    return [...result, ...pendingBlocks];
   });
 
   const sectionSuggestions = $derived.by(() => {
@@ -28,6 +35,10 @@
       if (!trimmed) continue;
       const key = trimmed.toLowerCase();
       if (!seen.has(key)) seen.set(key, trimmed);
+    }
+    for (const section of pendingSections) {
+      const key = section.toLowerCase();
+      if (!seen.has(key)) seen.set(key, section);
     }
     return [...seen.values()];
   });
@@ -64,6 +75,12 @@
     addingSection = false;
     const trimmed = newSectionName.trim();
     if (!trimmed) return;
+    const key = trimmed.toLowerCase();
+    const alreadyExists =
+      pendingSections.some((s) => s.toLowerCase() === key) || rows.some((r) => r.section?.trim().toLowerCase() === key);
+    if (!alreadyExists) {
+      pendingSections = [...pendingSections, trimmed];
+    }
     openAdd(trimmed);
   }
 
@@ -87,13 +104,20 @@
       return;
     }
     if (trimmed !== block.section) {
-      for (const row of block.ingredients) row.section = trimmed;
+      if (block.ingredients.length > 0) {
+        for (const row of block.ingredients) row.section = trimmed;
+      } else {
+        pendingSections = pendingSections.map((s) => (s === block.section ? trimmed : s));
+      }
       if (addOpenActive && addOpenKey === block.section) addOpenKey = trimmed;
     }
   }
 
   function clearSection(block: IngredientSectionBlock) {
     for (const row of block.ingredients) row.section = null;
+    if (block.section !== null) {
+      pendingSections = pendingSections.filter((s) => s !== block.section);
+    }
     if (addOpenActive && addOpenKey === block.section) {
       addOpenActive = false;
       addOpenKey = null;
