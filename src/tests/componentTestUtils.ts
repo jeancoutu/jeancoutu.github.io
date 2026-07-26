@@ -23,7 +23,6 @@ export async function resetDb(): Promise<void> {
 export function resetStores(): void {
   meals.all = [];
   meals.search = "";
-  meals.durationFilter = "all";
   meals.tagFilter = null;
   weeklyPlan.plans = {};
   weeklyPlan.dismissedNamesPerWeek = {};

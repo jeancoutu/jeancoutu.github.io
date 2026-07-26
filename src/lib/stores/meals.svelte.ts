@@ -46,7 +46,6 @@ function buildMealInput(input: CustomMealInput): Omit<Meal, "id"> {
 class MealsStore {
   all = $state<Meal[]>([]);
   search = $state("");
-  durationFilter = $state<DurationTag | "all">("all");
   tagFilter = $state<string | null>(null);
 
   allTags = $derived.by(() => {
@@ -62,10 +61,8 @@ class MealsStore {
     return this.all
       .filter((meal) => {
         const matchesSearch = !query || meal.name.toLowerCase().includes(query);
-        const matchesDuration =
-          this.durationFilter === "all" || meal.duration === this.durationFilter;
         const matchesTag = !this.tagFilter || meal.tags.includes(this.tagFilter);
-        return matchesSearch && matchesDuration && matchesTag;
+        return matchesSearch && matchesTag;
       })
       .sort((a, b) => a.name.localeCompare(b.name));
   });

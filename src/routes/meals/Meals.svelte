@@ -1,17 +1,10 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
-  import type { DurationTag } from "../../lib/types";
   import MealCard from "../../lib/components/MealCard.svelte";
   import MealFormModal from "../../lib/components/MealFormModal.svelte";
   import { meals } from "../../lib/stores/meals.svelte";
 
-  const durationValues: (DurationTag | "all")[] = ["all", "short", "medium", "long"];
-
   let createMealOpen = $state(false);
-
-  function durationOptionKey(value: DurationTag | "all"): string {
-    return value === "all" ? "duration.all" : `duration.${value}`;
-  }
 </script>
 
 <div>
@@ -45,17 +38,7 @@
     />
   </div>
 
-  <div class="mb-4 flex flex-wrap items-center gap-2">
-    <select
-      class="appearance-none rounded-pill border border-rule bg-surface bg-[url('data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23606b73%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%209l6%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:14px] bg-[right_0.6rem_center] bg-no-repeat py-1.5 pr-[1.9rem] pl-3.5 font-body text-[0.8125rem] font-medium text-ink-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-      value={meals.durationFilter}
-      onchange={(e) => (meals.durationFilter = e.currentTarget.value as DurationTag | "all")}
-    >
-      {#each durationValues as value (value)}
-        <option {value}>{$_(durationOptionKey(value))}</option>
-      {/each}
-    </select>
-
+  <div class="mb-4 flex items-center gap-2 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
     {#each meals.allTags as tag (tag)}
       {@const active = meals.tagFilter === tag}
       <button

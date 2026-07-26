@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen, fireEvent, userEvent, resetDb, resetStores } from "../componentTestUtils";
+import { render, screen, userEvent, resetDb, resetStores } from "../componentTestUtils";
 import Meals from "../../routes/meals/Meals.svelte";
 import { meals } from "../../lib/stores/meals.svelte";
 import { router } from "../../lib/utils/router.svelte";
@@ -54,19 +54,6 @@ describe("Meals", () => {
 
     expect(screen.getByText("Tacos")).toBeInTheDocument();
     expect(screen.queryByText("Pasta")).not.toBeInTheDocument();
-  });
-
-  it("duration filter narrows the list", async () => {
-    await seedMeal({ name: "Tacos", duration: "short" });
-    await seedMeal({ name: "Roast", duration: "long" });
-    render(Meals);
-    const user = userEvent.setup();
-
-    const select = screen.getByRole("combobox") as HTMLSelectElement;
-    await fireEvent.change(select, { target: { value: "long" } });
-
-    expect(screen.queryByText("Tacos")).not.toBeInTheDocument();
-    expect(screen.getByText("Roast")).toBeInTheDocument();
   });
 
   it("shows the empty state when the filtered list is empty", async () => {
@@ -134,9 +121,9 @@ describe("Meals", () => {
     expect(screen.getByText("Pasta")).toBeInTheDocument();
   });
 
-  it("tag filter composes with name search and duration filter", async () => {
-    await seedMeal({ name: "Tacos", tags: ["mexican"], duration: "short" });
-    await seedMeal({ name: "Taco soup", tags: ["mexican"], duration: "long" });
+  it("tag filter composes with name search", async () => {
+    await seedMeal({ name: "Tacos", tags: ["mexican"] });
+    await seedMeal({ name: "Taco soup", tags: ["mexican"] });
     render(Meals);
     const user = userEvent.setup();
 
@@ -144,12 +131,6 @@ describe("Meals", () => {
     await user.type(screen.getByPlaceholderText("Search meals by name…"), "tac");
 
     expect(screen.getByText("Tacos")).toBeInTheDocument();
-    expect(screen.getByText("Taco soup")).toBeInTheDocument();
-
-    const select = screen.getByRole("combobox") as HTMLSelectElement;
-    await fireEvent.change(select, { target: { value: "long" } });
-
-    expect(screen.queryByText("Tacos")).not.toBeInTheDocument();
     expect(screen.getByText("Taco soup")).toBeInTheDocument();
   });
 

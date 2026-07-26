@@ -60,29 +60,6 @@ describe("meals store", () => {
     expect(results.some((m) => m.name === "Beef Stew")).toBe(false);
   });
 
-  it("filteredMeals filters by duration", async () => {
-    const { meals } = await importMeals();
-    meals.all = [
-      makeMeal({ id: "c1", name: "Quick Dish", duration: "short" }),
-      makeMeal({ id: "c2", name: "Slow Roast", duration: "long" }),
-    ];
-    meals.search = "";
-    meals.durationFilter = "short";
-    const results = meals.filtered;
-    expect(results.every((m) => m.duration === "short")).toBe(true);
-  });
-
-  it("filteredMeals returns all durations when filter is 'all'", async () => {
-    const { meals } = await importMeals();
-    meals.all = [
-      makeMeal({ id: "c1", name: "Short Dish", duration: "short" }),
-      makeMeal({ id: "c2", name: "Long Dish", duration: "long" }),
-    ];
-    meals.search = "";
-    meals.durationFilter = "all";
-    expect(meals.filtered.length).toBe(meals.all.length);
-  });
-
   it("getMealById finds a meal by id", async () => {
     const { meals, getMealById } = await importMeals();
     meals.all = [makeMeal({ id: "find-me" })];
