@@ -3,6 +3,21 @@
 // Decoupled from any business logic: it only reports drag-start /
 // drag-over-target / drop, identified by whatever opaque `id` each element
 // was registered with.
+//
+// Scroll-vs-drag disambiguation (hard-won on iOS — see git history):
+// - touch-action is locked in at touch start and can't be changed
+//   mid-gesture, so it alone can't express "scroll normally, unless a
+//   long-press fires". "none" forfeits native scrolling entirely (JS-faked
+//   scroll feels glitchy); "pan-y" alone lets the compositor hijack a
+//   confirmed drag with a pointercancel.
+// - The resolution: keep touch-action "pan-y" so undecided gestures scroll
+//   natively (browser fires pointercancel when it commits to a scroll,
+//   which cancels the pending long-press), and once a drag is armed,
+//   preventDefault() every touchmove from a NON-PASSIVE listener — that is
+//   the one mechanism that blocks native scroll dynamically, so a live
+//   drag can no longer be hijacked. Touch events keep firing on the
+//   touch-start element for the whole gesture, so one listener on the row
+//   sees them all.
 
 const LONG_PRESS_MS = 400;
 const MOVE_CANCEL_PX = 10;
@@ -48,32 +63,13 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
   let opts = params;
   dropTargets.set(node, opts.id);
   node.setAttribute(DROP_TARGET_ATTR, "");
-
-  // touch-action: "pan-y" (native vertical scroll) was tried here, but it's
-  // unsafe for a *confirmed* drag: pan-y tells iOS it may start scrolling on
-  // the compositor thread at any time without asking JS first, so even after
-  // our long-press timer arms a drag, iOS can still decide mid-gesture to
-  // start panning — which fires pointercancel on us and aborts the drag at
-  // the exact moment the page starts scrolling. "none" is the only value
-  // that guarantees a confirmed drag can't be hijacked. That means native
-  // scrolling never happens on this element, so the pre-drag (undecided)
-  // phase below reimplements scrolling by hand, with release momentum so it
-  // doesn't feel dead compared to native scroll.
-  node.style.touchAction = "none";
-
-  const MOMENTUM_FRICTION = 0.95;
-  const MOMENTUM_MIN_VELOCITY = 0.02; // px/ms
+  node.style.touchAction = "pan-y";
 
   let pressTimer: ReturnType<typeof setTimeout> | null = null;
   let pointerId: number | null = null;
   let startX = 0;
   let startY = 0;
   let dragging = false;
-  let scrolling = false;
-  let scrollLastY = 0;
-  let scrollLastT = 0;
-  let scrollVelocity = 0; // px/ms
-  let momentumRaf: number | null = null;
   let ghost: HTMLElement | null = null;
   let originRect: DOMRect | null = null;
   let lastX = 0;
@@ -81,22 +77,12 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
   let scrollSpeed = 0;
   let scrollRaf: number | null = null;
 
-  function stopMomentum() {
-    if (momentumRaf !== null) {
-      cancelAnimationFrame(momentumRaf);
-      momentumRaf = null;
-    }
+  // Non-passive so preventDefault works — this is what keeps native scroll
+  // from starting once a drag is live (see header comment). Inert until then.
+  function onTouchMove(e: TouchEvent) {
+    if (dragging) e.preventDefault();
   }
-
-  function momentumTick() {
-    if (Math.abs(scrollVelocity) < MOMENTUM_MIN_VELOCITY) {
-      momentumRaf = null;
-      return;
-    }
-    window.scrollBy(0, scrollVelocity * 16);
-    scrollVelocity *= MOMENTUM_FRICTION;
-    momentumRaf = requestAnimationFrame(momentumTick);
-  }
+  node.addEventListener("touchmove", onTouchMove, { passive: false });
 
   function clearPressTimer() {
     if (pressTimer) {
@@ -119,14 +105,6 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
     pointerId = e.pointerId;
     startX = e.clientX;
     startY = e.clientY;
-    scrolling = false;
-    stopMomentum();
-    // Capture immediately: meal rows are short, so a vertical swipe exits
-    // the row within a few px. Without capture, pointer events stop hitting
-    // this node as soon as the finger leaves it — the >MOVE_CANCEL_PX
-    // swipe-cancel below never runs, and the long-press timer arms a drag
-    // in the middle of a scroll gesture.
-    node.setPointerCapture(e.pointerId);
     node.addEventListener("pointermove", onPreMove);
     node.addEventListener("pointerup", onPreUp);
     node.addEventListener("pointercancel", onPreUp);
@@ -135,41 +113,23 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
 
   function onPreMove(e: PointerEvent) {
     if (e.pointerId !== pointerId) return;
-    if (scrolling) {
-      const now = performance.now();
-      const delta = e.clientY - scrollLastY;
-      const dt = now - scrollLastT || 16;
-      scrollVelocity = -delta / dt;
-      window.scrollBy(0, -delta);
-      scrollLastY = e.clientY;
-      scrollLastT = now;
-      return;
-    }
+    // Deliberate movement before the timer fires means scroll/tap intent,
+    // not a long press. Vertical swipes are usually resolved even earlier:
+    // the browser commits to a native pan-y scroll and fires pointercancel
+    // (→ onPreUp) the moment it takes over.
     if (Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_CANCEL_PX) {
-      // Not a long press after all — touch-action is "none" so the browser
-      // never takes over scrolling here; drive it ourselves for the rest of
-      // this pointer's lifetime, then hand off to momentumTick on release.
       clearPressTimer();
-      scrolling = true;
-      scrollLastY = e.clientY;
-      scrollLastT = performance.now();
+      detachPreDragListeners();
     }
   }
 
   function onPreUp() {
     clearPressTimer();
-    if (scrolling && Math.abs(scrollVelocity) >= MOMENTUM_MIN_VELOCITY) {
-      momentumRaf = requestAnimationFrame(momentumTick);
-    }
-    scrolling = false;
     detachPreDragListeners();
   }
 
   function startDrag(id: number) {
     pressTimer = null;
-    // Belt-and-suspenders: never promote to a drag once the gesture has
-    // been recognized as a scroll.
-    if (scrolling) return;
     detachPreDragListeners();
     dragging = true;
     lastX = startX;
@@ -221,7 +181,6 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
 
   function onDragMove(e: PointerEvent) {
     if (!dragging || e.pointerId !== pointerId) return;
-    e.preventDefault();
     lastX = e.clientX;
     lastY = e.clientY;
     positionGhost(lastX, lastY);
@@ -266,7 +225,9 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
     node.removeEventListener("pointermove", onDragMove);
     node.removeEventListener("pointerup", onDragEnd);
     node.removeEventListener("pointercancel", onDragCancel);
-    if (pointerId !== null) node.releasePointerCapture(pointerId);
+    if (pointerId !== null && node.hasPointerCapture(pointerId)) {
+      node.releasePointerCapture(pointerId);
+    }
     node.style.opacity = "";
 
     const droppedGhost = ghost;
@@ -316,9 +277,9 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
       node.removeEventListener("pointermove", onDragMove);
       node.removeEventListener("pointerup", onDragEnd);
       node.removeEventListener("pointercancel", onDragCancel);
+      node.removeEventListener("touchmove", onTouchMove);
       document.removeEventListener("click", suppressNextClick, true);
       stopAutoScroll();
-      stopMomentum();
       dropTargets.delete(node);
       ghost?.remove();
     },
