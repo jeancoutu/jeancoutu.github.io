@@ -41,7 +41,7 @@
 
 
 
-<div class="space-y-4">
+<div class="space-y-4 select-none">
 
   <header class="flex items-start justify-between gap-3">
     <h1 class="min-w-0 font-display text-[clamp(1.25rem,4vw+0.4rem,1.5rem)] font-semibold tracking-[-0.01em] break-words text-ink">
