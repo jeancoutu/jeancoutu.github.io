@@ -49,26 +49,54 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
   dropTargets.set(node, opts.id);
   node.setAttribute(DROP_TARGET_ATTR, "");
 
-  // touch-action is locked in at pointerdown and can't be changed once a
-  // gesture is under way, so "none" (used pre-drag-start too) would forfeit
-  // native vertical scrolling for the whole touch, forcing scroll to be
-  // hand-rolled — which fights native momentum scrolling on iOS. "pan-y"
-  // keeps vertical scroll native; if the browser commits to a scroll before
-  // the long-press timer fires, it sends this element a pointercancel
-  // (handled by onPreUp below), which cancels the pending drag for free.
-  node.style.touchAction = "pan-y";
+  // touch-action: "pan-y" (native vertical scroll) was tried here, but it's
+  // unsafe for a *confirmed* drag: pan-y tells iOS it may start scrolling on
+  // the compositor thread at any time without asking JS first, so even after
+  // our long-press timer arms a drag, iOS can still decide mid-gesture to
+  // start panning — which fires pointercancel on us and aborts the drag at
+  // the exact moment the page starts scrolling. "none" is the only value
+  // that guarantees a confirmed drag can't be hijacked. That means native
+  // scrolling never happens on this element, so the pre-drag (undecided)
+  // phase below reimplements scrolling by hand, with release momentum so it
+  // doesn't feel dead compared to native scroll.
+  node.style.touchAction = "none";
+
+  const MOMENTUM_FRICTION = 0.95;
+  const MOMENTUM_MIN_VELOCITY = 0.02; // px/ms
 
   let pressTimer: ReturnType<typeof setTimeout> | null = null;
   let pointerId: number | null = null;
   let startX = 0;
   let startY = 0;
   let dragging = false;
+  let scrolling = false;
+  let scrollLastY = 0;
+  let scrollLastT = 0;
+  let scrollVelocity = 0; // px/ms
+  let momentumRaf: number | null = null;
   let ghost: HTMLElement | null = null;
   let originRect: DOMRect | null = null;
   let lastX = 0;
   let lastY = 0;
   let scrollSpeed = 0;
   let scrollRaf: number | null = null;
+
+  function stopMomentum() {
+    if (momentumRaf !== null) {
+      cancelAnimationFrame(momentumRaf);
+      momentumRaf = null;
+    }
+  }
+
+  function momentumTick() {
+    if (Math.abs(scrollVelocity) < MOMENTUM_MIN_VELOCITY) {
+      momentumRaf = null;
+      return;
+    }
+    window.scrollBy(0, scrollVelocity * 16);
+    scrollVelocity *= MOMENTUM_FRICTION;
+    momentumRaf = requestAnimationFrame(momentumTick);
+  }
 
   function clearPressTimer() {
     if (pressTimer) {
@@ -91,6 +119,8 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
     pointerId = e.pointerId;
     startX = e.clientX;
     startY = e.clientY;
+    scrolling = false;
+    stopMomentum();
     node.addEventListener("pointermove", onPreMove);
     node.addEventListener("pointerup", onPreUp);
     node.addEventListener("pointercancel", onPreUp);
@@ -99,18 +129,33 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
 
   function onPreMove(e: PointerEvent) {
     if (e.pointerId !== pointerId) return;
-    // Horizontal movement (or movement too fast/large to be a deliberate
-    // long-press) isn't handled by native pan-y scroll, so cancel by hand.
-    // Vertical scrolls are normally resolved by the browser sending a
-    // pointercancel (see onPreUp) before this fires.
+    if (scrolling) {
+      const now = performance.now();
+      const delta = e.clientY - scrollLastY;
+      const dt = now - scrollLastT || 16;
+      scrollVelocity = -delta / dt;
+      window.scrollBy(0, -delta);
+      scrollLastY = e.clientY;
+      scrollLastT = now;
+      return;
+    }
     if (Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_CANCEL_PX) {
+      // Not a long press after all — touch-action is "none" so the browser
+      // never takes over scrolling here; drive it ourselves for the rest of
+      // this pointer's lifetime, then hand off to momentumTick on release.
       clearPressTimer();
-      detachPreDragListeners();
+      scrolling = true;
+      scrollLastY = e.clientY;
+      scrollLastT = performance.now();
     }
   }
 
   function onPreUp() {
     clearPressTimer();
+    if (scrolling && Math.abs(scrollVelocity) >= MOMENTUM_MIN_VELOCITY) {
+      momentumRaf = requestAnimationFrame(momentumTick);
+    }
+    scrolling = false;
     detachPreDragListeners();
   }
 
@@ -264,6 +309,7 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
       node.removeEventListener("pointercancel", onDragCancel);
       document.removeEventListener("click", suppressNextClick, true);
       stopAutoScroll();
+      stopMomentum();
       dropTargets.delete(node);
       ghost?.remove();
     },
