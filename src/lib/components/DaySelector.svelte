@@ -8,6 +8,8 @@
   import { isToday } from "../utils/weekDates";
   import DayNoteModal from "./DayNoteModal.svelte";
   import Modal from "./Modal.svelte";
+  import { longPressDrag } from "../actions/longPressDrag";
+  import { dragState, isSameSlot, type SlotRef } from "../stores/dragState.svelte";
 
   interface Props {
     day: DayKey;
@@ -56,6 +58,16 @@
   function viewRecipe(mealId: string) {
     navigate(`/meal/${encodeURIComponent(mealId)}`);
   }
+
+  async function handleDrop(sourceSlot: MealSlot, target: SlotRef | null) {
+    dragState.source = null;
+    dragState.over = null;
+    if (!target) return;
+    const updatedGroceries = await weeklyPlan.swapSlots({ day, slot: sourceSlot }, target);
+    if (updatedGroceries !== null) {
+      setGroceryItemsForWeek(weeklyPlan.selectedWeek, updatedGroceries);
+    }
+  }
 </script>
 
 <section class="border-b border-rule py-4 first:pt-0">
@@ -88,12 +100,21 @@
     {#each slots as slot (slot)}
       {@const mealId = weeklyPlan.current[day]?.[slot]}
       {@const name = mealName(mealId)}
+      {@const isDropHover = isSameSlot(dragState.over, { day, slot }) && !isSameSlot(dragState.source, { day, slot })}
       <div class="-mx-2 flex items-center gap-2">
         <button
           type="button"
           onclick={() => openPicker(slot)}
+          use:longPressDrag={{
+            id: { day, slot },
+            disabled: !(name && mealId),
+            onDragStart: () => (dragState.source = { day, slot }),
+            onDragOver: (target) => (dragState.over = target),
+            onDrop: (target) => handleDrop(slot, target),
+          }}
           class="flex min-w-0 flex-1 items-center gap-2 rounded-input px-2 py-2.5 text-left transition hover:bg-surface active:bg-paper-2
-            {!name ? 'border-[1.5px] border-dashed border-rule-strong text-ink-3 hover:border-accent hover:bg-accent-tint hover:text-accent-deep' : ''}"
+            {!name ? 'border-[1.5px] border-dashed border-rule-strong text-ink-3 hover:border-accent hover:bg-accent-tint hover:text-accent-deep' : ''}
+            {isDropHover ? 'ring-2 ring-accent bg-accent-tint' : ''}"
         >
           <span class="flex size-8 shrink-0 items-center justify-center rounded-icon bg-paper-2 text-ink-2">
             {#if slot === "diner"}

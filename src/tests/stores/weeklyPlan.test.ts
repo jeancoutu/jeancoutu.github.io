@@ -213,6 +213,104 @@ describe("weeklyPlan store", () => {
     expect(weeklyPlan.current.friday?.note).toBe("Keep this note");
   });
 
+  describe("swapSlots", () => {
+    function makeMeal(id: string, ingredients: { name: string; quantity: string; category: string }[] = []) {
+      return {
+        id,
+        name: id,
+        duration: "short" as const,
+        supperDays: [],
+        url: "",
+        ingredients: ingredients as any,
+        instructions: [],
+        tags: [],
+      };
+    }
+
+    it("swaps two filled slots (both directions)", async () => {
+      const { weeklyPlan } = await importStore();
+      await weeklyPlan.setDay("monday", "supper", "meal-a");
+      await weeklyPlan.setDay("tuesday", "diner", "meal-b");
+
+      await weeklyPlan.swapSlots({ day: "monday", slot: "supper" }, { day: "tuesday", slot: "diner" });
+
+      expect(weeklyPlan.current.monday?.supper).toBe("meal-b");
+      expect(weeklyPlan.current.tuesday?.diner).toBe("meal-a");
+    });
+
+    it("moving a filled slot onto an empty slot leaves source empty and target filled", async () => {
+      const { weeklyPlan } = await importStore();
+      await weeklyPlan.setDay("monday", "supper", "meal-a");
+
+      await weeklyPlan.swapSlots({ day: "monday", slot: "supper" }, { day: "wednesday", slot: "diner" });
+
+      expect(weeklyPlan.current.monday?.supper).toBeUndefined();
+      expect(weeklyPlan.current.wednesday?.diner).toBe("meal-a");
+    });
+
+    it("swaps across two different days", async () => {
+      const { weeklyPlan } = await importStore();
+      await weeklyPlan.setDay("monday", "supper", "meal-a");
+      await weeklyPlan.setDay("friday", "supper", "meal-b");
+
+      await weeklyPlan.swapSlots({ day: "monday", slot: "supper" }, { day: "friday", slot: "supper" });
+
+      expect(weeklyPlan.current.monday?.supper).toBe("meal-b");
+      expect(weeklyPlan.current.friday?.supper).toBe("meal-a");
+    });
+
+    it("swaps supper and diner on the same day", async () => {
+      const { weeklyPlan } = await importStore();
+      await weeklyPlan.setDay("monday", "supper", "meal-a");
+      await weeklyPlan.setDay("monday", "diner", "meal-b");
+
+      await weeklyPlan.swapSlots({ day: "monday", slot: "supper" }, { day: "monday", slot: "diner" });
+
+      expect(weeklyPlan.current.monday?.supper).toBe("meal-b");
+      expect(weeklyPlan.current.monday?.diner).toBe("meal-a");
+    });
+
+    it("is a no-op when swapping a slot with itself", async () => {
+      const { weeklyPlan } = await importStore();
+      await weeklyPlan.setDay("monday", "supper", "meal-a");
+      mockSave.mockClear();
+
+      const result = await weeklyPlan.swapSlots({ day: "monday", slot: "supper" }, { day: "monday", slot: "supper" });
+
+      expect(result).toBeNull();
+      expect(mockSave).not.toHaveBeenCalled();
+      expect(weeklyPlan.current.monday?.supper).toBe("meal-a");
+    });
+
+    it("recomputes the grocery list once for the combined change, without duplicating shared ingredients", async () => {
+      const { weeklyPlan, meals } = await importStore();
+      meals.all = [
+        makeMeal("meal-a", [{ name: "Garlic", quantity: "2 cloves", category: "vegetables" }]),
+        makeMeal("meal-b", [{ name: "Onion", quantity: "1", category: "vegetables" }]),
+      ];
+      await weeklyPlan.setDay("monday", "supper", "meal-a");
+      await weeklyPlan.setDay("tuesday", "diner", "meal-b");
+      mockApplyAdjustments.mockClear();
+
+      await weeklyPlan.swapSlots({ day: "monday", slot: "supper" }, { day: "tuesday", slot: "diner" });
+
+      // Both meals remain planned after the swap (just relocated), so the
+      // net grocery diff is empty: neither ingredient's quantity changed.
+      expect(mockApplyAdjustments).not.toHaveBeenCalled();
+    });
+
+    it("recomputes the grocery list correctly when swapping into an empty slot", async () => {
+      const { weeklyPlan, meals } = await importStore();
+      meals.all = [makeMeal("meal-a", [{ name: "Garlic", quantity: "2 cloves", category: "vegetables" }])];
+      await weeklyPlan.setDay("monday", "supper", "meal-a");
+      mockApplyAdjustments.mockClear();
+
+      await weeklyPlan.swapSlots({ day: "monday", slot: "supper" }, { day: "wednesday", slot: "diner" });
+
+      expect(mockApplyAdjustments).not.toHaveBeenCalled();
+    });
+  });
+
   it("dismissIngredient marks the name dismissed and deletes the grocery item", async () => {
     const { weeklyPlan } = await importStore();
     await weeklyPlan.dismissIngredient("Garlic", "item-1");
