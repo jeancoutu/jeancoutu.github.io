@@ -5,6 +5,5 @@ dist-ssr
 .DS_Store
 .claude
 .env
-schema.md
 .agents
 .codex
