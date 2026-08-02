@@ -165,14 +165,14 @@ export function adjustQuantityString(
   if (base) {
     for (const part of base.split(/,\s*/)) {
       const p = parseQuantity(part.trim());
-      if (!p) unparsed.push(part.trim());
+      if (!p) pushUnparsed(unparsed, part);
       else groups.push({ total: p.value, unit: p.unit });
     }
   }
 
   for (const q of add) {
     const p = parseQuantity(q);
-    if (!p) { unparsed.push(q); continue; }
+    if (!p) { pushUnparsed(unparsed, q); continue; }
     let merged = false;
     for (const g of groups) {
       if (levenshtein(p.unit.toLowerCase(), g.unit.toLowerCase()) <= 2) {
@@ -223,11 +223,16 @@ function levenshtein(a: string, b: string): number {
 }
 
 function parseQuantity(q: string): { value: number; unit: string } | null {
-  const match = q.trim().match(/^(\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?)\s*(.*)$/);
+  const match = q
+    .trim()
+    .match(/^(\d+\s+\d+\s*\/\s*\d+|\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?)\s*(.*)$/);
   if (!match) return null;
   const numStr = match[1]!.replace(",", ".");
   let value: number;
-  if (numStr.includes("/")) {
+  const mixed = numStr.match(/^(\d+)\s+(\d+)\s*\/\s*(\d+)$/);
+  if (mixed) {
+    value = parseFloat(mixed[1]!) + parseFloat(mixed[2]!) / parseFloat(mixed[3]!);
+  } else if (numStr.includes("/")) {
     const [num, den] = numStr.split("/");
     value = parseFloat(num!) / parseFloat(den!);
   } else {
@@ -235,6 +240,16 @@ function parseQuantity(q: string): { value: number; unit: string } | null {
   }
   if (isNaN(value)) return null;
   return { value, unit: match[2]!.trim() };
+}
+
+// Adds a non-numeric quantity string (e.g. "Au goût") to the unparsed list,
+// deduplicating case/whitespace-insensitively so repeats across meals collapse to one.
+function pushUnparsed(unparsed: string[], q: string): void {
+  const trimmed = q.trim();
+  const normalized = trimmed.toLowerCase();
+  if (!unparsed.some((u) => u.toLowerCase() === normalized)) {
+    unparsed.push(trimmed);
+  }
 }
 
 function gcd(a: number, b: number): number {
@@ -274,7 +289,7 @@ export function formatGroceryQuantities(quantities: string[]): string {
   for (const q of parts) {
     const p = parseQuantity(q);
     if (!p) {
-      unparsed.push(q);
+      pushUnparsed(unparsed, q);
       continue;
     }
     let merged = false;

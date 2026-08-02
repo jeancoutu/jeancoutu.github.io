@@ -66,6 +66,14 @@ describe("formatGroceryQuantities", () => {
   it("does not split a French decimal comma when re-merging", () => {
     expect(formatGroceryQuantities(["1,5 kg, 2 kg"])).toBe("3 1/2 kg");
   });
+
+  it("dedupes repeated unparsable quantities", () => {
+    expect(formatGroceryQuantities(["Au goût", "Au goût", "au goût"])).toBe("Au goût");
+  });
+
+  it("merges a mixed-number quantity with a plain one of the same unit", () => {
+    expect(formatGroceryQuantities(["1 1/2 c. à soupe", "1 c. à soupe"])).toBe("2 1/2 c. à soupe");
+  });
 });
 
 describe("adjustQuantityString", () => {
