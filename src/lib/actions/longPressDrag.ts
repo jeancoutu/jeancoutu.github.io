@@ -49,22 +49,20 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
   dropTargets.set(node, opts.id);
   node.setAttribute(DROP_TARGET_ATTR, "");
 
-  // Browsers decide whether a touch sequence is a native scroll/pan at
-  // pointerdown time, based on the *current* touch-action of the target —
-  // changing touch-action after the fact (e.g. once the long-press timer
-  // fires) has no effect on a gesture already in progress. So touch-action
-  // must be "none" from the very start, which means native scrolling never
-  // happens when a touch begins on this element; the "user was actually
-  // trying to scroll, not drag" case below is reimplemented by hand instead.
-  node.style.touchAction = "none";
+  // touch-action is locked in at pointerdown and can't be changed once a
+  // gesture is under way, so "none" (used pre-drag-start too) would forfeit
+  // native vertical scrolling for the whole touch, forcing scroll to be
+  // hand-rolled — which fights native momentum scrolling on iOS. "pan-y"
+  // keeps vertical scroll native; if the browser commits to a scroll before
+  // the long-press timer fires, it sends this element a pointercancel
+  // (handled by onPreUp below), which cancels the pending drag for free.
+  node.style.touchAction = "pan-y";
 
   let pressTimer: ReturnType<typeof setTimeout> | null = null;
   let pointerId: number | null = null;
   let startX = 0;
   let startY = 0;
   let dragging = false;
-  let scrolling = false;
-  let scrollLastY = 0;
   let ghost: HTMLElement | null = null;
   let originRect: DOMRect | null = null;
   let lastX = 0;
@@ -93,7 +91,6 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
     pointerId = e.pointerId;
     startX = e.clientX;
     startY = e.clientY;
-    scrolling = false;
     node.addEventListener("pointermove", onPreMove);
     node.addEventListener("pointerup", onPreUp);
     node.addEventListener("pointercancel", onPreUp);
@@ -102,25 +99,18 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
 
   function onPreMove(e: PointerEvent) {
     if (e.pointerId !== pointerId) return;
-    if (scrolling) {
-      const delta = e.clientY - scrollLastY;
-      scrollLastY = e.clientY;
-      window.scrollBy(0, -delta);
-      return;
-    }
+    // Horizontal movement (or movement too fast/large to be a deliberate
+    // long-press) isn't handled by native pan-y scroll, so cancel by hand.
+    // Vertical scrolls are normally resolved by the browser sending a
+    // pointercancel (see onPreUp) before this fires.
     if (Math.hypot(e.clientX - startX, e.clientY - startY) > MOVE_CANCEL_PX) {
-      // Not a long press after all — the browser can't take over native
-      // scrolling here (touch-action is "none"), so drive the scroll
-      // ourselves for the rest of this pointer's lifetime.
       clearPressTimer();
-      scrolling = true;
-      scrollLastY = e.clientY;
+      detachPreDragListeners();
     }
   }
 
   function onPreUp() {
     clearPressTimer();
-    scrolling = false;
     detachPreDragListeners();
   }
 
@@ -152,16 +142,21 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
     node.addEventListener("pointermove", onDragMove);
     node.addEventListener("pointerup", onDragEnd);
     node.addEventListener("pointercancel", onDragCancel);
-    // A long press with little/no movement still emits a native click on
-    // release; swallow it so an armed drag never also reopens the picker.
-    node.addEventListener("click", suppressClick, true);
 
     opts.onDragStart?.();
   }
 
-  function suppressClick(e: MouseEvent) {
+  // iOS synthesizes a "click" after a touch gesture ends, targeted at
+  // whatever element is under the finger at release — i.e. the drop
+  // target's row, not the row that was dragged (pointer capture doesn't
+  // redirect this synthetic event). Left unsuppressed, dropping onto
+  // another slot re-opens that slot's picker as if it'd been tapped. So
+  // swallow the *next* click anywhere in the document, not just on the
+  // source node.
+  function suppressNextClick(e: MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    document.removeEventListener("click", suppressNextClick, true);
   }
 
   function positionGhost(x: number, y: number) {
@@ -237,8 +232,10 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
       }
     }
 
+    document.addEventListener("click", suppressNextClick, true);
+    setTimeout(() => document.removeEventListener("click", suppressNextClick, true), 500);
+
     opts.onDrop?.(targetId);
-    setTimeout(() => node.removeEventListener("click", suppressClick, true), 0);
   }
 
   function onDragEnd(e: PointerEvent) {
@@ -265,7 +262,7 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
       node.removeEventListener("pointermove", onDragMove);
       node.removeEventListener("pointerup", onDragEnd);
       node.removeEventListener("pointercancel", onDragCancel);
-      node.removeEventListener("click", suppressClick, true);
+      document.removeEventListener("click", suppressNextClick, true);
       stopAutoScroll();
       dropTargets.delete(node);
       ghost?.remove();
