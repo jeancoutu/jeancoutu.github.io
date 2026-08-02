@@ -121,6 +121,12 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
     startY = e.clientY;
     scrolling = false;
     stopMomentum();
+    // Capture immediately: meal rows are short, so a vertical swipe exits
+    // the row within a few px. Without capture, pointer events stop hitting
+    // this node as soon as the finger leaves it — the >MOVE_CANCEL_PX
+    // swipe-cancel below never runs, and the long-press timer arms a drag
+    // in the middle of a scroll gesture.
+    node.setPointerCapture(e.pointerId);
     node.addEventListener("pointermove", onPreMove);
     node.addEventListener("pointerup", onPreUp);
     node.addEventListener("pointercancel", onPreUp);
@@ -161,6 +167,9 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
 
   function startDrag(id: number) {
     pressTimer = null;
+    // Belt-and-suspenders: never promote to a drag once the gesture has
+    // been recognized as a scroll.
+    if (scrolling) return;
     detachPreDragListeners();
     dragging = true;
     lastX = startX;
