@@ -334,11 +334,11 @@
                           </svg>
                         {/if}
                       </span>
-                      <span class="shrink-0 rounded-[6px] border border-rule bg-paper-2 px-[0.45rem] py-[0.1rem] font-body text-xs font-bold whitespace-nowrap text-ink-2 tabular-nums transition {item.checked ? 'opacity-55' : ''}">
-                        {formatGroceryQuantities(item.quantities)}
-                      </span>
-                      <span class="min-w-0 [overflow-wrap:anywhere] text-[0.9375rem] {item.toVerify ? 'text-warn' : item.checked ? 'text-ink-3 line-through' : 'text-ink'}">
+                      <span class="min-w-0 flex-1 [overflow-wrap:anywhere] text-[0.9375rem] {item.toVerify ? 'text-warn' : item.checked ? 'text-ink-3 line-through' : 'text-ink'}">
                         {item.name}
+                      </span>
+                      <span class="ml-auto shrink-0 rounded-[6px] border border-rule bg-paper-2 px-[0.45rem] py-[0.1rem] font-body text-xs font-bold whitespace-nowrap text-ink-2 tabular-nums transition {item.checked ? 'opacity-55' : ''}">
+                        {formatGroceryQuantities(item.quantities)}
                       </span>
                     </label>
                     {#if item.toVerify}

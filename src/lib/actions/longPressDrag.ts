@@ -84,6 +84,15 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
   }
   node.addEventListener("touchmove", onTouchMove, { passive: false });
 
+  // Android fires a contextmenu on long-press (~500ms, right around our
+  // 400ms timer) — suppress it while a press/drag is in flight so the
+  // context menu can't pop over an armed drag. Desktop right-click still
+  // works: a right-click never arms the timer (button !== 0 check below).
+  function onContextMenu(e: Event) {
+    if (dragging || pressTimer !== null) e.preventDefault();
+  }
+  node.addEventListener("contextmenu", onContextMenu);
+
   function clearPressTimer() {
     if (pressTimer) {
       clearTimeout(pressTimer);
@@ -278,6 +287,7 @@ export function longPressDrag<T>(node: HTMLElement, params: LongPressDragParams<
       node.removeEventListener("pointerup", onDragEnd);
       node.removeEventListener("pointercancel", onDragCancel);
       node.removeEventListener("touchmove", onTouchMove);
+      node.removeEventListener("contextmenu", onContextMenu);
       document.removeEventListener("click", suppressNextClick, true);
       stopAutoScroll();
       dropTargets.delete(node);
