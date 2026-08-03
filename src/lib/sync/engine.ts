@@ -281,6 +281,17 @@ async function flushSingleOp(op: CoalescedOp): Promise<void> {
     await bumpLocalVersion(op.entity, op.entityId, result.version);
   }
 
+  if (op.entity === "meal" && op.op === "delete" && result.affected_plans) {
+    // delete_meal already cleared+bumped these weekly_plans server-side.
+    // Fast-forward the matching local rows so the client's own cleanup
+    // upsert (weeklyPlanRepo.clearMealFromAllPlans, queued right after this
+    // op) pushes with a current baseVersion instead of spuriously
+    // conflicting against a change both sides already agree on.
+    for (const plan of result.affected_plans) {
+      await bumpLocalVersion("weeklyPlan", plan.id, plan.version);
+    }
+  }
+
   await db.syncQueue.bulkDelete(op.seqs);
 }
 

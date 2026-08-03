@@ -550,6 +550,8 @@ create or replace function delete_meal(p_id uuid, p_base_version int) returns js
     v_household_id uuid := get_my_household_id();
     v_row meals;
     v_rows_affected int;
+    v_affected_plan_ids uuid[];
+    v_affected_plans jsonb;
   begin
     update meals set deleted_at = now()
     where id = p_id and household_id = v_household_id
@@ -565,7 +567,39 @@ create or replace function delete_meal(p_id uuid, p_base_version int) returns js
       return jsonb_build_object('status', 'conflict', 'id', v_row.id, 'version', v_row.version);
     end if;
 
-    return jsonb_build_object('status', 'ok', 'id', v_row.id, 'version', v_row.version);
+    with cleared_supper as (
+      update day_plans dp set supper_meal_id = null
+      from weekly_plans wp
+      where dp.weekly_plan_id = wp.id and wp.household_id = v_household_id
+        and dp.supper_meal_id = p_id
+      returning dp.weekly_plan_id
+    ), cleared_diner as (
+      update day_plans dp set diner_meal_id = null
+      from weekly_plans wp
+      where dp.weekly_plan_id = wp.id and wp.household_id = v_household_id
+        and dp.diner_meal_id = p_id
+      returning dp.weekly_plan_id
+    )
+    select array_agg(distinct weekly_plan_id) into v_affected_plan_ids
+    from (
+      select weekly_plan_id from cleared_supper
+      union
+      select weekly_plan_id from cleared_diner
+    ) ids;
+
+    if v_affected_plan_ids is not null then
+      update weekly_plans set updated_at = updated_at where id = any(v_affected_plan_ids);
+
+      select jsonb_agg(jsonb_build_object('id', wp.id, 'version', wp.version))
+      into v_affected_plans
+      from weekly_plans wp
+      where wp.id = any(v_affected_plan_ids);
+    end if;
+
+    return jsonb_build_object(
+      'status', 'ok', 'id', v_row.id, 'version', v_row.version,
+      'affected_plans', coalesce(v_affected_plans, '[]'::jsonb)
+    );
   end;
   $$;
 

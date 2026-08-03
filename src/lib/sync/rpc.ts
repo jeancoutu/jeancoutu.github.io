@@ -13,6 +13,10 @@ export interface PushResult {
   status: "ok" | "conflict";
   id: string;
   version?: number;
+  // Populated by delete_meal: weekly_plans rows whose day_plans it cleared
+  // and bumped server-side, so the engine can fast-forward the matching
+  // local rows' versions before the client's own cleanup upsert pushes.
+  affected_plans?: { id: string; version: number }[];
 }
 
 function dayPlansToRows(plan: WeeklyPlan) {

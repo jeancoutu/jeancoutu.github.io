@@ -14,6 +14,20 @@ vi.mock("../../lib/repos/mealRepo", () => ({
   },
 }));
 
+vi.mock("../../lib/repos/weeklyPlanRepo", () => ({
+  weeklyPlanRepo: {
+    clearMealFromAllPlans: vi.fn().mockResolvedValue([]),
+  },
+}));
+
+vi.mock("../../lib/stores/weeklyPlan.svelte", () => ({
+  weeklyPlan: {
+    getSelectedWeek: vi.fn().mockReturnValue("2025-01-04"),
+    reloadWeek: vi.fn().mockResolvedValue(undefined),
+    invalidateWeek: vi.fn(),
+  },
+}));
+
 const makeMeal = (overrides: Partial<Meal> = {}): Meal => ({
   id: "test-meal",
   name: "Test Meal",
@@ -94,6 +108,21 @@ describe("meals store", () => {
     await deleteMealById("to-delete");
     expect(mealRepo.delete).toHaveBeenCalledWith("to-delete");
     expect(meals.all.some((m) => m.id === "to-delete")).toBe(false);
+  });
+
+  it("deleteMealById clears the meal from weekly plans and reloads the selected week if affected", async () => {
+    const { deleteMealById } = await importMeals();
+    const { weeklyPlanRepo } = await import("../../lib/repos/weeklyPlanRepo");
+    const { weeklyPlan } = await import("../../lib/stores/weeklyPlan.svelte");
+    vi.mocked(weeklyPlanRepo.clearMealFromAllPlans).mockResolvedValueOnce(["2025-01-04", "2025-01-11"]);
+    vi.mocked(weeklyPlan.getSelectedWeek).mockReturnValueOnce("2025-01-04");
+
+    await deleteMealById("to-delete");
+
+    expect(weeklyPlanRepo.clearMealFromAllPlans).toHaveBeenCalledWith("to-delete");
+    expect(weeklyPlan.reloadWeek).toHaveBeenCalled();
+    expect(weeklyPlan.invalidateWeek).toHaveBeenCalledWith("2025-01-11");
+    expect(weeklyPlan.invalidateWeek).not.toHaveBeenCalledWith("2025-01-04");
   });
 
   it("updateMealById calls the repo and updates meal in store", async () => {

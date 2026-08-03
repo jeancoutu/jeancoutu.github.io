@@ -82,6 +82,40 @@ export class WeeklyPlanRepository {
     const presetIds = active ? [...row.presetIds, presetId] : row.presetIds.filter((id) => id !== presetId);
     return this.save(row, { presetIds });
   }
+
+  // Called when a meal is deleted: strips it out of every week's plan
+  // (past or future) so no day slot is left pointing at a dead meal id.
+  async clearMealFromAllPlans(mealId: string): Promise<string[]> {
+    if (!mealId) return [];
+
+    const rows = await db.weeklyPlans.filter((p) => !p.deletedAt).toArray();
+    const affected: string[] = [];
+
+    for (const row of rows) {
+      let touched = false;
+      const plan: WeeklyPlan = { ...row.plan };
+
+      for (const [day, entry] of Object.entries(row.plan)) {
+        if (entry.supper !== mealId && entry.diner !== mealId) continue;
+        touched = true;
+        const dayEntry = { ...entry };
+        if (dayEntry.supper === mealId) delete dayEntry.supper;
+        if (dayEntry.diner === mealId) delete dayEntry.diner;
+        if (dayEntry.supper || dayEntry.diner || dayEntry.note) {
+          plan[day as keyof WeeklyPlan] = dayEntry;
+        } else {
+          delete plan[day as keyof WeeklyPlan];
+        }
+      }
+
+      if (touched) {
+        await this.save(row, { plan });
+        affected.push(row.weekStart);
+      }
+    }
+
+    return affected;
+  }
 }
 
 export const weeklyPlanRepo = new WeeklyPlanRepository();

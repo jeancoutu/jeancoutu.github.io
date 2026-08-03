@@ -101,6 +101,84 @@ describe("weeklyPlanRepo", () => {
     expect(undone.dismissedNames).toEqual([]);
   });
 
+  it("clearMealFromAllPlans clears the meal from supper only, keeping the day entry if diner remains", async () => {
+    await weeklyPlanRepo.setPlan("2025-01-04", {
+      monday: { supper: "meal-1", diner: "meal-2" },
+    });
+
+    const affected = await weeklyPlanRepo.clearMealFromAllPlans("meal-1");
+
+    expect(affected).toEqual(["2025-01-04"]);
+    const row = await weeklyPlanRepo.getByWeek("2025-01-04");
+    expect(row?.plan.monday).toEqual({ diner: "meal-2" });
+  });
+
+  it("clearMealFromAllPlans clears the meal from diner only", async () => {
+    await weeklyPlanRepo.setPlan("2025-01-04", {
+      monday: { supper: "meal-2", diner: "meal-1" },
+    });
+
+    await weeklyPlanRepo.clearMealFromAllPlans("meal-1");
+
+    const row = await weeklyPlanRepo.getByWeek("2025-01-04");
+    expect(row?.plan.monday).toEqual({ supper: "meal-2" });
+  });
+
+  it("clearMealFromAllPlans clears both slots in the same day and drops the day entry", async () => {
+    await weeklyPlanRepo.setPlan("2025-01-04", {
+      monday: { supper: "meal-1", diner: "meal-1" },
+    });
+
+    await weeklyPlanRepo.clearMealFromAllPlans("meal-1");
+
+    const row = await weeklyPlanRepo.getByWeek("2025-01-04");
+    expect(row?.plan.monday).toBeUndefined();
+  });
+
+  it("clearMealFromAllPlans keeps the day entry when a note remains after clearing", async () => {
+    await weeklyPlanRepo.setPlan("2025-01-04", {
+      monday: { supper: "meal-1", note: "remember the sides" },
+    });
+
+    await weeklyPlanRepo.clearMealFromAllPlans("meal-1");
+
+    const row = await weeklyPlanRepo.getByWeek("2025-01-04");
+    expect(row?.plan.monday).toEqual({ note: "remember the sides" });
+  });
+
+  it("clearMealFromAllPlans clears the meal across multiple weeks and returns all affected weeks", async () => {
+    await weeklyPlanRepo.setPlan("2025-01-04", { monday: { supper: "meal-1" } });
+    await weeklyPlanRepo.setPlan("2025-01-11", { tuesday: { diner: "meal-1" } });
+    await weeklyPlanRepo.setPlan("2025-01-18", { wednesday: { supper: "meal-2" } });
+
+    const affected = await weeklyPlanRepo.clearMealFromAllPlans("meal-1");
+
+    expect(new Set(affected)).toEqual(new Set(["2025-01-04", "2025-01-11"]));
+    expect((await weeklyPlanRepo.getByWeek("2025-01-18"))?.plan.wednesday).toEqual({ supper: "meal-2" });
+  });
+
+  it("clearMealFromAllPlans is a no-op for a falsy id, even against days missing a supper/diner slot", async () => {
+    await weeklyPlanRepo.setPlan("2025-01-04", {
+      monday: { diner: "meal-2" },
+      tuesday: { note: "just a note" },
+    });
+
+    const affected = await weeklyPlanRepo.clearMealFromAllPlans(undefined as unknown as string);
+
+    expect(affected).toEqual([]);
+    const row = await weeklyPlanRepo.getByWeek("2025-01-04");
+    expect(row?.plan.monday).toEqual({ diner: "meal-2" });
+    expect(row?.plan.tuesday).toEqual({ note: "just a note" });
+  });
+
+  it("clearMealFromAllPlans is a no-op when the meal isn't referenced anywhere", async () => {
+    await weeklyPlanRepo.setPlan("2025-01-04", { monday: { supper: "meal-2" } });
+
+    const affected = await weeklyPlanRepo.clearMealFromAllPlans("meal-1");
+
+    expect(affected).toEqual([]);
+  });
+
   it("setPresetActive adds and removes a preset id idempotently", async () => {
     const activated = await weeklyPlanRepo.setPresetActive("2025-01-04", "preset-1", true);
     expect(activated.presetIds).toEqual(["preset-1"]);

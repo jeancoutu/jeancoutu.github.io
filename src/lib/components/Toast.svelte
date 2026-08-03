@@ -2,6 +2,7 @@
   import { _ } from "svelte-i18n";
   import { onMount } from "svelte";
   import { onConflict, type ConflictEvent } from "../sync/status.svelte";
+  import { onToast } from "../stores/toast.svelte";
 
   interface ToastItem {
     id: number;
@@ -22,17 +23,29 @@
     toasts = toasts.filter((t) => t.id !== id);
   }
 
-  function handleConflict(event: ConflictEvent) {
-    const entityLabel = $_(ENTITY_LABEL_KEYS[event.entity] ?? "sync.conflict.entity.generic");
-    const message = event.name
-      ? $_("sync.conflictToastNamed", { values: { name: event.name } })
-      : $_("sync.conflictToast", { values: { entity: entityLabel } });
+  function push(message: string) {
     const id = nextId++;
     toasts = [...toasts, { id, message }];
     setTimeout(() => dismiss(id), 6000);
   }
 
-  onMount(() => onConflict(handleConflict));
+  function handleConflict(event: ConflictEvent) {
+    const entityLabel = $_(ENTITY_LABEL_KEYS[event.entity] ?? "sync.conflict.entity.generic");
+    push(
+      event.name
+        ? $_("sync.conflictToastNamed", { values: { name: event.name } })
+        : $_("sync.conflictToast", { values: { entity: entityLabel } }),
+    );
+  }
+
+  onMount(() => {
+    const offConflict = onConflict(handleConflict);
+    const offToast = onToast((event) => push(event.message));
+    return () => {
+      offConflict();
+      offToast();
+    };
+  });
 </script>
 
 {#if toasts.length > 0}

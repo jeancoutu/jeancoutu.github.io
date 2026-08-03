@@ -2,8 +2,10 @@
   import { _ } from "svelte-i18n";
   import DurationBadge from "../../../lib/components/DurationBadge.svelte";
   import MealFormModal from "../../../lib/components/MealFormModal.svelte";
-  import { meals } from "../../../lib/stores/meals.svelte";
+  import Modal from "../../../lib/components/Modal.svelte";
+  import { meals, deleteMealById } from "../../../lib/stores/meals.svelte";
   import { navigate, hasNavigatedInApp } from "../../../lib/utils/router.svelte";
+  import { showToast } from "../../../lib/stores/toast.svelte";
   import { groupIngredientsBySection } from "../../../lib/utils/ingredientSections";
 
   interface Props {
@@ -16,12 +18,26 @@
   let ingredientSections = $derived(meal ? groupIngredientsBySection(meal.ingredients) : []);
   let editMealOpen = $state(false);
   let duplicateMealOpen = $state(false);
+  let deleteConfirmOpen = $state(false);
+  let deleteError = $state("");
 
   function goBack() {
     if (hasNavigatedInApp()) {
       window.history.back();
     } else {
       navigate("/meals");
+    }
+  }
+
+  async function removeMeal() {
+    if (!meal) return;
+    deleteConfirmOpen = false;
+    try {
+      await deleteMealById(meal.id);
+      navigate("/meals");
+      showToast($_("mealDetail.deleteSuccess"));
+    } catch {
+      deleteError = $_("mealDetail.errors.delete");
     }
   }
 </script>
@@ -77,7 +93,22 @@
           </svg>
           {$_("mealDetail.duplicate")}
         </button>
+        <button
+          type="button"
+          onclick={() => (deleteConfirmOpen = true)}
+          aria-label={$_("mealDetail.delete")}
+          class="flex size-[2.375rem] shrink-0 items-center justify-center rounded-icon text-ink-3 transition hover:bg-danger-tint hover:text-danger"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-[15px]">
+            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6h14z" />
+          </svg>
+        </button>
       </div>
+      {#if deleteError}
+        <p class="mb-3 rounded-input border border-danger bg-danger-tint px-3 py-2 text-sm text-danger">
+          {deleteError}
+        </p>
+      {/if}
       {#if meal.tags.length > 0}
         <div class="mb-3 flex flex-wrap gap-1.5">
           {#each meal.tags as tag (tag)}
@@ -148,3 +179,29 @@
     />
   {/key}
 {/if}
+
+<Modal
+  open={deleteConfirmOpen}
+  title={$_("mealDetail.deleteConfirmTitle")}
+  onclose={() => (deleteConfirmOpen = false)}
+>
+  {#snippet footer()}
+    <button
+      type="button"
+      onclick={() => (deleteConfirmOpen = false)}
+      class="rounded-pill border border-rule bg-transparent px-4 py-2.5 text-sm font-semibold text-ink-2 transition hover:border-rule-strong hover:bg-paper-2"
+    >
+      {$_("mealDetail.deleteCancel")}
+    </button>
+    <button
+      type="button"
+      onclick={removeMeal}
+      class="rounded-pill bg-danger px-4 py-2.5 text-sm font-semibold text-surface transition hover:brightness-95"
+    >
+      {$_("mealDetail.deleteConfirm")}
+    </button>
+  {/snippet}
+  <p class="text-sm text-ink-2">
+    {$_("mealDetail.deleteConfirmMessage")}
+  </p>
+</Modal>

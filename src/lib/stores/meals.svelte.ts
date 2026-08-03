@@ -1,8 +1,10 @@
 import type { DayKey, DurationTag, Ingredient, Meal } from "../types";
 import { DAYS, INGREDIENT_CATEGORIES } from "../types";
 import { mealRepo } from "../repos/mealRepo";
+import { weeklyPlanRepo } from "../repos/weeklyPlanRepo";
 import { onUserChange } from "./auth.svelte";
 import { onSynced } from "../sync/status.svelte";
+import { weeklyPlan } from "./weeklyPlan.svelte";
 
 const VALID_DAYS = new Set<DayKey>(DAYS.map((day) => day.key));
 const VALID_CATEGORIES = new Set(INGREDIENT_CATEGORIES);
@@ -109,4 +111,14 @@ export async function updateMealById(
 export async function deleteMealById(id: string): Promise<void> {
   await mealRepo.delete(id);
   meals.all = meals.all.filter((m) => m.id !== id);
+
+  const affectedWeeks = await weeklyPlanRepo.clearMealFromAllPlans(id);
+  const selectedWeek = weeklyPlan.getSelectedWeek();
+  for (const week of affectedWeeks) {
+    if (week === selectedWeek) {
+      await weeklyPlan.reloadWeek();
+    } else {
+      weeklyPlan.invalidateWeek(week);
+    }
+  }
 }

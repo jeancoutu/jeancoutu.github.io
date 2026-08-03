@@ -146,6 +146,72 @@ describe("upsert_meal / delete_meal RPCs", () => {
     expect(data).toMatchObject({ status: "conflict", id: mealId, version: 1 });
   });
 
+  it("delete_meal nulls day_plans slots referencing the meal, bumps the owning plan, and reports its new version", async () => {
+    const fake = await createFakeSupabase();
+    await fake._testHelpers.signInAsNewUser();
+
+    const mealId = crypto.randomUUID();
+    await fake.rpc("upsert_meal", {
+      p_id: mealId,
+      p_base_version: null,
+      p_name: "Chicken Soup",
+      p_duration: "short",
+      p_url: "",
+      p_supper_days: [],
+      p_instructions: [],
+      p_ingredients: [],
+    });
+
+    const planId = crypto.randomUUID();
+    await fake.rpc("upsert_weekly_plan", {
+      p_id: planId,
+      p_base_version: null,
+      p_week_start: "2026-01-05",
+      p_dismissed_names: [],
+      p_day_plans: [{ day_key: "monday", note: null, supper_meal_id: mealId, diner_meal_id: null }],
+      p_preset_ids: [],
+    });
+
+    const { data, error } = await fake.rpc("delete_meal", { p_id: mealId, p_base_version: 1 });
+
+    expect(error).toBeNull();
+    expect(data).toMatchObject({
+      status: "ok",
+      id: mealId,
+      affected_plans: [{ id: planId, version: 2 }],
+    });
+
+    const refetchedPlan = await fake
+      .from("weekly_plans")
+      .select("id, week_start, dismissed_ingredient_names, version, updated_at, deleted_at, day_plans(day_key, note, supper_meal_id, diner_meal_id), weekly_plan_grocery_presets(preset_id)")
+      .eq("id", planId)
+      .maybeSingle();
+    const dayPlans = (refetchedPlan.data as { day_plans: { supper_meal_id: string | null }[] }).day_plans;
+    expect(dayPlans).toEqual([{ day_key: "monday", note: null, supper_meal_id: null, diner_meal_id: null }]);
+  });
+
+  it("delete_meal reports no affected_plans when the meal isn't booked anywhere", async () => {
+    const fake = await createFakeSupabase();
+    await fake._testHelpers.signInAsNewUser();
+
+    const mealId = crypto.randomUUID();
+    await fake.rpc("upsert_meal", {
+      p_id: mealId,
+      p_base_version: null,
+      p_name: "Chicken Soup",
+      p_duration: "short",
+      p_url: "",
+      p_supper_days: [],
+      p_instructions: [],
+      p_ingredients: [],
+    });
+
+    const { data, error } = await fake.rpc("delete_meal", { p_id: mealId, p_base_version: 1 });
+
+    expect(error).toBeNull();
+    expect(data).toMatchObject({ status: "ok", id: mealId, affected_plans: [] });
+  });
+
   it("round-trips tags through insert, update, and refetch", async () => {
     const fake = await createFakeSupabase();
     await fake._testHelpers.signInAsNewUser();

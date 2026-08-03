@@ -26,7 +26,9 @@ const fake = supabase as unknown as FakeSupabase;
 const { db } = await import("../../lib/db");
 const { sync } = await import("../../lib/sync/engine");
 const { syncStatus } = await import("../../lib/sync/status.svelte");
+const { onConflict } = await import("../../lib/sync/status.svelte");
 const { weeklyPlanRepo } = await import("../../lib/repos/weeklyPlanRepo");
+const { mealRepo } = await import("../../lib/repos/mealRepo");
 
 const WEEK = "2026-07-11";
 
@@ -214,5 +216,35 @@ describe("planner meal selection persistence", () => {
 
     const after = await weeklyPlanRepo.getByWeek(WEEK);
     expect(after?.plan?.wednesday?.supper).toBe(mealId);
+  });
+
+  it("F: deleting a meal booked into a plan syncs without a spurious conflict toast", async () => {
+    const mealId = await seedMealOnServer();
+    await sync();
+
+    const row = await weeklyPlanRepo.getOrCreate(WEEK);
+    await weeklyPlanRepo.save(row, { plan: { monday: { supper: mealId } } });
+    await sync(); // plan booking now synced
+
+    // Mirrors stores/meals.svelte.ts's deleteMealById: the meal delete op
+    // and the local plan-cleanup upsert are queued back to back, then both
+    // flush in the same sync() pass — reproducing the race with the
+    // server's own delete_meal cleanup.
+    await mealRepo.delete(mealId);
+    await weeklyPlanRepo.clearMealFromAllPlans(mealId);
+
+    const conflicts: unknown[] = [];
+    const unsubscribe = onConflict((event) => conflicts.push(event));
+    try {
+      await sync();
+    } finally {
+      unsubscribe();
+    }
+
+    expect(conflicts).toEqual([]);
+    expect(await db.syncQueue.count()).toBe(0);
+
+    const after = await weeklyPlanRepo.getByWeek(WEEK);
+    expect(after?.plan?.monday).toBeUndefined();
   });
 });

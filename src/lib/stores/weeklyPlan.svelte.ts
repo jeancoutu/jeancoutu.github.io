@@ -239,6 +239,15 @@ class WeeklyPlanStore {
     await this.#loadWeek(this.selectedWeek);
   }
 
+  // Drops a cached week so the next time it's viewed it's read fresh from
+  // Dexie, rather than serving a stale in-memory copy after an external
+  // change (e.g. meal-deletion cleanup) touched its row.
+  invalidateWeek(week: string): void {
+    if (week === this.selectedWeek) return;
+    const { [week]: _, ...rest } = this.plans;
+    this.plans = rest;
+  }
+
   getSelectedWeek(): string {
     return this.selectedWeek;
   }
