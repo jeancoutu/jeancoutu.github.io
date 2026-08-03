@@ -1,5 +1,12 @@
 {
   "app.title": "Planificateur de repas hebdomadaire",
+  "auth.subtitle": "Connectez-vous pour planifier vos repas et créer la liste d'épicerie de votre foyer.",
+  "auth.signInGoogle": "Se connecter avec Google",
+  "auth.redirecting": "Redirection…",
+  "auth.devLogin": "Connexion développeur",
+  "auth.emailPlaceholder": "Courriel",
+  "auth.passwordPlaceholder": "Mot de passe",
+  "auth.signInEmail": "Se connecter par courriel",
   "nav.main": "Navigation principale",
   "nav.planner": "Planificateur",
   "nav.meals": "Repas",

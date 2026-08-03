@@ -1,5 +1,12 @@
 {
   "app.title": "Weekly Meal Planner",
+  "auth.subtitle": "Sign in to plan meals and build the grocery list for your household.",
+  "auth.signInGoogle": "Sign in with Google",
+  "auth.redirecting": "Redirecting…",
+  "auth.devLogin": "Dev login",
+  "auth.emailPlaceholder": "Email",
+  "auth.passwordPlaceholder": "Password",
+  "auth.signInEmail": "Sign in with email",
   "nav.main": "Main navigation",
   "nav.planner": "Planner",
   "nav.meals": "Meals",
