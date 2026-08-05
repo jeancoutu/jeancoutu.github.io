@@ -113,6 +113,22 @@ describe("weeklyPlan store", () => {
     expect(weeklyPlan.current.monday).toBeUndefined();
   });
 
+  it("setDay rejects (rather than resolving silently) when the underlying save fails", async () => {
+    const { weeklyPlan } = await importStore();
+    mockSave.mockRejectedValueOnce(new Error("DataCloneError"));
+    await expect(weeklyPlan.setDay("monday", "supper", "meal-abc")).rejects.toThrow("DataCloneError");
+  });
+
+  it("swapSlots rejects (rather than resolving silently) when the underlying save fails", async () => {
+    const { weeklyPlan } = await importStore();
+    await weeklyPlan.setDay("monday", "supper", "meal-a");
+    await weeklyPlan.setDay("tuesday", "diner", "meal-b");
+    mockSave.mockRejectedValueOnce(new Error("DataCloneError"));
+    await expect(
+      weeklyPlan.swapSlots({ day: "monday", slot: "supper" }, { day: "tuesday", slot: "diner" }),
+    ).rejects.toThrow("DataCloneError");
+  });
+
   it("clearWeek clears the plan row and grocery items", async () => {
     const { weeklyPlan } = await importStore();
     await weeklyPlan.setDay("monday", "supper", "meal-1");

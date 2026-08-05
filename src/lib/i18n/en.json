@@ -1,5 +1,7 @@
 {
   "app.title": "Weekly Meal Planner",
+  "app.storageUnavailable.title": "Storage unavailable",
+  "app.storageUnavailable.message": "This app couldn't access local storage on this device. If you're in private browsing mode, try leaving it and reloading the page.",
   "auth.subtitle": "Sign in to plan meals and build the grocery list for your household.",
   "auth.signInGoogle": "Sign in with Google",
   "auth.redirecting": "Redirecting…",
@@ -25,6 +27,10 @@
   "planner.pickMeal.empty": "No meals match your search.",
   "planner.pickMeal.emptySlot": "Add a meal",
   "planner.pickMeal.clear": "Remove meal",
+  "planner.errors.save": "Failed to save. Please try again.",
+  "planner.errors.clear": "Failed to clear the week. Please try again.",
+  "planner.errors.autoFill": "Failed to auto-fill the week. Please try again.",
+  "planner.errors.removeIngredient": "Failed to remove ingredient. Please try again.",
   "weekPicker.title": "Select week",
   "weekPicker.intro": "Each week starts on Saturday. Choose a week to view or edit its meal plan.",
   "weekPicker.thisWeek": "this week",

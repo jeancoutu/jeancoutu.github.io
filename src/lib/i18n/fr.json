@@ -1,5 +1,7 @@
 {
   "app.title": "Planificateur de repas hebdomadaire",
+  "app.storageUnavailable.title": "Stockage indisponible",
+  "app.storageUnavailable.message": "L'application n'a pas pu accéder au stockage local sur cet appareil. Si vous êtes en navigation privée, essayez de la quitter et de recharger la page.",
   "auth.subtitle": "Connectez-vous pour planifier vos repas et créer la liste d'épicerie de votre foyer.",
   "auth.signInGoogle": "Se connecter avec Google",
   "auth.redirecting": "Redirection…",
@@ -25,6 +27,10 @@
   "planner.pickMeal.empty": "Aucun repas ne correspond à votre recherche.",
   "planner.pickMeal.emptySlot": "Ajouter un repas",
   "planner.pickMeal.clear": "Retirer le repas",
+  "planner.errors.save": "Échec de l'enregistrement. Veuillez réessayer.",
+  "planner.errors.clear": "Échec de l'effacement de la semaine. Veuillez réessayer.",
+  "planner.errors.autoFill": "Échec du remplissage automatique de la semaine. Veuillez réessayer.",
+  "planner.errors.removeIngredient": "Échec de la suppression de l'ingrédient. Veuillez réessayer.",
   "weekPicker.title": "Choisir une semaine",
   "weekPicker.intro": "Chaque semaine commence le samedi. Choisissez une semaine pour voir ou modifier son plan de repas.",
   "weekPicker.thisWeek": "cette semaine",

@@ -4,6 +4,7 @@
   import { meals } from "../stores/meals.svelte";
   import { weeklyPlan } from "../stores/weeklyPlan.svelte";
   import { setGroceryItemsForWeek } from "../stores/groceryList.svelte";
+  import { showToast } from "../stores/toast.svelte";
   import { navigate } from "../utils/router.svelte";
   import { isToday } from "../utils/weekDates";
   import DayNoteModal from "./DayNoteModal.svelte";
@@ -48,11 +49,15 @@
   async function selectMeal(mealId: string | undefined) {
     const slot = pickerSlot;
     if (!slot) return;
-    const updatedGroceries = await weeklyPlan.setDay(day, slot, mealId);
-    if (updatedGroceries !== null) {
-      setGroceryItemsForWeek(weeklyPlan.selectedWeek, updatedGroceries);
+    try {
+      const updatedGroceries = await weeklyPlan.setDay(day, slot, mealId);
+      if (updatedGroceries !== null) {
+        setGroceryItemsForWeek(weeklyPlan.selectedWeek, updatedGroceries);
+      }
+      pickerSlot = null;
+    } catch {
+      showToast($_("planner.errors.save"));
     }
-    pickerSlot = null;
   }
 
   function viewRecipe(mealId: string) {
@@ -63,9 +68,13 @@
     dragState.source = null;
     dragState.over = null;
     if (!target) return;
-    const updatedGroceries = await weeklyPlan.swapSlots({ day, slot: sourceSlot }, target);
-    if (updatedGroceries !== null) {
-      setGroceryItemsForWeek(weeklyPlan.selectedWeek, updatedGroceries);
+    try {
+      const updatedGroceries = await weeklyPlan.swapSlots({ day, slot: sourceSlot }, target);
+      if (updatedGroceries !== null) {
+        setGroceryItemsForWeek(weeklyPlan.selectedWeek, updatedGroceries);
+      }
+    } catch {
+      showToast($_("planner.errors.save"));
     }
   }
 </script>

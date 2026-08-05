@@ -21,6 +21,7 @@
   import { buildDisplayItems, type DisplayItem } from "../utils/groceryDisplay";
   import { longpress } from "../utils/longpress";
   import { groceryPresets, togglePresetForWeek } from "../stores/groceryPresets.svelte";
+  import { showToast } from "../stores/toast.svelte";
 
   let plannedMeals = $derived(getPlannedMeals(weeklyPlan.current, getMealById));
   let mealPlanItems = $derived(buildGroceryList(plannedMeals));
@@ -123,11 +124,15 @@
     handleToggleChecked(item);
   }
 
-  function handleRemove(item: DisplayItem) {
+  async function handleRemove(item: DisplayItem) {
     if (item.isCustom) {
       if (item.dbId) removeGroceryItem(item.dbId);
     } else {
-      weeklyPlan.dismissIngredient(item.name, item.dbId);
+      try {
+        await weeklyPlan.dismissIngredient(item.name, item.dbId);
+      } catch {
+        showToast($_("planner.errors.removeIngredient"));
+      }
     }
   }
 

@@ -14,6 +14,7 @@
 
   import { weeklyPlan } from "../../lib/stores/weeklyPlan.svelte";
   import { reloadGroceryItemsForWeek, clearGroceryItemsForWeek } from "../../lib/stores/groceryList.svelte";
+  import { showToast } from "../../lib/stores/toast.svelte";
 
   import { formatWeekRange, isCurrentWeek } from "../../lib/utils/weekDates";
 
@@ -31,10 +32,22 @@
 
     clearConfirmOpen = false;
 
-    await weeklyPlan.clearWeek();
+    try {
+      await weeklyPlan.clearWeek();
+      clearGroceryItemsForWeek(weeklyPlan.selectedWeek);
+    } catch {
+      showToast($_("planner.errors.clear"));
+    }
 
-    clearGroceryItemsForWeek(weeklyPlan.selectedWeek);
+  }
 
+  async function handleAutoFill() {
+    try {
+      await weeklyPlan.autoFillWeek();
+      await reloadGroceryItemsForWeek(weeklyPlan.selectedWeek);
+    } catch {
+      showToast($_("planner.errors.autoFill"));
+    }
   }
 
 </script>
@@ -64,7 +77,7 @@
   <div class="flex gap-2">
     <button
       type="button"
-      onclick={async () => { await weeklyPlan.autoFillWeek(); await reloadGroceryItemsForWeek(weeklyPlan.selectedWeek); }}
+      onclick={handleAutoFill}
       class="flex min-w-0 flex-1 items-center justify-center gap-1.5 truncate rounded-pill bg-accent px-4 py-2.5 text-sm font-semibold text-surface shadow-btn-cast transition hover:-translate-y-px hover:bg-accent-deep active:translate-y-0 active:shadow-none"
     >
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0">

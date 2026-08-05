@@ -34,34 +34,39 @@ class WeeklyPlanStore {
     slot: MealSlot,
     mealId: string | undefined,
   ): Promise<GroceryDBItem[] | null> {
-    const week = this.selectedWeek;
-    const id = mealId ?? null;
-    // this.plans is a deep-reactive $state proxy tree; snapshot it before
-    // building the object we hand to Dexie, or unmodified days stay Proxy
-    // objects nested in the payload and IDBObjectStore.put throws
-    // DataCloneError, silently dropping the write.
-    const oldPlan = $state.snapshot(this.plans[week] ?? {});
-    const row = await weeklyPlanRepo.getOrCreate(week);
+    try {
+      const week = this.selectedWeek;
+      const id = mealId ?? null;
+      // this.plans is a deep-reactive $state proxy tree; snapshot it before
+      // building the object we hand to Dexie, or unmodified days stay Proxy
+      // objects nested in the payload and IDBObjectStore.put throws
+      // DataCloneError, silently dropping the write.
+      const oldPlan = $state.snapshot(this.plans[week] ?? {});
+      const row = await weeklyPlanRepo.getOrCreate(week);
 
-    const current = { ...oldPlan };
-    const dayEntry = { ...(current[day] ?? {}) };
-    if (id) {
-      dayEntry[slot] = id;
-    } else {
-      delete dayEntry[slot];
+      const current = { ...oldPlan };
+      const dayEntry = { ...(current[day] ?? {}) };
+      if (id) {
+        dayEntry[slot] = id;
+      } else {
+        delete dayEntry[slot];
+      }
+      if (dayEntry.supper || dayEntry.diner || dayEntry.note) {
+        current[day] = dayEntry;
+      } else {
+        delete current[day];
+      }
+
+      const updatedRow = await weeklyPlanRepo.save(row, { plan: current });
+      this.plans = { ...this.plans, [week]: updatedRow.plan };
+
+      const adjustments = computeGroceryAdjustments(oldPlan, updatedRow.plan, getMealById);
+      if (adjustments.length === 0) return null;
+      return groceryItemRepo.applyAdjustments(updatedRow.id, adjustments, updatedRow.dismissedNames);
+    } catch (err) {
+      console.error("Failed to update meal slot:", err);
+      throw err;
     }
-    if (dayEntry.supper || dayEntry.diner || dayEntry.note) {
-      current[day] = dayEntry;
-    } else {
-      delete current[day];
-    }
-
-    const updatedRow = await weeklyPlanRepo.save(row, { plan: current });
-    this.plans = { ...this.plans, [week]: updatedRow.plan };
-
-    const adjustments = computeGroceryAdjustments(oldPlan, updatedRow.plan, getMealById);
-    if (adjustments.length === 0) return null;
-    return groceryItemRepo.applyAdjustments(updatedRow.id, adjustments, updatedRow.dismissedNames);
   }
 
   async setSelectedWeek(weekKey: string): Promise<void> {
@@ -82,69 +87,84 @@ class WeeklyPlanStore {
   ): Promise<GroceryDBItem[] | null> {
     if (source.day === target.day && source.slot === target.slot) return null;
 
-    const week = this.selectedWeek;
-    // See #updateSlot: snapshot to strip $state Proxies before saving to Dexie.
-    const oldPlan = $state.snapshot(this.plans[week] ?? {});
-    const row = await weeklyPlanRepo.getOrCreate(week);
+    try {
+      const week = this.selectedWeek;
+      // See #updateSlot: snapshot to strip $state Proxies before saving to Dexie.
+      const oldPlan = $state.snapshot(this.plans[week] ?? {});
+      const row = await weeklyPlanRepo.getOrCreate(week);
 
-    const sourceMealId = oldPlan[source.day]?.[source.slot];
-    const targetMealId = oldPlan[target.day]?.[target.slot];
+      const sourceMealId = oldPlan[source.day]?.[source.slot];
+      const targetMealId = oldPlan[target.day]?.[target.slot];
 
-    const current = { ...oldPlan };
-    const sourceDayEntry = { ...(current[source.day] ?? {}) };
-    const targetDayEntry =
-      source.day === target.day ? sourceDayEntry : { ...(current[target.day] ?? {}) };
+      const current = { ...oldPlan };
+      const sourceDayEntry = { ...(current[source.day] ?? {}) };
+      const targetDayEntry =
+        source.day === target.day ? sourceDayEntry : { ...(current[target.day] ?? {}) };
 
-    if (targetMealId) sourceDayEntry[source.slot] = targetMealId;
-    else delete sourceDayEntry[source.slot];
+      if (targetMealId) sourceDayEntry[source.slot] = targetMealId;
+      else delete sourceDayEntry[source.slot];
 
-    if (sourceMealId) targetDayEntry[target.slot] = sourceMealId;
-    else delete targetDayEntry[target.slot];
+      if (sourceMealId) targetDayEntry[target.slot] = sourceMealId;
+      else delete targetDayEntry[target.slot];
 
-    for (const [day, entry] of [
-      [source.day, sourceDayEntry],
-      [target.day, targetDayEntry],
-    ] as const) {
-      if (entry.supper || entry.diner || entry.note) current[day] = entry;
-      else delete current[day];
+      for (const [day, entry] of [
+        [source.day, sourceDayEntry],
+        [target.day, targetDayEntry],
+      ] as const) {
+        if (entry.supper || entry.diner || entry.note) current[day] = entry;
+        else delete current[day];
+      }
+
+      const updatedRow = await weeklyPlanRepo.save(row, { plan: current });
+      this.plans = { ...this.plans, [week]: updatedRow.plan };
+
+      const adjustments = computeGroceryAdjustments(oldPlan, updatedRow.plan, getMealById);
+      if (adjustments.length === 0) return null;
+      return groceryItemRepo.applyAdjustments(updatedRow.id, adjustments, updatedRow.dismissedNames);
+    } catch (err) {
+      console.error("Failed to swap meal slots:", err);
+      throw err;
     }
-
-    const updatedRow = await weeklyPlanRepo.save(row, { plan: current });
-    this.plans = { ...this.plans, [week]: updatedRow.plan };
-
-    const adjustments = computeGroceryAdjustments(oldPlan, updatedRow.plan, getMealById);
-    if (adjustments.length === 0) return null;
-    return groceryItemRepo.applyAdjustments(updatedRow.id, adjustments, updatedRow.dismissedNames);
   }
 
   async setDayNote(day: DayKey, note: string | null): Promise<void> {
-    const week = this.selectedWeek;
-    const row = await weeklyPlanRepo.getOrCreate(week);
+    try {
+      const week = this.selectedWeek;
+      const row = await weeklyPlanRepo.getOrCreate(week);
 
-    // See #updateSlot: snapshot to strip $state Proxies before saving to Dexie.
-    const current = $state.snapshot(this.plans[week] ?? {});
-    const dayEntry = { ...(current[day] ?? {}) };
-    if (note) {
-      dayEntry.note = note;
-    } else {
-      delete dayEntry.note;
-    }
-    if (dayEntry.supper || dayEntry.diner || dayEntry.note) {
-      current[day] = dayEntry;
-    } else {
-      delete current[day];
-    }
+      // See #updateSlot: snapshot to strip $state Proxies before saving to Dexie.
+      const current = $state.snapshot(this.plans[week] ?? {});
+      const dayEntry = { ...(current[day] ?? {}) };
+      if (note) {
+        dayEntry.note = note;
+      } else {
+        delete dayEntry.note;
+      }
+      if (dayEntry.supper || dayEntry.diner || dayEntry.note) {
+        current[day] = dayEntry;
+      } else {
+        delete current[day];
+      }
 
-    const updatedRow = await weeklyPlanRepo.save(row, { plan: current });
-    this.plans = { ...this.plans, [week]: updatedRow.plan };
+      const updatedRow = await weeklyPlanRepo.save(row, { plan: current });
+      this.plans = { ...this.plans, [week]: updatedRow.plan };
+    } catch (err) {
+      console.error("Failed to save day note:", err);
+      throw err;
+    }
   }
 
   async clearWeek(): Promise<void> {
-    const week = this.selectedWeek;
-    const row = await weeklyPlanRepo.clearPlan(week);
-    if (row) await groceryItemRepo.deleteAll(row.id);
-    const { [week]: _, ...rest } = this.plans;
-    this.plans = rest;
+    try {
+      const week = this.selectedWeek;
+      const row = await weeklyPlanRepo.clearPlan(week);
+      if (row) await groceryItemRepo.deleteAll(row.id);
+      const { [week]: _, ...rest } = this.plans;
+      this.plans = rest;
+    } catch (err) {
+      console.error("Failed to clear week:", err);
+      throw err;
+    }
   }
 
   async importPlan(plan: WeeklyPlan, weekStart?: string): Promise<void> {
@@ -156,6 +176,15 @@ class WeeklyPlanStore {
   }
 
   async autoFillWeek(): Promise<void> {
+    try {
+      await this.#autoFillWeek();
+    } catch (err) {
+      console.error("Failed to auto-fill week:", err);
+      throw err;
+    }
+  }
+
+  async #autoFillWeek(): Promise<void> {
     const week = this.selectedWeek;
     const current = { ...(this.plans[week] ?? {}) };
 
@@ -257,14 +286,19 @@ class WeeklyPlanStore {
   }
 
   async dismissIngredient(name: string, dbId?: string): Promise<void> {
-    const week = this.selectedWeek;
-    const currentNames = this.dismissedNamesPerWeek[week] ?? [];
-    if (!currentNames.includes(name)) {
-      this.dismissedNamesPerWeek = { ...this.dismissedNamesPerWeek, [week]: [...currentNames, name] };
-    }
-    await weeklyPlanRepo.dismissIngredient(week, name);
-    if (dbId) {
-      await groceryItemRepo.delete(dbId);
+    try {
+      const week = this.selectedWeek;
+      const currentNames = this.dismissedNamesPerWeek[week] ?? [];
+      if (!currentNames.includes(name)) {
+        this.dismissedNamesPerWeek = { ...this.dismissedNamesPerWeek, [week]: [...currentNames, name] };
+      }
+      await weeklyPlanRepo.dismissIngredient(week, name);
+      if (dbId) {
+        await groceryItemRepo.delete(dbId);
+      }
+    } catch (err) {
+      console.error("Failed to dismiss ingredient:", err);
+      throw err;
     }
   }
 

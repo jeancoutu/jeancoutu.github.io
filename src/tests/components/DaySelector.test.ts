@@ -4,6 +4,7 @@ import DaySelector from "../../lib/components/DaySelector.svelte";
 import { meals } from "../../lib/stores/meals.svelte";
 import { weeklyPlan } from "../../lib/stores/weeklyPlan.svelte";
 import { groceryList } from "../../lib/stores/groceryList.svelte";
+import { onToast } from "../../lib/stores/toast.svelte";
 import { router } from "../../lib/utils/router.svelte";
 import { mealRepo } from "../../lib/repos/mealRepo";
 import { db } from "../../lib/db";
@@ -49,6 +50,26 @@ describe("DaySelector", () => {
     await vi.waitFor(() => {
       expect(groceryList.itemsForWeek.map((i) => i.name)).toContain("Beef");
     });
+  });
+
+  it("shows a toast and keeps the picker open when saving the selected meal fails", async () => {
+    const meal = await seedMeal();
+    render(DaySelector, { day: "monday" });
+    const user = userEvent.setup();
+
+    const setDaySpy = vi.spyOn(weeklyPlan, "setDay").mockRejectedValueOnce(new Error("DataCloneError"));
+    const messages: string[] = [];
+    const offToast = onToast((event) => messages.push(event.message));
+
+    await user.click(screen.getByRole("button", { name: /Supper/i }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: meal.name }));
+
+    await vi.waitFor(() => expect(messages).toContain("Failed to save. Please try again."));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(weeklyPlan.current.monday?.supper).toBeUndefined();
+
+    offToast();
+    setDaySpy.mockRestore();
   });
 
   it("removing a meal via the picker's 'Remove meal' row clears that day's slot", async () => {

@@ -7,6 +7,7 @@ import type {
   WeeklyPlan,
 } from "../types";
 import { onUserChange } from "../stores/auth.svelte";
+import { dbStatus } from "./status.svelte";
 
 // ============================================================
 // Row shapes: aggregate roots as stored locally, sync metadata
@@ -101,6 +102,20 @@ class MealPlannerDB extends Dexie {
 }
 
 export const db = new MealPlannerDB();
+
+// Multi-tab: another tab's upgrade is waiting on this connection — close it
+// so that tab isn't blocked forever, rather than staying open and stuck.
+db.on("blocked", () => {
+  console.error("[db] open blocked by another connection");
+});
+db.on("versionchange", () => {
+  console.error("[db] version change requested by another tab, closing connection");
+  db.close();
+});
+db.open().catch((err) => {
+  console.error("[db] failed to open IndexedDB", err);
+  dbStatus.openFailed = true;
+});
 
 const ALL_TABLES = [
   db.meals,
