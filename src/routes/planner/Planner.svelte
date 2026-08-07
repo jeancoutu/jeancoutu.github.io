@@ -16,7 +16,14 @@
   import { reloadGroceryItemsForWeek, clearGroceryItemsForWeek } from "../../lib/stores/groceryList.svelte";
   import { showToast } from "../../lib/stores/toast.svelte";
 
-  import { formatWeekRange, isCurrentWeek } from "../../lib/utils/weekDates";
+  import {
+    addWeeks,
+    formatWeekRange,
+    getWeekSaturday,
+    isCurrentWeek,
+    parseWeekKey,
+    toWeekKey,
+  } from "../../lib/utils/weekDates";
 
 
 
@@ -27,6 +34,15 @@
   let activeWeek = $derived(weeklyPlan.selectedWeek);
 
   let weekLabel = $derived(formatWeekRange(activeWeek, $locale ?? "en"));
+
+  function shiftWeek(delta: number) {
+    const target = toWeekKey(addWeeks(parseWeekKey(activeWeek), delta));
+    void weeklyPlan.setSelectedWeek(target);
+  }
+
+  function jumpToToday() {
+    void weeklyPlan.setSelectedWeek(toWeekKey(getWeekSaturday()));
+  }
 
   async function confirmClearWeek() {
 
@@ -56,22 +72,57 @@
 
 <div class="space-y-4 select-none">
 
-  <header class="flex items-start justify-between gap-3">
-    <h1 class="min-w-0 font-display text-[clamp(1.25rem,4vw+0.4rem,1.5rem)] font-semibold tracking-[-0.01em] break-words text-ink">
-      {weekLabel}
-    </h1>
-    <button
-      type="button"
-      onclick={() => (weekPickerOpen = true)}
-      class="flex shrink-0 items-center gap-1 rounded-pill border border-rule bg-surface px-3 py-1.5 text-[0.8125rem] font-medium whitespace-nowrap text-ink-2 transition hover:border-rule-strong hover:bg-paper-2"
-    >
+  <header>
+    <div class="flex items-center gap-1">
+      <button
+        type="button"
+        onclick={() => shiftWeek(-1)}
+        aria-label={$_("planner.prevWeek")}
+        class="flex size-14 shrink-0 items-center justify-center rounded-pill text-ink-3 transition hover:bg-paper-2 hover:text-ink active:scale-95 active:bg-accent-tint active:text-accent-deep"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="size-[18px]">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        onclick={() => (weekPickerOpen = true)}
+        aria-label={$_("weekPicker.title")}
+        class="min-w-0 flex-1 overflow-hidden rounded-pill px-2 py-1 text-center"
+      >
+        <h1 class="truncate font-display text-[1.1875rem] font-semibold tracking-[-0.01em] text-ink">
+          {weekLabel}
+        </h1>
+      </button>
+      <button
+        type="button"
+        onclick={() => shiftWeek(1)}
+        aria-label={$_("planner.nextWeek")}
+        class="flex size-14 shrink-0 items-center justify-center rounded-pill text-ink-3 transition hover:bg-paper-2 hover:text-ink active:scale-95 active:bg-accent-tint active:text-accent-deep"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="size-[18px]">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="mt-1 min-h-[20px] text-center">
       {#if isCurrentWeek(activeWeek)}
-        {$_("planner.thisWeek")}
+        <span class="inline-flex items-center rounded-pill bg-accent-tint px-2.5 py-0.5 text-xs font-semibold text-accent-deep">
+          {$_("planner.thisWeek")}
+        </span>
+      {:else}
+        <button
+          type="button"
+          onclick={jumpToToday}
+          class="text-xs font-semibold text-accent-deep underline decoration-accent-deep/40 underline-offset-2"
+        >
+          {$_("planner.backToThisWeek")}
+        </button>
       {/if}
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-3.5">
-        <path d="M6 9l6 6 6-6" />
-      </svg>
-    </button>
+    </div>
+
+    <div class="mt-4 -mx-4 h-px bg-rule"></div>
   </header>
 
   <div class="flex gap-2">
@@ -80,9 +131,6 @@
       onclick={handleAutoFill}
       class="flex min-w-0 flex-1 items-center justify-center gap-1.5 truncate rounded-pill bg-accent px-4 py-2.5 text-sm font-semibold text-surface shadow-btn-cast transition hover:-translate-y-px hover:bg-accent-deep active:translate-y-0 active:shadow-none"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4 shrink-0">
-        <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5L18 18M18 6l-2.5 2.5M8.5 15.5L6 18" />
-      </svg>
       <span class="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{$_("planner.autoFill")}</span>
     </button>
     <button
