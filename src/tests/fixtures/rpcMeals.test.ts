@@ -306,6 +306,41 @@ describe("upsert_meal / delete_meal RPCs", () => {
     expect((refetched.data as { tags: string[] }).tags).toEqual([]);
   });
 
+  it("round-trips needs_prep_ahead through insert, update, and refetch, defaulting to false when omitted", async () => {
+    const fake = await createFakeSupabase();
+    await fake._testHelpers.signInAsNewUser();
+
+    const mealId = crypto.randomUUID();
+    await fake.rpc("upsert_meal", {
+      p_id: mealId,
+      p_base_version: null,
+      p_name: "Marinated Chicken",
+      p_duration: "short",
+      p_url: "",
+      p_supper_days: [],
+      p_instructions: [],
+      p_ingredients: [],
+    });
+
+    let refetched = await fake.from("meals").select("*").eq("id", mealId).maybeSingle();
+    expect((refetched.data as { needs_prep_ahead: boolean }).needs_prep_ahead).toBe(false);
+
+    await fake.rpc("upsert_meal", {
+      p_id: mealId,
+      p_base_version: 1,
+      p_name: "Marinated Chicken",
+      p_duration: "short",
+      p_url: "",
+      p_supper_days: [],
+      p_instructions: [],
+      p_ingredients: [],
+      p_needs_prep_ahead: true,
+    });
+
+    refetched = await fake.from("meals").select("*").eq("id", mealId).maybeSingle();
+    expect((refetched.data as { needs_prep_ahead: boolean }).needs_prep_ahead).toBe(true);
+  });
+
   it("delete_meal is idempotent once the meal is already deleted", async () => {
     const fake = await createFakeSupabase();
     await fake._testHelpers.signInAsNewUser();

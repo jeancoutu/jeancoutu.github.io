@@ -18,6 +18,7 @@ export interface CustomMealInput {
   instructions: string[];
   /** Optional until the editor is wired up (meal-tags step 2); normalized in mealRepo. */
   tags?: string[];
+  needsPrepAhead: boolean;
 }
 
 function normalizeDays(value: DayKey[]): DayKey[] {
@@ -42,6 +43,7 @@ function buildMealInput(input: CustomMealInput): Omit<Meal, "id"> {
     }),
     instructions: input.instructions.map((i) => i.trim()).filter(Boolean),
     tags: input.tags ?? [],
+    needsPrepAhead: input.needsPrepAhead,
   };
 }
 

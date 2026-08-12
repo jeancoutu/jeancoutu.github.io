@@ -37,6 +37,7 @@ const makeMeal = (overrides: Partial<Meal> = {}): Meal => ({
   ingredients: [],
   instructions: [],
   tags: [],
+  needsPrepAhead: false,
   ...overrides,
 });
 
@@ -96,6 +97,7 @@ describe("meals store", () => {
       url: "",
       ingredients: [],
       instructions: [],
+      needsPrepAhead: false,
     });
     expect(mealRepo.create).toHaveBeenCalled();
     expect(meals.all.some((m) => m.id === "custom-1")).toBe(true);
@@ -136,6 +138,7 @@ describe("meals store", () => {
       url: "",
       ingredients: [],
       instructions: [],
+      needsPrepAhead: false,
     });
     expect(mealRepo.update).toHaveBeenCalledWith("c-existing", expect.objectContaining({ name: "New Name" }));
     expect(meals.all.find((m) => m.id === "c-existing")?.name).toBe("New Name");

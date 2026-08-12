@@ -36,6 +36,7 @@
       instructions: mealToLoad.instructions.join("\n"),
       selectedDays: mealToLoad.supperDays,
       tags: mealToLoad.tags,
+      needsPrepAhead: mealToLoad.needsPrepAhead,
     };
   }
 
@@ -52,6 +53,7 @@
             instructions: "",
             selectedDays: DAYS.map((day) => day.key),
             tags: [] as string[],
+            needsPrepAhead: false,
           };
   }
 
@@ -64,6 +66,7 @@
   let instructions = $state("");
   let selectedDays = $state<DayKey[]>([]);
   let tags = $state<string[]>([]);
+  let needsPrepAhead = $state(false);
   let error = $state("");
 
   // The component stays mounted while closed (for a smoother open animation),
@@ -80,6 +83,7 @@
       instructions = form.instructions;
       selectedDays = form.selectedDays;
       tags = form.tags;
+      needsPrepAhead = form.needsPrepAhead;
       error = "";
     }
     wasOpen = open;
@@ -142,6 +146,7 @@
       ingredients: ingredientRows,
       instructions: parsedInstructions,
       tags,
+      needsPrepAhead,
     };
 
     saving = true;
@@ -212,6 +217,24 @@
           <option {value}>{$_(`duration.${value}`)}</option>
         {/each}
       </select>
+    </label>
+
+    <label class="flex cursor-pointer items-center gap-2.5 rounded-input border px-3.5 py-2.5 text-[0.9375rem] text-ink transition
+      {needsPrepAhead ? 'border-accent bg-accent-tint' : 'border-rule hover:border-rule-strong'}">
+      <input
+        type="checkbox"
+        bind:checked={needsPrepAhead}
+        class="sr-only"
+      />
+      <span class="flex size-[18px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px] transition
+        {needsPrepAhead ? 'border-accent bg-accent text-surface' : 'border-rule-strong bg-surface text-surface'}">
+        {#if needsPrepAhead}
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="size-[11px]">
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+        {/if}
+      </span>
+      {$_("meals.create.needsPrepAhead")}
     </label>
 
     <label class="block">

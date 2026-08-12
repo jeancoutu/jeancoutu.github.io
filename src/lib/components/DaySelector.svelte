@@ -41,6 +41,11 @@
     return meals.all.find((m) => m.id === id)?.name;
   }
 
+  function mealNeedsPrepAhead(id: string | undefined): boolean {
+    if (!id) return false;
+    return meals.all.find((m) => m.id === id)?.needsPrepAhead ?? false;
+  }
+
   function openPicker(slot: MealSlot) {
     pickerQuery = "";
     pickerSlot = slot;
@@ -109,6 +114,7 @@
     {#each slots as slot (slot)}
       {@const mealId = weeklyPlan.current[day]?.[slot]}
       {@const name = mealName(mealId)}
+      {@const prepAhead = mealNeedsPrepAhead(mealId)}
       {@const isDropHover = isSameSlot(dragState.over, { day, slot }) && !isSameSlot(dragState.source, { day, slot })}
       <div class="-mx-2 flex items-center gap-2">
         <button
@@ -125,7 +131,7 @@
             {!name ? 'border-[1.5px] border-dashed border-rule-strong text-ink-3 hover:border-accent hover:bg-accent-tint hover:text-accent-deep' : ''}
             {isDropHover ? 'ring-2 ring-accent bg-accent-tint' : ''}"
         >
-          <span class="flex size-8 shrink-0 items-center justify-center rounded-icon bg-paper-2 text-ink-2">
+          <span class="flex size-8 shrink-0 items-center justify-center rounded-icon {prepAhead ? 'bg-accent-tint text-accent-deep' : 'bg-paper-2 text-ink-2'}">
             {#if slot === "diner"}
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-4">
                 <circle cx="12" cy="12" r="4" />

@@ -139,6 +139,7 @@ describe("pull_changes RPC", () => {
       p_supper_days: ["monday"],
       p_instructions: ["Simmer"],
       p_ingredients: [{ name: "Chicken", quantity: "1 lb", category: "meat" }],
+      p_needs_prep_ahead: true,
     });
 
     const presetId = crypto.randomUUID();
@@ -161,7 +162,7 @@ describe("pull_changes RPC", () => {
 
     const { data } = await fake.rpc("pull_changes", { p_since: null });
     const result = data as {
-      meals: { ingredients: { name: string; quantity: string; category: string }[] }[];
+      meals: { ingredients: { name: string; quantity: string; category: string }[]; needs_prep_ahead: boolean }[];
       grocery_presets: { items: { name: string; quantity: string; category: string }[] }[];
       weekly_plans: {
         day_plans: { day_key: string; note: string | null; supper_meal_id: string | null; diner_meal_id: string | null }[];
@@ -172,6 +173,7 @@ describe("pull_changes RPC", () => {
     expect(result.meals[0]!.ingredients).toEqual([
       { name: "Chicken", quantity: "1 lb", category: "meat", section: null },
     ]);
+    expect(result.meals[0]!.needs_prep_ahead).toBe(true);
     expect(result.grocery_presets[0]!.items).toEqual([{ name: "Milk", quantity: "1L", category: "fridge" }]);
     expect(result.weekly_plans[0]!.day_plans).toEqual([
       { day_key: "monday", note: "note", supper_meal_id: mealId, diner_meal_id: null },

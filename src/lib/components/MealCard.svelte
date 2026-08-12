@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Meal } from "../types";
   import DurationBadge from "./DurationBadge.svelte";
+  import PrepBadge from "./PrepBadge.svelte";
   import { navigate } from "../utils/router.svelte";
 
   interface Props {
@@ -23,6 +24,7 @@
     <p class="m-0 mb-1 [overflow-wrap:anywhere] font-body text-[0.9375rem] font-semibold text-ink">{meal.name}</p>
     <span class="flex flex-wrap items-center gap-1.5">
       <DurationBadge duration={meal.duration} />
+      <PrepBadge needsPrepAhead={meal.needsPrepAhead} />
       {#each meal.tags as tag (tag)}
         <span class="rounded-pill bg-paper-2 px-2 py-0.5 text-[0.6875rem] text-ink-3">{tag}</span>
       {/each}

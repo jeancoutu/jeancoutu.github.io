@@ -1,6 +1,7 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
   import DurationBadge from "../../../lib/components/DurationBadge.svelte";
+  import PrepBadge from "../../../lib/components/PrepBadge.svelte";
   import MealFormModal from "../../../lib/components/MealFormModal.svelte";
   import Modal from "../../../lib/components/Modal.svelte";
   import { meals, deleteMealById } from "../../../lib/stores/meals.svelte";
@@ -70,6 +71,7 @@
       <div class="mb-3 flex flex-wrap items-center gap-2">
         <h1 class="min-w-0 [overflow-wrap:anywhere] font-display text-[clamp(1.5rem,6vw+0.4rem,1.875rem)] font-bold tracking-[-0.015em] text-ink">{meal.name}</h1>
         <DurationBadge duration={meal.duration} />
+        <PrepBadge needsPrepAhead={meal.needsPrepAhead} />
       </div>
       <div class="mb-3 flex flex-wrap items-center gap-2">
         <button

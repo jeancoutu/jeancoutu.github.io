@@ -89,6 +89,7 @@ async function pushMeal(op: SyncQueueItem): Promise<PushResult> {
     // Old queued payloads (written before tags existed) send null, which
     // upsert_meal coalesces to "keep the server's tags" instead of wiping.
     p_tags: row.tags ?? null,
+    p_needs_prep_ahead: row.needsPrepAhead,
   });
 }
 
@@ -170,6 +171,7 @@ export interface PulledMeal {
   supper_days: string[];
   instructions: string[];
   tags: string[];
+  needs_prep_ahead: boolean;
   ingredients: { name: string; quantity: string; category: string; section: string | null }[];
   version: number;
   updated_at: string;
@@ -267,7 +269,7 @@ export async function refetchMeal(id: string): Promise<PulledMeal | null> {
     Omit<PulledMeal, "ingredients"> & { meal_ingredients: PulledMeal["ingredients"] }
   >(
     "meals",
-    "id, name, duration, url, supper_days, instructions, tags, version, updated_at, deleted_at, meal_ingredients(name, quantity, category, section)",
+    "id, name, duration, url, supper_days, instructions, tags, needs_prep_ahead, version, updated_at, deleted_at, meal_ingredients(name, quantity, category, section)",
     id,
   );
   if (!data) return null;

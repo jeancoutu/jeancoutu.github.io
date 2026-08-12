@@ -18,6 +18,7 @@ function makeMeal(overrides: Partial<Meal> & { id: string }): Meal {
     ingredients: [],
     instructions: [],
     tags: [],
+    needsPrepAhead: false,
     ...overrides,
   };
 }

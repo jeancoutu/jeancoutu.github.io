@@ -35,6 +35,9 @@ export interface LocalMeal extends SyncMeta {
   // Not indexed, so no Dexie version bump. Rows written before this field
   // existed lack it — read paths default with `?? []` (mealRepo.toMeal).
   tags: string[];
+  // Not indexed, so no Dexie version bump. Rows written before this field
+  // existed lack it — read paths default with `?? false` (mealRepo.toMeal).
+  needsPrepAhead: boolean;
 }
 
 export interface LocalGroceryPreset extends SyncMeta {

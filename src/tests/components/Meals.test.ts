@@ -14,6 +14,7 @@ async function seedMeal(overrides: Partial<Omit<Meal, "id">> = {}): Promise<Meal
     url: "",
     ingredients: [{ name: "Beef", quantity: "1 lb", category: "meat" }],
     instructions: ["Cook the beef."],
+    needsPrepAhead: false,
     ...overrides,
   });
   meals.all = await mealRepo.getAll();
@@ -74,6 +75,14 @@ describe("Meals", () => {
     await user.click(screen.getByRole("button", { name: /Tacos/ }));
 
     expect(router.current).toEqual({ name: "meal", id: meal.id });
+  });
+
+  it("shows the Prep ahead badge on the meal card only when the meal needs advance prep", async () => {
+    await seedMeal({ name: "Marinated Chicken", needsPrepAhead: true });
+    await seedMeal({ name: "Plain Pasta", needsPrepAhead: false });
+    render(Meals);
+
+    expect(screen.getByText("Prep ahead")).toBeInTheDocument();
   });
 
   it("shows a tag pill row sorted alphabetically", async () => {

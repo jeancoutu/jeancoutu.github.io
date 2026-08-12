@@ -18,6 +18,7 @@ async function seedMeal(overrides: Partial<Omit<Meal, "id">> = {}): Promise<Meal
     url: "",
     ingredients: [{ name: "Beef", quantity: "1 lb", category: "meat" }],
     instructions: ["Cook the beef."],
+    needsPrepAhead: false,
     ...overrides,
   });
   meals.all = await mealRepo.getAll();
@@ -50,6 +51,27 @@ describe("DaySelector", () => {
     await vi.waitFor(() => {
       expect(groceryList.itemsForWeek.map((i) => i.name)).toContain("Beef");
     });
+  });
+
+  it("colors the slot icon with accent tokens when the assigned meal needs advance prep", async () => {
+    const prepMeal = await seedMeal({ name: "Marinated Chicken", needsPrepAhead: true });
+    const plainMeal = await seedMeal({ name: "Plain Pasta", needsPrepAhead: false });
+    render(DaySelector, { day: "monday" });
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: /Supper/i }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: prepMeal.name }));
+    await vi.waitFor(() => expect(weeklyPlan.current.monday?.supper).toBe(prepMeal.id));
+
+    const supperButton = screen.getByRole("button", { name: new RegExp(`Supper.*${prepMeal.name}`, "s") });
+    expect(supperButton.querySelector("span.rounded-icon")).toHaveClass("bg-accent-tint", "text-accent-deep");
+
+    await user.click(supperButton);
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: plainMeal.name }));
+    await vi.waitFor(() => expect(weeklyPlan.current.monday?.supper).toBe(plainMeal.id));
+
+    const updatedButton = screen.getByRole("button", { name: new RegExp(`Supper.*${plainMeal.name}`, "s") });
+    expect(updatedButton.querySelector("span.rounded-icon")).toHaveClass("bg-paper-2", "text-ink-2");
   });
 
   it("shows a toast and keeps the picker open when saving the selected meal fails", async () => {

@@ -34,6 +34,8 @@ export interface Meal {
   instructions: string[];
   /** Free-text tags, stored trimmed + lowercased (see normalizeTags). */
   tags: string[];
+  /** Recipe needs advance prep (marinating, soaking, thawing, brining, etc). */
+  needsPrepAhead: boolean;
 }
 
 export type GroceryPresetItem = Ingredient;

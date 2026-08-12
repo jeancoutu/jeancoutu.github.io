@@ -12,6 +12,7 @@ function makeMeal(id: string, supperDays: Meal["supperDays"], tags: string[] = [
     ingredients: [],
     instructions: [],
     tags,
+    needsPrepAhead: false,
   };
 }
 

@@ -147,6 +147,7 @@ describe("GroceryList", () => {
       url: "",
       ingredients: [{ name: "Beef", quantity: "1 lb", category: "meat" }],
       instructions: ["Cook"],
+      needsPrepAhead: false,
     });
     meals.all = await mealRepo.getAll();
     weeklyPlan.plans = {
@@ -174,6 +175,7 @@ describe("GroceryList", () => {
       url: "",
       ingredients: [{ name: "Beef", quantity: "1 lb", category: "meat" }],
       instructions: ["Cook"],
+      needsPrepAhead: false,
     });
     meals.all = await mealRepo.getAll();
     weeklyPlan.plans = {
@@ -213,6 +215,7 @@ describe("GroceryList", () => {
       url: "",
       ingredients: [{ name: "Beef", quantity: "1 lb", category: "meat" }],
       instructions: ["Cook"],
+      needsPrepAhead: false,
     });
     meals.all = await mealRepo.getAll();
     weeklyPlan.plans = {
@@ -308,6 +311,7 @@ describe("GroceryList", () => {
       url: "",
       ingredients: [{ name: "Beef", quantity: "1 lb", category: "meat" }],
       instructions: ["Cook"],
+      needsPrepAhead: false,
     });
     meals.all = await mealRepo.getAll();
     weeklyPlan.plans = {

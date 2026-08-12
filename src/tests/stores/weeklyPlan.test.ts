@@ -240,6 +240,7 @@ describe("weeklyPlan store", () => {
         ingredients: ingredients as any,
         instructions: [],
         tags: [],
+        needsPrepAhead: false,
       };
     }
 
@@ -353,6 +354,7 @@ describe("weeklyPlan store", () => {
         ingredients: [],
         instructions: [],
         tags,
+        needsPrepAhead: false,
       };
     }
 

@@ -20,6 +20,7 @@ async function seedMeal(name: string, supperDays: DayKey[] = ALL_DAYS): Promise<
     url: "",
     ingredients: [{ name: `${name} ingredient`, quantity: "1", category: "meat" }],
     instructions: ["Cook it."],
+    needsPrepAhead: false,
   });
   meals.all = await mealRepo.getAll();
   return meal;

@@ -12,7 +12,7 @@ const schemaSql = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "sc
 // translator.
 const SELECT_QUERIES: Record<string, string> = {
   meals: `
-    select m.id, m.name, m.duration, m.url, m.supper_days, m.instructions, m.tags,
+    select m.id, m.name, m.duration, m.url, m.supper_days, m.instructions, m.tags, m.needs_prep_ahead,
            m.version, m.updated_at, m.deleted_at,
            coalesce((
              select jsonb_agg(jsonb_build_object('name', mi.name, 'quantity', mi.quantity, 'category', mi.category))

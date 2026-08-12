@@ -10,6 +10,7 @@ const input = {
   url: "",
   ingredients: [],
   instructions: [],
+  needsPrepAhead: false,
 };
 
 describe("mealRepo", () => {

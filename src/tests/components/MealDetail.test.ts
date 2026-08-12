@@ -15,6 +15,7 @@ async function seedMeal(overrides: Partial<Omit<Meal, "id">> = {}): Promise<Meal
     url: "",
     ingredients: [{ name: "Beef", quantity: "1 lb", category: "meat" }],
     instructions: ["Cook the beef."],
+    needsPrepAhead: false,
     ...overrides,
   });
   meals.all = await mealRepo.getAll();
@@ -68,6 +69,17 @@ describe("MealDetail", () => {
     expect(screen.queryByRole("link", { name: /View recipe guide/ })).not.toBeInTheDocument();
   });
 
+  it("shows the Prep ahead badge only when the meal needs advance prep", async () => {
+    const withPrep = await seedMeal({ name: "Marinated Chicken", needsPrepAhead: true });
+    const { unmount } = render(MealDetail, { id: withPrep.id });
+    expect(screen.getByText("Prep ahead")).toBeInTheDocument();
+    unmount();
+
+    const withoutPrep = await seedMeal({ name: "Plain Pasta", needsPrepAhead: false });
+    render(MealDetail, { id: withoutPrep.id });
+    expect(screen.queryByText("Prep ahead")).not.toBeInTheDocument();
+  });
+
   it("Edit opens the form pre-filled and saving persists changes", async () => {
     const meal = await seedMeal({ name: "Tacos" });
     render(MealDetail, { id: meal.id });
@@ -84,6 +96,24 @@ describe("MealDetail", () => {
     await vi.waitFor(() => expect(screen.getByRole("heading", { name: "Beef Tacos", level: 1 })).toBeInTheDocument());
     const saved = await db.meals.get(meal.id);
     expect(saved?.name).toBe("Beef Tacos");
+  });
+
+  it("Edit form pre-checks 'Needs advance prep' when the meal has it, and toggling it off saves the change", async () => {
+    const meal = await seedMeal({ name: "Marinated Chicken", needsPrepAhead: true });
+    render(MealDetail, { id: meal.id });
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    const checkbox = screen.getByRole("checkbox", { name: "Needs advance prep" });
+    expect(checkbox).toBeChecked();
+
+    await user.click(checkbox);
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await vi.waitFor(async () => {
+      const saved = await db.meals.get(meal.id);
+      expect(saved?.needsPrepAhead).toBe(false);
+    });
   });
 
   it("Duplicate opens the form pre-filled with a generated name and saving creates a new meal without mutating the original", async () => {

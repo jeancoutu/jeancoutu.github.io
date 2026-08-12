@@ -11,6 +11,7 @@ function toMeal(row: LocalMeal): Meal {
     instructions: row.instructions,
     ingredients: row.ingredients,
     tags: row.tags ?? [],
+    needsPrepAhead: row.needsPrepAhead ?? false,
   };
 }
 
