@@ -151,6 +151,7 @@
           </span>
         </button>
         {#if name && mealId}
+          <span class="h-6 w-px shrink-0 self-center bg-rule" aria-hidden="true"></span>
           <button
             type="button"
             onclick={() => viewRecipe(mealId)}
