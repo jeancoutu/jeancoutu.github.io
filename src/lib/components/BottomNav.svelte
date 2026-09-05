@@ -1,6 +1,7 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
   import { router, navigate } from "../utils/router.svelte";
+  import { keyboard } from "../utils/keyboard.svelte";
   import SyncIndicator from "./SyncIndicator.svelte";
 
   const tabs = [
@@ -22,8 +23,11 @@
 </script>
 
 <nav
-  class="fixed bottom-0 left-0 right-0 z-50 border-t border-rule bg-surface safe-area-pb"
+  class="fixed bottom-0 left-0 right-0 z-50 border-t border-rule bg-surface safe-area-pb transition-transform duration-200 {keyboard.open
+    ? 'pointer-events-none translate-y-full'
+    : 'translate-y-0'}"
   aria-label={$_("nav.main")}
+  aria-hidden={keyboard.open}
 >
   <SyncIndicator />
   <div class="mx-auto flex max-w-lg">
