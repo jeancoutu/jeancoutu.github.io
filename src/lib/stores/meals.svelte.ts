@@ -5,6 +5,7 @@ import { weeklyPlanRepo } from "../repos/weeklyPlanRepo";
 import { onUserChange } from "./auth.svelte";
 import { onSynced } from "../sync/status.svelte";
 import { weeklyPlan } from "./weeklyPlan.svelte";
+import { compareMealNames } from "../utils/mealSort";
 
 const VALID_DAYS = new Set<DayKey>(DAYS.map((day) => day.key));
 const VALID_CATEGORIES = new Set(INGREDIENT_CATEGORIES);
@@ -68,7 +69,7 @@ class MealsStore {
         const matchesTag = !this.tagFilter || meal.tags.includes(this.tagFilter);
         return matchesSearch && matchesTag;
       })
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a, b) => compareMealNames(a.name, b.name));
   });
 }
 

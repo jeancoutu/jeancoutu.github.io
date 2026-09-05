@@ -7,6 +7,7 @@
   import { showToast } from "../stores/toast.svelte";
   import { navigate } from "../utils/router.svelte";
   import { isToday } from "../utils/weekDates";
+  import { compareMealNames } from "../utils/mealSort";
   import DayNoteModal from "./DayNoteModal.svelte";
   import Modal from "./Modal.svelte";
   import { longPressDrag } from "../actions/longPressDrag";
@@ -27,7 +28,7 @@
   let today = $derived(isToday(weeklyPlan.selectedWeek, day));
 
   let sortedMeals = $derived(
-    [...meals.all].sort((a, b) => a.name.localeCompare(b.name)),
+    [...meals.all].sort((a, b) => compareMealNames(a.name, b.name)),
   );
 
   let filteredMeals = $derived(
