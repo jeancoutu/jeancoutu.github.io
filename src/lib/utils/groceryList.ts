@@ -1,8 +1,5 @@
-import {
-  INGREDIENT_CATEGORY_ORDER,
-} from "../../data/ingredientCategories";
 import type { IngredientCategory, Meal, MealSlot, WeeklyPlan } from "../types";
-import { DAYS } from "../types";
+import { DAYS, INGREDIENT_CATEGORIES } from "../types";
 
 export interface GroceryItem {
   name: string;
@@ -68,8 +65,8 @@ export function buildGroceryList(meals: Meal[]): GroceryItem[] {
 
   return [...map.values()].sort((a, b) => {
     const orderDiff =
-      INGREDIENT_CATEGORY_ORDER.indexOf(a.category) -
-      INGREDIENT_CATEGORY_ORDER.indexOf(b.category);
+      INGREDIENT_CATEGORIES.indexOf(a.category) -
+      INGREDIENT_CATEGORIES.indexOf(b.category);
     if (orderDiff !== 0) return orderDiff;
     return a.name.localeCompare(b.name, "fr");
   });
@@ -79,14 +76,14 @@ export function groupGroceryByCategory<T extends GroceryItem>(
   items: T[],
 ): { category: IngredientCategory; items: T[] }[] {
   const groups = new Map<IngredientCategory, T[]>(
-    INGREDIENT_CATEGORY_ORDER.map((category) => [category, []]),
+    INGREDIENT_CATEGORIES.map((category) => [category, []]),
   );
 
   for (const item of items) {
     groups.get(item.category)!.push(item);
   }
 
-  return INGREDIENT_CATEGORY_ORDER.map((category) => ({
+  return INGREDIENT_CATEGORIES.map((category) => ({
     category,
     items: groups.get(category)!,
   }));

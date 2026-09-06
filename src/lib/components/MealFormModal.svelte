@@ -6,7 +6,6 @@
   import { addMeal, updateMealById } from "../stores/meals.svelte";
   import type { DayKey, DurationTag, IngredientCategory, Meal } from "../types";
   import { DAYS } from "../types";
-  import { getIngredientCategory } from "../../data/ingredientCategories";
   import { buildDuplicateName } from "../utils/duplicateMeal";
 
   interface Props {
@@ -30,7 +29,7 @@
       ingredientRows: mealToLoad.ingredients.map((ing) => ({
         name: ing.name,
         quantity: ing.quantity,
-        category: getIngredientCategory(ing.name) ?? ing.category,
+        category: ing.category,
         section: ing.section ?? null,
       })),
       instructions: mealToLoad.instructions.join("\n"),

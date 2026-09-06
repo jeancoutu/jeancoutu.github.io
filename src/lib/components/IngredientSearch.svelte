@@ -2,7 +2,6 @@
   import { _ } from "svelte-i18n";
   import Modal from "./Modal.svelte";
   import { meals } from "../stores/meals.svelte";
-  import { ingredientCategories } from "../../data/ingredientCategories";
   import { INGREDIENT_CATEGORIES } from "../types";
   import type { IngredientCategory } from "../types";
 
@@ -29,7 +28,7 @@
   const knownIngredients = $derived.by(() => {
     const combined = new Map<string, { name: string; category: IngredientCategory }>();
 
-    // allMeals first (lower priority — can be overwritten by dict)
+    // Built purely from ingredients already used in saved meals; first occurrence wins.
     for (const meal of meals.all) {
       for (const ing of meal.ingredients) {
         const key = ing.name.toLowerCase();
@@ -37,11 +36,6 @@
           combined.set(key, { name: ing.name, category: ing.category });
         }
       }
-    }
-
-    // Static dict overwrites (higher priority)
-    for (const [name, category] of Object.entries(ingredientCategories)) {
-      combined.set(name.toLowerCase(), { name, category: category as IngredientCategory });
     }
 
     return combined;
