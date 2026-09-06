@@ -18,7 +18,7 @@
   "planner.nextWeek": "Next week",
   "planner.autoFill": "Auto Fill Week",
   "planner.clear": "Clear Week",
-  "planner.clearConfirmTitle": "Clear week",
+  "planner.clearConfirmTitle": "Clear week of {week}",
   "planner.clearConfirmMessage": "This will remove all meals and notes planned for this week. This can't be undone.",
   "planner.clearConfirm": "Clear week",
   "planner.clearCancel": "Cancel",

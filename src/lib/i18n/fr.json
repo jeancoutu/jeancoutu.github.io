@@ -18,7 +18,7 @@
   "planner.nextWeek": "Semaine suivante",
   "planner.autoFill": "Remplir la semaine",
   "planner.clear": "Effacer la semaine",
-  "planner.clearConfirmTitle": "Effacer la semaine",
+  "planner.clearConfirmTitle": "Effacer la semaine du {week}",
   "planner.clearConfirmMessage": "Cela supprimera tous les repas et notes planifiés pour cette semaine. Cette action est irréversible.",
   "planner.clearConfirm": "Effacer la semaine",
   "planner.clearCancel": "Annuler",

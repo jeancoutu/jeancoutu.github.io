@@ -155,7 +155,7 @@
 <WeekPickerModal open={weekPickerOpen} onclose={() => (weekPickerOpen = false)} />
 <Modal
   open={clearConfirmOpen}
-  title={$_("planner.clearConfirmTitle")}
+  title={$_("planner.clearConfirmTitle", { values: { week: weekLabel } })}
   onclose={() => (clearConfirmOpen = false)}
 >
   {#snippet footer()}
