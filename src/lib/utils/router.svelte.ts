@@ -6,6 +6,7 @@ export type Route =
   | { name: "meal"; id: string }
   | { name: "presets" }
   | { name: "preset"; id: string }
+  | { name: "ingredients" }
   | { name: "settings" };
 
 function parseLogicalPath(pathname: string): Route {
@@ -22,6 +23,9 @@ function parseLogicalPath(pathname: string): Route {
   }
   if (path === "/presets") {
     return { name: "presets" };
+  }
+  if (path === "/ingredients") {
+    return { name: "ingredients" };
   }
   const mealMatch = path.match(/^\/meal\/([^/]+)$/);
   if (mealMatch) {
@@ -74,6 +78,8 @@ export function pathFor(r: Route): string {
       return appPath("/presets");
     case "preset":
       return appPath(`/preset/${encodeURIComponent(r.id)}`);
+    case "ingredients":
+      return appPath("/ingredients");
     case "settings":
       return appPath("/settings");
   }

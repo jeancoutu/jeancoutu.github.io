@@ -1,9 +1,11 @@
-import type { DayKey, DurationTag, Ingredient, Meal } from "../types";
+import type { DayKey, DurationTag, Ingredient, IngredientCategory, Meal } from "../types";
 import { DAYS, INGREDIENT_CATEGORIES } from "../types";
 import { mealRepo } from "../repos/mealRepo";
 import { weeklyPlanRepo } from "../repos/weeklyPlanRepo";
 import { onUserChange } from "./auth.svelte";
-import { onSynced } from "../sync/status.svelte";
+import { onSynced, syncStatus } from "../sync/status.svelte";
+import { sync } from "../sync/engine";
+import { recategorizeIngredient, type RecategorizeResult } from "../sync/rpc";
 import { weeklyPlan } from "./weeklyPlan.svelte";
 import { compareMealNames } from "../utils/mealSort";
 
@@ -94,6 +96,24 @@ onSynced(() => {
 
 export function getMealById(id: string): Meal | undefined {
   return meals.all.find((m) => m.id === id);
+}
+
+// Rewrites an ingredient's category across every meal that uses the name,
+// via the server-authoritative recategorize_ingredient RPC (see
+// ingredient-recategorize-plan.md). Online-only: flush any queued edits
+// first, run the RPC, then pull the bumped meals back — the second sync()
+// emits onSynced, which refreshMeals() picks up so meals.all reflects the
+// new categories. `grocery_items.category` is intentionally left stale
+// (cleaned by clear-week / regenerate).
+export async function recategorizeIngredientEverywhere(
+  name: string,
+  category: IngredientCategory,
+): Promise<RecategorizeResult> {
+  if (!syncStatus.online) throw new Error("offline");
+  await sync();
+  const result = await recategorizeIngredient(name, category);
+  await sync();
+  return result;
 }
 
 export async function addMeal(input: CustomMealInput): Promise<Meal> {

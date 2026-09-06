@@ -88,6 +88,16 @@
       {$_("settings.presets.manage")}
     </button>
   </SettingsCard>
+  <SettingsCard title={$_("settings.ingredients.title")}>
+    <p class="m-0 mb-3 text-sm leading-[1.45] text-ink-2">{$_("settings.ingredients.description")}</p>
+    <button
+      type="button"
+      onclick={() => navigate("/ingredients")}
+      class="w-full rounded-pill border border-rule bg-transparent px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-rule-strong hover:bg-paper-2"
+    >
+      {$_("settings.ingredients.manage")}
+    </button>
+  </SettingsCard>
   <SettingsCard title={$_("settings.update.title")}>
     <p class="m-0 mb-3 text-sm leading-[1.45] text-ink-2">{$_("settings.update.description")}</p>
     <button

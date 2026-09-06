@@ -1088,3 +1088,61 @@ create or replace function pull_changes(p_since timestamptz) returns jsonb
     );
   end;
   $$;
+
+-- ============================================================
+-- CROSS-AGGREGATE MAINTENANCE RPC (see ingredient-recategorize-plan.md)
+-- Rewrites the category of every meal_ingredient whose name matches
+-- (case-insensitive, trimmed) within the caller's household, then bumps
+-- each affected meal's sync metadata so other devices pull the change.
+-- Deliberately outside the per-aggregate sync-queue model: online-only,
+-- server-authoritative, atomic, single-field — no p_base_version check.
+-- A concurrent unsynced meal edit on another device conflicts normally
+-- on its next upsert_meal and goes through the existing server-wins path.
+-- MIGRATION: brand-new function name — plain `create or replace`, no
+-- overload drop needed. No new table, RLS, index, or realtime change.
+-- ============================================================
+create or replace function recategorize_ingredient(
+  p_name text,
+  p_category ingredient_category
+) returns jsonb
+  language plpgsql security definer set search_path = public
+  as $$
+  declare
+    v_household_id uuid := get_my_household_id();
+    v_meal_ids uuid[];
+    v_ingredient_count int;
+  begin
+    select array_agg(distinct mi.meal_id)
+    into v_meal_ids
+    from meal_ingredients mi
+    join meals m on m.id = mi.meal_id
+    where m.household_id = v_household_id
+      and m.deleted_at is null
+      and lower(btrim(mi.name)) = lower(btrim(p_name))
+      and mi.category is distinct from p_category;
+
+    if v_meal_ids is null then
+      return jsonb_build_object('status', 'ok', 'updated_meal_count', 0, 'updated_ingredient_count', 0);
+    end if;
+
+    update meal_ingredients mi
+    set category = p_category
+    from meals m
+    where mi.meal_id = m.id
+      and m.household_id = v_household_id
+      and m.deleted_at is null
+      and lower(btrim(mi.name)) = lower(btrim(p_name))
+      and mi.category is distinct from p_category;
+    get diagnostics v_ingredient_count = row_count;
+
+    -- no-op self-update fires bump_sync_metadata (version + updated_at)
+    update meals set updated_at = updated_at
+    where id = any(v_meal_ids);
+
+    return jsonb_build_object(
+      'status', 'ok',
+      'updated_meal_count', array_length(v_meal_ids, 1),
+      'updated_ingredient_count', v_ingredient_count
+    );
+  end;
+  $$;

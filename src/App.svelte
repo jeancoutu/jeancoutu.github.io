@@ -11,6 +11,7 @@
   import Settings from "./routes/settings/Settings.svelte";
   import PresetsList from "./routes/presets/PresetsList.svelte";
   import PresetDetail from "./routes/presets/[id]/PresetDetail.svelte";
+  import IngredientCategoryManager from "./lib/components/IngredientCategoryManager.svelte";
   import { dbStatus } from "./lib/db/status.svelte";
 
   let showNav = $derived(router.current.name !== "meal" && router.current.name !== "preset");
@@ -45,6 +46,8 @@
           <PresetsList />
         {:else if router.current.name === "preset"}
           <PresetDetail id={router.current.id} />
+        {:else if router.current.name === "ingredients"}
+          <IngredientCategoryManager />
         {:else if router.current.name === "settings"}
           <Settings />
         {/if}

@@ -6,7 +6,7 @@ import type {
   LocalWeeklyPlan,
   SyncQueueItem,
 } from "../db";
-import type { DayKey, WeeklyPlan } from "../types";
+import type { DayKey, IngredientCategory, WeeklyPlan } from "../types";
 import { DAYS } from "../types";
 
 export interface PushResult {
@@ -258,6 +258,25 @@ export async function pushGroceryItems(items: GroceryItemBatchInput[]): Promise<
 
 export async function pullChanges(since: string | null): Promise<PullChangesResult> {
   return callRpc<PullChangesResult>("pull_changes", { p_since: since });
+}
+
+export interface RecategorizeResult {
+  status: "ok";
+  updated_meal_count: number;
+  updated_ingredient_count: number;
+}
+
+// Cross-aggregate maintenance RPC (see ingredient-recategorize-plan.md):
+// rewrites an ingredient's category across every meal that uses the name.
+// Deliberately outside the sync-queue model — online-only, no queue op.
+export async function recategorizeIngredient(
+  name: string,
+  category: IngredientCategory,
+): Promise<RecategorizeResult> {
+  return callRpc<RecategorizeResult>("recategorize_ingredient", {
+    p_name: name,
+    p_category: category,
+  });
 }
 
 // Used only for conflict recovery (Decision 5: server wins + refresh the

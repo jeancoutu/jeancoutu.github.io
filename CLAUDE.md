@@ -38,6 +38,8 @@ npm run test:watch
 Reads/writes go UI → stores → repos (`src/lib/repos/`) → Dexie (`src/lib/db/`), never straight to Supabase.
 Writes also enqueue a sync op; `src/lib/sync/engine.ts` flushes the queue and pulls deltas via RPCs (foreground-triggered only — no iOS Background Sync). On conflict, the engine adopts the server's canonical id, remaps all local references (queued ops, related entities) to it, and re-queues the rejected edit merged on top — it does not simply drop the op and refetch, since dangling references to a dead local id would wedge the sync queue. See `offline-sync-plan.md` for the full design.
 
+The one deliberate exception is `recategorize_ingredient` (`recategorizeIngredientEverywhere` in `src/lib/stores/meals.svelte.ts`, surfaced by the Ingredients screen `src/lib/components/IngredientCategoryManager.svelte`, reachable from Settings): a server-authoritative cross-aggregate RPC that rewrites one ingredient's category across every meal. It is online-only (no queue op) and runs `sync()` → RPC → `sync()`; see `ingredient-recategorize-plan.md`.
+
 Dexie write gotchas:
 - Svelte 5 `$state` deep-reactive objects must go through `$state.snapshot()` before being handed to Dexie — a raw Proxy nested in the payload throws `DataCloneError` and silently drops the write.
 - Check-then-create patterns against Dexie (e.g. a repo's `getOrCreate`) must be wrapped in `db.transaction("rw", ...)` — an unguarded read-then-write can create duplicate rows under concurrent calls.
