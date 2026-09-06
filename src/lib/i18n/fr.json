@@ -182,7 +182,6 @@
   "grocery.presets.label": "Listes prédéfinies d'épicerie",
   "ingredients.title": "Catégories d'ingrédients",
   "ingredients.empty": "Aucun ingrédient pour l'instant. Ajoutez des ingrédients à vos repas pour gérer leurs catégories ici.",
-  "ingredients.mealCount": "{n, plural, one {1 repas} other {# repas}}",
   "ingredients.mixed": "mixte",
   "ingredients.chooseCategory": "Choisir une catégorie",
   "ingredients.recategorized": "{n, plural, =0 {Aucun repas modifié} one {1 repas mis à jour} other {# repas mis à jour}}",

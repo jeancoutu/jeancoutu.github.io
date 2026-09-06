@@ -25,10 +25,12 @@
     category: IngredientCategory;
     /** True when the name's meals disagree on a category. */
     mixed: boolean;
-    mealCount: number;
+    /** Names of the meals using this ingredient, sorted fr-locale. */
+    mealNames: string[];
   };
 
   const rows = $derived.by<Row[]>(() => {
+    const mealNameById = new Map(meals.all.map((m) => [m.id, m.name]));
     const groups = new Map<
       string,
       { name: string; mealIds: Set<string>; tally: Map<IngredientCategory, number> }
@@ -59,12 +61,16 @@
           majority = category;
         }
       }
+      const mealNames = [...group.mealIds]
+        .map((id) => mealNameById.get(id)?.trim())
+        .filter((n): n is string => !!n)
+        .sort((a, b) => a.localeCompare(b, "fr"));
       result.push({
         name: group.name,
         key,
         category: majority,
         mixed: group.tally.size > 1,
-        mealCount: group.mealIds.size,
+        mealNames,
       });
     }
     result.sort((a, b) => a.name.localeCompare(b.name, "fr"));
@@ -120,8 +126,8 @@
         >
           <span class="min-w-0 flex-1">
             <span class="mb-0.5 block truncate text-[0.9375rem] font-semibold text-ink">{row.name}</span>
-            <span class="block text-[0.8125rem] text-ink-2">
-              {$_("ingredients.mealCount", { values: { n: row.mealCount } })}
+            <span class="line-clamp-2 text-[0.8125rem] leading-[1.4] text-ink-2">
+              {row.mealNames.join(", ")}
             </span>
           </span>
           {#if busyKey === row.key}

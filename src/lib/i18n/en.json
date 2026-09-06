@@ -182,7 +182,6 @@
   "grocery.presets.label": "Grocery presets",
   "ingredients.title": "Ingredient categories",
   "ingredients.empty": "No ingredients yet. Add ingredients to your meals to manage their categories here.",
-  "ingredients.mealCount": "{n, plural, one {1 meal} other {# meals}}",
   "ingredients.mixed": "mixed",
   "ingredients.chooseCategory": "Choose a category",
   "ingredients.recategorized": "{n, plural, =0 {No meals changed} one {Updated 1 meal} other {Updated # meals}}",

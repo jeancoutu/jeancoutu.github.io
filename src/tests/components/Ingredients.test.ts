@@ -54,7 +54,7 @@ describe("IngredientCategoryManager", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows one row per distinct case-insensitive name with a meal count", async () => {
+  it("shows one row per distinct case-insensitive name with the meal names", async () => {
     await seedMeal("Salad", [
       { name: "Tomato", quantity: "2", category: "vegetables" },
       { name: "Lettuce", quantity: "1", category: "vegetables" },
@@ -64,10 +64,22 @@ describe("IngredientCategoryManager", () => {
 
     // "Tomato" appears in two meals despite the case/whitespace difference.
     const tomatoRow = screen.getByRole("button", { name: /tomato/i });
-    expect(within(tomatoRow).getByText("2 meals")).toBeInTheDocument();
+    expect(within(tomatoRow).getByText("Salad, Salsa")).toBeInTheDocument();
 
     const lettuceRow = screen.getByRole("button", { name: /lettuce/i });
-    expect(within(lettuceRow).getByText("1 meal")).toBeInTheDocument();
+    expect(within(lettuceRow).getByText("Salad")).toBeInTheDocument();
+  });
+
+  it("lists the meal names in alphabetical (fr-locale) order", async () => {
+    await seedMeal("Zucchini pasta", [{ name: "Oil", quantity: "1", category: "aisle" }]);
+    await seedMeal("Apple crumble", [{ name: "Oil", quantity: "1", category: "aisle" }]);
+    await seedMeal("Mango salad", [{ name: "Oil", quantity: "1", category: "aisle" }]);
+    render(IngredientCategoryManager);
+
+    const oilRow = screen.getByRole("button", { name: /oil/i });
+    expect(
+      within(oilRow).getByText("Apple crumble, Mango salad, Zucchini pasta"),
+    ).toBeInTheDocument();
   });
 
   it("shows the mixed badge only when a name's meals disagree on a category", async () => {
