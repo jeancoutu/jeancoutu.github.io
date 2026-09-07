@@ -308,6 +308,27 @@ export interface Database {
         };
         Relationships: [];
       };
+      meal_ideas: {
+        Row: {
+          id: string;
+          household_id: string;
+          text: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          household_id?: string;
+          text: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          household_id?: string;
+          text?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       grocery_preset_items: {
         Row: {
           id: string;

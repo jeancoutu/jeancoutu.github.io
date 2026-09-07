@@ -16,7 +16,7 @@
       return current.name === "planner";
     }
     if (tabId === "meals") {
-      return current.name === "meals" || current.name === "meal";
+      return current.name === "meals" || current.name === "meal" || current.name === "mealIdeas";
     }
     return current.name === "settings";
   }

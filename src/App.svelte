@@ -5,6 +5,7 @@
   import Planner from "./routes/planner/Planner.svelte";
   import Meals from "./routes/meals/Meals.svelte";
   import MealDetail from "./routes/meal/[id]/MealDetail.svelte";
+  import MealIdeas from "./routes/meal-ideas/MealIdeas.svelte";
   import AuthGate from "./lib/components/AuthGate.svelte";
   import PendingInviteBanner from "./lib/components/PendingInviteBanner.svelte";
   import Toast from "./lib/components/Toast.svelte";
@@ -42,6 +43,8 @@
           <Meals />
         {:else if router.current.name === "meal"}
           <MealDetail id={router.current.id} />
+        {:else if router.current.name === "mealIdeas"}
+          <MealIdeas />
         {:else if router.current.name === "presets"}
           <PresetsList />
         {:else if router.current.name === "preset"}

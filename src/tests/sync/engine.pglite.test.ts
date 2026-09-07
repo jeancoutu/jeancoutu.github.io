@@ -39,6 +39,7 @@ describe("sync engine against a real PGlite-backed Supabase", () => {
       db.weeklyPlans.clear(),
       db.groceryItems.clear(),
       db.groceryPresets.clear(),
+      db.mealIdeas.clear(),
       db.syncQueue.clear(),
       db.meta.clear(),
     ]);
@@ -148,6 +149,36 @@ describe("sync engine against a real PGlite-backed Supabase", () => {
     expect(stored).toMatchObject({ name: "From another device", duration: "long", version: 1 });
     expect(stored?.ingredients).toEqual([{ name: "Turkey", quantity: "1", category: "meat", section: null }]);
     expect(stored?.tags).toEqual(["holiday"]);
+  });
+
+  it("round-trips a meal idea: push a local insert, then pull a server-made one", async () => {
+    const localIdeaId = crypto.randomUUID();
+    const local = {
+      id: localIdeaId,
+      text: "Try shakshuka https://example.com/recipe",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      version: 1,
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      deletedAt: null,
+    };
+    await db.mealIdeas.put(local);
+    await enqueue("mealIdea", localIdeaId, "upsert", null, local);
+
+    const remoteIdeaId = crypto.randomUUID();
+    await fake.rpc("upsert_meal_idea", {
+      p_id: remoteIdeaId,
+      p_base_version: null,
+      p_text: "Batch cook chili",
+    });
+
+    await sync();
+
+    expect(await db.syncQueue.count()).toBe(0);
+    expect((await db.mealIdeas.get(localIdeaId))?.text).toBe("Try shakshuka https://example.com/recipe");
+    expect((await db.mealIdeas.get(remoteIdeaId))?.text).toBe("Batch cook chili");
+
+    const serverRow = await fake.from("meal_ideas").select("*").eq("id", localIdeaId).maybeSingle();
+    expect(serverRow.data).toMatchObject({ text: "Try shakshuka https://example.com/recipe" });
   });
 
   it("converges local state after a push-then-pull round trip involving a second device", async () => {

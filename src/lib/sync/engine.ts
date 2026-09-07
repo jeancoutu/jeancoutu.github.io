@@ -7,6 +7,7 @@ import {
   type LocalGroceryItem,
   type LocalGroceryPreset,
   type LocalMeal,
+  type LocalMealIdea,
   type LocalWeeklyPlan,
   type SyncEntity,
   type SyncOp,
@@ -19,11 +20,13 @@ import {
   refetchGroceryItem,
   refetchGroceryPreset,
   refetchMeal,
+  refetchMealIdea,
   refetchWeeklyPlan,
   rowsToDayPlans,
   type PulledGroceryItem,
   type PulledGroceryPreset,
   type PulledMeal,
+  type PulledMealIdea,
   type PulledWeeklyPlan,
 } from "./rpc";
 import { emitConflict, emitSynced, syncStatus } from "./status.svelte";
@@ -135,6 +138,18 @@ function applyGroceryPreset(row: PulledGroceryPreset): Promise<unknown> {
   return db.groceryPresets.put(local);
 }
 
+function applyMealIdea(row: PulledMealIdea): Promise<unknown> {
+  const local: LocalMealIdea = {
+    id: row.id,
+    text: row.text,
+    createdAt: row.created_at,
+    version: row.version,
+    updatedAt: row.updated_at,
+    deletedAt: row.deleted_at,
+  };
+  return db.mealIdeas.put(local);
+}
+
 function applyWeeklyPlan(row: PulledWeeklyPlan): Promise<unknown> {
   const local: LocalWeeklyPlan = {
     id: row.id,
@@ -176,6 +191,11 @@ async function refreshEntityAfterConflict(entity: SyncEntity, id: string, canoni
     case "groceryPreset": {
       const row = await refetchGroceryPreset(targetId);
       if (row) await applyGroceryPreset(row);
+      break;
+    }
+    case "mealIdea": {
+      const row = await refetchMealIdea(targetId);
+      if (row) await applyMealIdea(row);
       break;
     }
     case "weeklyPlan": {
@@ -224,6 +244,8 @@ async function refreshBaseVersion(op: CoalescedOp): Promise<number | null> {
       return (await db.meals.get(op.entityId))?.version ?? op.baseVersion;
     case "groceryPreset":
       return (await db.groceryPresets.get(op.entityId))?.version ?? op.baseVersion;
+    case "mealIdea":
+      return (await db.mealIdeas.get(op.entityId))?.version ?? op.baseVersion;
     case "weeklyPlan":
       return (await db.weeklyPlans.get(op.entityId))?.version ?? op.baseVersion;
     case "groceryItem":
@@ -399,6 +421,11 @@ async function bumpLocalVersion(entity: SyncEntity, id: string, version: number)
       if (row) await db.groceryPresets.put({ ...row, version });
       break;
     }
+    case "mealIdea": {
+      const row = await db.mealIdeas.get(id);
+      if (row) await db.mealIdeas.put({ ...row, version });
+      break;
+    }
     case "weeklyPlan": {
       const row = await db.weeklyPlans.get(id);
       if (row) await db.weeklyPlans.put({ ...row, version });
@@ -425,12 +452,13 @@ async function pullAndApply(): Promise<void> {
   const isPending = (entity: SyncEntity, id: string) =>
     pending.some((p) => p.entity === entity && p.entityId === id);
 
-  await db.transaction("rw", db.meals, db.groceryPresets, db.weeklyPlans, db.groceryItems, async () => {
+  await db.transaction("rw", db.meals, db.groceryPresets, db.weeklyPlans, db.groceryItems, db.mealIdeas, async () => {
     await Promise.all([
       ...result.meals.filter((r) => !isPending("meal", r.id)).map(applyMeal),
       ...result.grocery_presets.filter((r) => !isPending("groceryPreset", r.id)).map(applyGroceryPreset),
       ...result.weekly_plans.filter((r) => !isPending("weeklyPlan", r.id)).map(applyWeeklyPlan),
       ...result.grocery_items.filter((r) => !isPending("groceryItem", r.id)).map(applyGroceryItem),
+      ...result.meal_ideas.filter((r) => !isPending("mealIdea", r.id)).map(applyMealIdea),
     ]);
   });
 

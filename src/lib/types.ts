@@ -46,6 +46,13 @@ export interface GroceryPreset {
   items: GroceryPresetItem[];
 }
 
+export interface MealIdea {
+  id: string;
+  text: string;
+  /** ISO; set on create, never changed. Drives newest-first sort. */
+  createdAt: string;
+}
+
 export type DayKey =
   | "monday"
   | "tuesday"

@@ -4,6 +4,7 @@ import { meals } from "../lib/stores/meals.svelte";
 import { weeklyPlan } from "../lib/stores/weeklyPlan.svelte";
 import { groceryList } from "../lib/stores/groceryList.svelte";
 import { groceryPresets } from "../lib/stores/groceryPresets.svelte";
+import { mealIdeas } from "../lib/stores/mealIdeas.svelte";
 import { getWeekSaturday, toWeekKey } from "../lib/utils/weekDates";
 
 // Clears every Dexie table between component tests so state doesn't leak
@@ -13,6 +14,7 @@ export async function resetDb(): Promise<void> {
   await db.groceryPresets.clear();
   await db.weeklyPlans.clear();
   await db.groceryItems.clear();
+  await db.mealIdeas.clear();
   await db.syncQueue.clear();
   await db.meta.clear();
 }
@@ -30,6 +32,7 @@ export function resetStores(): void {
   groceryList.itemsByWeek = {};
   groceryPresets.all = [];
   groceryPresets.activeIdsByWeek = {};
+  mealIdeas.all = [];
 }
 
 export * from "@testing-library/svelte";

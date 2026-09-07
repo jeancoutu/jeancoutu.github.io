@@ -64,7 +64,15 @@ export interface LocalGroceryItem extends SyncMeta {
   toVerify: boolean;
 }
 
-export type SyncEntity = "meal" | "groceryPreset" | "weeklyPlan" | "groceryItem";
+export interface LocalMealIdea extends SyncMeta {
+  id: string;
+  text: string;
+  // Set on create, never changed. Sorted in memory (newest-first), not
+  // indexed — so adding it needs no further Dexie version bump.
+  createdAt: string;
+}
+
+export type SyncEntity = "meal" | "groceryPreset" | "weeklyPlan" | "groceryItem" | "mealIdea";
 export type SyncOp = "upsert" | "delete";
 
 export interface SyncQueueItem {
@@ -88,6 +96,7 @@ class MealPlannerDB extends Dexie {
   groceryPresets!: Table<LocalGroceryPreset, string>;
   weeklyPlans!: Table<LocalWeeklyPlan, string>;
   groceryItems!: Table<LocalGroceryItem, string>;
+  mealIdeas!: Table<LocalMealIdea, string>;
   syncQueue!: Table<SyncQueueItem, number>;
   meta!: Table<MetaRow, string>;
 
@@ -100,6 +109,10 @@ class MealPlannerDB extends Dexie {
       groceryItems: "id, weeklyPlanId, deletedAt",
       syncQueue: "++seq, opId, [entity+entityId]",
       meta: "key",
+    });
+    // Additive: only the new store needs listing; the v1 stores carry forward.
+    this.version(2).stores({
+      mealIdeas: "id, deletedAt",
     });
   }
 }
@@ -125,6 +138,7 @@ const ALL_TABLES = [
   db.groceryPresets,
   db.weeklyPlans,
   db.groceryItems,
+  db.mealIdeas,
   db.syncQueue,
   db.meta,
 ] as const;

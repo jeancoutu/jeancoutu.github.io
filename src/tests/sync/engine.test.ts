@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { db, enqueue, getCursor, type LocalGroceryItem, type LocalMeal, type LocalWeeklyPlan } from "../../lib/db";
+import { db, enqueue, getCursor, type LocalGroceryItem, type LocalMeal, type LocalMealIdea, type LocalWeeklyPlan } from "../../lib/db";
 
 vi.mock("../../lib/sync/rpc", async () => {
   const actual = await vi.importActual<typeof import("../../lib/sync/rpc")>("../../lib/sync/rpc");
@@ -11,6 +11,7 @@ vi.mock("../../lib/sync/rpc", async () => {
     pullChanges: vi.fn(),
     refetchMeal: vi.fn(),
     refetchGroceryPreset: vi.fn(),
+    refetchMealIdea: vi.fn(),
     refetchWeeklyPlan: vi.fn(),
     refetchGroceryItem: vi.fn(),
   };
@@ -31,14 +32,15 @@ const pushOp = vi.mocked(rpc.pushOp);
 const pushGroceryItems = vi.mocked(rpc.pushGroceryItems);
 const pullChanges = vi.mocked(rpc.pullChanges);
 const refetchMeal = vi.mocked(rpc.refetchMeal);
+const refetchMealIdea = vi.mocked(rpc.refetchMealIdea);
 const refetchWeeklyPlan = vi.mocked(rpc.refetchWeeklyPlan);
 const refetchGroceryItem = vi.mocked(rpc.refetchGroceryItem);
 
-const emptyPull = { watermark: "2026-01-01T00:00:00.000Z", meals: [], weekly_plans: [], grocery_presets: [], grocery_items: [] };
+const emptyPull = { watermark: "2026-01-01T00:00:00.000Z", meals: [], weekly_plans: [], grocery_presets: [], grocery_items: [], meal_ideas: [] };
 
 describe("sync engine", () => {
   beforeEach(async () => {
-    await Promise.all([db.meals.clear(), db.weeklyPlans.clear(), db.groceryItems.clear(), db.syncQueue.clear(), db.meta.clear()]);
+    await Promise.all([db.meals.clear(), db.weeklyPlans.clear(), db.groceryItems.clear(), db.mealIdeas.clear(), db.syncQueue.clear(), db.meta.clear()]);
     vi.clearAllMocks();
     syncStatus.online = true;
     pullChanges.mockResolvedValue(emptyPull);
@@ -211,6 +213,60 @@ describe("sync engine", () => {
     await sync();
 
     expect((await db.meals.get("pulled-meal"))?.deletedAt).toBe("2026-01-02T00:00:00.000Z");
+  });
+
+  it("pushes a queued mealIdea op and drains the queue on an ok response", async () => {
+    const local: LocalMealIdea = {
+      id: "idea-1", text: "Try shakshuka", createdAt: "2026-01-01T00:00:00.000Z",
+      version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
+    };
+    await db.mealIdeas.put(local);
+    await enqueue("mealIdea", "idea-1", "upsert", null, local);
+
+    pushOp.mockResolvedValueOnce({ status: "ok", id: "idea-1", version: 1 });
+
+    await sync();
+
+    expect(pushOp).toHaveBeenCalledTimes(1);
+    expect(await db.syncQueue.count()).toBe(0);
+  });
+
+  it("on a mealIdea conflict, refetches via refetchMealIdea and adopts the server row", async () => {
+    const local: LocalMealIdea = {
+      id: "idea-1", text: "Local edit", createdAt: "2026-01-01T00:00:00.000Z",
+      version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
+    };
+    await db.mealIdeas.put(local);
+    await enqueue("mealIdea", "idea-1", "upsert", 1, local);
+
+    pushOp.mockResolvedValueOnce({ status: "conflict", id: "idea-1" });
+    refetchMealIdea.mockResolvedValueOnce({
+      id: "idea-1", text: "Server wins", created_at: "2026-01-01T00:00:00.000Z",
+      version: 5, updated_at: "2026-01-02T00:00:00.000Z", deleted_at: null,
+    });
+
+    await sync();
+
+    expect(refetchMealIdea).toHaveBeenCalledWith("idea-1");
+    const stored = await db.mealIdeas.get("idea-1");
+    expect(stored?.text).toBe("Server wins");
+    expect(stored?.version).toBe(5);
+    expect(await db.syncQueue.count()).toBe(0);
+  });
+
+  it("applies a pulled meal idea to Dexie", async () => {
+    pullChanges.mockResolvedValueOnce({
+      ...emptyPull,
+      meal_ideas: [{
+        id: "pulled-idea", text: "From server", created_at: "2026-01-01T00:00:00.000Z",
+        version: 1, updated_at: "2026-01-01T00:00:00.000Z", deleted_at: null,
+      }],
+    });
+
+    await sync();
+
+    const stored = await db.mealIdeas.get("pulled-idea");
+    expect(stored).toMatchObject({ text: "From server", createdAt: "2026-01-01T00:00:00.000Z", version: 1 });
   });
 
   it("does not sync while offline", async () => {

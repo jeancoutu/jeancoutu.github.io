@@ -290,6 +290,24 @@ create table weekly_plan_grocery_presets (
 );
 
 -- ============================================================
+-- MEAL IDEAS (scoped to household)
+-- A flat scratchpad of free-text notes/links, kept entirely separate from
+-- `meals` and the planner — never read by the meal list, weekly plan, or
+-- grocery list. The simplest synced aggregate: no child rows. See
+-- meal-ideas-plan.md.
+-- ============================================================
+
+create table meal_ideas (
+  id           uuid primary key default gen_random_uuid(),
+  household_id uuid not null references households(id) on delete cascade default get_my_household_id(),
+  text         text not null,
+  created_at   timestamptz not null default now(),
+  version      int not null default 1,
+  updated_at   timestamptz not null default now(),
+  deleted_at   timestamptz
+);
+
+-- ============================================================
 -- ROW LEVEL SECURITY
 -- ============================================================
 
@@ -398,6 +416,13 @@ create policy "Household members can manage weekly plan grocery presets"
     exists (select 1 from weekly_plans wp where wp.id = weekly_plan_id and wp.household_id = get_my_household_id())
   );
 
+-- meal_ideas
+alter table meal_ideas enable row level security;
+create policy "Household members can manage meal ideas"
+  on meal_ideas for all
+  using (household_id = get_my_household_id())
+  with check (household_id = get_my_household_id());
+
 -- ============================================================
 -- SYNC METADATA (offline-first sync layer — see offline-sync-plan.md)
 -- version + updated_at are maintained solely by bump_sync_metadata();
@@ -431,11 +456,16 @@ create trigger grocery_items_bump_sync
   before update on grocery_items
   for each row execute procedure bump_sync_metadata();
 
+create trigger meal_ideas_bump_sync
+  before update on meal_ideas
+  for each row execute procedure bump_sync_metadata();
+
 -- Indexes for the delta pull (updated_at > cursor, scoped per household/plan)
 create index meals_sync_idx           on meals           (household_id, updated_at);
 create index weekly_plans_sync_idx    on weekly_plans    (household_id, updated_at);
 create index grocery_presets_sync_idx on grocery_presets (household_id, updated_at);
 create index grocery_items_sync_idx   on grocery_items   (weekly_plan_id, updated_at);
+create index meal_ideas_sync_idx      on meal_ideas      (household_id, updated_at);
 
 -- ============================================================
 -- REALTIME (offline-first sync layer — Issue 4)
@@ -449,6 +479,7 @@ alter publication supabase_realtime add table meals;
 alter publication supabase_realtime add table weekly_plans;
 alter publication supabase_realtime add table grocery_presets;
 alter publication supabase_realtime add table grocery_items;
+alter publication supabase_realtime add table meal_ideas;
 
 -- ============================================================
 -- SYNC RPCs (offline-first sync layer — Issue 0b)
@@ -668,6 +699,76 @@ create or replace function delete_grocery_preset(p_id uuid, p_base_version int) 
     get diagnostics v_rows_affected = row_count;
     if v_rows_affected = 0 then
       select * into v_row from grocery_presets where id = p_id and household_id = v_household_id;
+      if v_row.id is null then
+        return jsonb_build_object('status', 'ok', 'id', p_id);
+      end if;
+      return jsonb_build_object('status', 'conflict', 'id', v_row.id, 'version', v_row.version);
+    end if;
+
+    return jsonb_build_object('status', 'ok', 'id', v_row.id, 'version', v_row.version);
+  end;
+  $$;
+
+-- Flat aggregate root (no child rows): models upsert_grocery_preset minus
+-- the _items handling. See meal-ideas-plan.md.
+create or replace function upsert_meal_idea(
+  p_id uuid,
+  p_base_version int,
+  p_text text
+) returns jsonb
+  language plpgsql security definer set search_path = public
+  as $$
+  declare
+    v_household_id uuid := get_my_household_id();
+    v_row meal_ideas;
+    v_rows_affected int;
+  begin
+    if p_base_version is null then
+      insert into meal_ideas (id, household_id, text)
+      values (p_id, v_household_id, p_text)
+      on conflict (id) do update set text = excluded.text
+      where meal_ideas.household_id = v_household_id
+      returning * into v_row;
+
+      if v_row.id is null then
+        raise exception 'Meal idea id already in use' using errcode = 'P0001';
+      end if;
+    else
+      update meal_ideas set text = p_text
+      where id = p_id and household_id = v_household_id
+        and version = p_base_version and deleted_at is null
+      returning * into v_row;
+
+      get diagnostics v_rows_affected = row_count;
+      if v_rows_affected = 0 then
+        select * into v_row from meal_ideas where id = p_id and household_id = v_household_id;
+        if v_row.id is null then
+          raise exception 'Meal idea not found' using errcode = 'P0002';
+        end if;
+        return jsonb_build_object('status', 'conflict', 'id', v_row.id, 'version', v_row.version);
+      end if;
+    end if;
+
+    return jsonb_build_object('status', 'ok', 'id', v_row.id, 'version', v_row.version);
+  end;
+  $$;
+
+create or replace function delete_meal_idea(p_id uuid, p_base_version int) returns jsonb
+  language plpgsql security definer set search_path = public
+  as $$
+  declare
+    v_household_id uuid := get_my_household_id();
+    v_row meal_ideas;
+    v_rows_affected int;
+  begin
+    update meal_ideas set deleted_at = now()
+    where id = p_id and household_id = v_household_id
+      and version = p_base_version and deleted_at is null
+    returning * into v_row;
+
+    get diagnostics v_rows_affected = row_count;
+    if v_rows_affected = 0 then
+      select * into v_row from meal_ideas where id = p_id and household_id = v_household_id;
       if v_row.id is null then
         return jsonb_build_object('status', 'ok', 'id', p_id);
       end if;
@@ -1022,6 +1123,7 @@ create or replace function pull_changes(p_since timestamptz) returns jsonb
     v_weekly_plans jsonb;
     v_grocery_presets jsonb;
     v_grocery_items jsonb;
+    v_meal_ideas jsonb;
   begin
     select coalesce(jsonb_agg(jsonb_build_object(
       'id', m.id, 'name', m.name, 'duration', m.duration, 'url', m.url,
@@ -1079,12 +1181,21 @@ create or replace function pull_changes(p_since timestamptz) returns jsonb
     where wp.household_id = v_household_id
       and (p_since is null or gi.updated_at > p_since);
 
+    select coalesce(jsonb_agg(jsonb_build_object(
+      'id', idea.id, 'text', idea.text, 'created_at', idea.created_at,
+      'version', idea.version, 'updated_at', idea.updated_at, 'deleted_at', idea.deleted_at
+    )), '[]'::jsonb) into v_meal_ideas
+    from meal_ideas idea
+    where idea.household_id = v_household_id
+      and (p_since is null or idea.updated_at > p_since);
+
     return jsonb_build_object(
       'watermark', v_watermark,
       'meals', v_meals,
       'weekly_plans', v_weekly_plans,
       'grocery_presets', v_grocery_presets,
-      'grocery_items', v_grocery_items
+      'grocery_items', v_grocery_items,
+      'meal_ideas', v_meal_ideas
     );
   end;
   $$;

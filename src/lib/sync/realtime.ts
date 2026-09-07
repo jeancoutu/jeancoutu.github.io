@@ -9,7 +9,7 @@ import { refreshHousehold } from "../stores/household.svelte";
 // there is one code path for "something changed" regardless of source.
 // RLS scopes the underlying replication stream to the caller's household,
 // same as any other Supabase query, so no extra household filter is needed.
-const TABLES = ["meals", "weekly_plans", "grocery_presets", "grocery_items"] as const;
+const TABLES = ["meals", "weekly_plans", "grocery_presets", "grocery_items", "meal_ideas"] as const;
 
 // Household membership/invites aren't part of the offline sync engine (see
 // src/lib/api/household.ts) — they're a plain Dexie-backed read cache

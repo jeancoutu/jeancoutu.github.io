@@ -3,6 +3,8 @@
   import MealCard from "../../lib/components/MealCard.svelte";
   import MealFormModal from "../../lib/components/MealFormModal.svelte";
   import { meals } from "../../lib/stores/meals.svelte";
+  import { mealIdeas } from "../../lib/stores/mealIdeas.svelte";
+  import { navigate } from "../../lib/utils/router.svelte";
 
   let createMealOpen = $state(false);
 </script>
@@ -24,6 +26,17 @@
       {$_("meals.create")}
     </button>
   </header>
+
+  <button
+    type="button"
+    onclick={() => navigate("/meal-ideas")}
+    class="mt-1 inline-flex items-center gap-1 text-[0.8125rem] font-semibold text-ink-2 transition hover:text-accent-deep"
+  >
+    {$_("mealIdeas.linkFromMeals", { values: { n: mealIdeas.all.length } })}
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-[14px]">
+      <path d="M9 18l6-6-6-6" />
+    </svg>
+  </button>
 
   <div class="relative my-4 mb-2">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none absolute top-1/2 left-3.5 size-[17px] -translate-y-1/2 text-ink-3">

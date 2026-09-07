@@ -49,6 +49,10 @@ const SELECT_QUERIES: Record<string, string> = {
            gi.version, gi.updated_at, gi.deleted_at
     from grocery_items gi where gi.id = $1
   `,
+  meal_ideas: `
+    select idea.id, idea.text, idea.created_at, idea.version, idea.updated_at, idea.deleted_at
+    from meal_ideas idea where idea.id = $1
+  `,
 };
 
 // PGlite's pg-wire driver doesn't know these RPC params are Postgres arrays

@@ -3,6 +3,7 @@ import type {
   LocalGroceryItem,
   LocalGroceryPreset,
   LocalMeal,
+  LocalMealIdea,
   LocalWeeklyPlan,
   SyncQueueItem,
 } from "../db";
@@ -106,6 +107,18 @@ async function pushGroceryPreset(op: SyncQueueItem): Promise<PushResult> {
   });
 }
 
+async function pushMealIdea(op: SyncQueueItem): Promise<PushResult> {
+  if (op.op === "delete") {
+    return callRpc<PushResult>("delete_meal_idea", { p_id: op.entityId, p_base_version: op.baseVersion });
+  }
+  const row = op.payload as LocalMealIdea;
+  return callRpc<PushResult>("upsert_meal_idea", {
+    p_id: row.id,
+    p_base_version: op.baseVersion,
+    p_text: row.text,
+  });
+}
+
 async function pushWeeklyPlan(op: SyncQueueItem): Promise<PushResult> {
   if (op.op === "delete") {
     return callRpc<PushResult>("delete_weekly_plan", { p_id: op.entityId, p_base_version: op.baseVersion });
@@ -156,6 +169,8 @@ export async function pushOp(op: SyncQueueItem): Promise<PushResult> {
       return pushMeal(op);
     case "groceryPreset":
       return pushGroceryPreset(op);
+    case "mealIdea":
+      return pushMealIdea(op);
     case "weeklyPlan":
       return pushWeeklyPlan(op);
     case "groceryItem":
@@ -182,6 +197,15 @@ export interface PulledGroceryPreset {
   id: string;
   name: string;
   items: { name: string; quantity: string; category: string }[];
+  version: number;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface PulledMealIdea {
+  id: string;
+  text: string;
+  created_at: string;
   version: number;
   updated_at: string;
   deleted_at: string | null;
@@ -217,6 +241,7 @@ export interface PullChangesResult {
   weekly_plans: PulledWeeklyPlan[];
   grocery_presets: PulledGroceryPreset[];
   grocery_items: PulledGroceryItem[];
+  meal_ideas: PulledMealIdea[];
 }
 
 export interface GroceryItemBatchInput {
@@ -305,6 +330,14 @@ export async function refetchGroceryPreset(id: string): Promise<PulledGroceryPre
   );
   if (!data) return null;
   return { ...data, items: data.grocery_preset_items ?? [] };
+}
+
+export async function refetchMealIdea(id: string): Promise<PulledMealIdea | null> {
+  return selectOne<PulledMealIdea>(
+    "meal_ideas",
+    "id, text, created_at, version, updated_at, deleted_at",
+    id,
+  );
 }
 
 export async function refetchWeeklyPlan(id: string): Promise<PulledWeeklyPlan | null> {
