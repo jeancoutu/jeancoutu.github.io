@@ -190,7 +190,9 @@ describe("MealDetail", () => {
       expect(screen.getByText("Meal name must be 50 characters or fewer.")).toBeInTheDocument();
     });
 
-    it("blocks save with zero ingredients", async () => {
+    // Empty ingredients / instructions are permitted on save (commit 0ecc801) —
+    // only the meal name is still validated.
+    it("saves with zero ingredients, persisting an empty list", async () => {
       const meal = await seedMeal();
       render(MealDetail, { id: meal.id });
       const user = userEvent.setup();
@@ -199,10 +201,12 @@ describe("MealDetail", () => {
       await user.click(screen.getByRole("button", { name: "Remove" }));
       await user.click(screen.getByRole("button", { name: "Save changes" }));
 
-      expect(screen.getByText("Please add at least one ingredient.")).toBeInTheDocument();
+      await vi.waitFor(() => expect(screen.queryByLabelText("Meal name")).not.toBeInTheDocument());
+      const saved = await db.meals.get(meal.id);
+      expect(saved?.ingredients).toEqual([]);
     });
 
-    it("blocks save with zero non-blank instruction lines", async () => {
+    it("saves with zero non-blank instruction lines, persisting an empty list", async () => {
       const meal = await seedMeal();
       render(MealDetail, { id: meal.id });
       const user = userEvent.setup();
@@ -213,7 +217,9 @@ describe("MealDetail", () => {
       await user.type(instructions, "   \n  ");
       await user.click(screen.getByRole("button", { name: "Save changes" }));
 
-      expect(screen.getByText("Please add at least one instruction.")).toBeInTheDocument();
+      await vi.waitFor(() => expect(screen.queryByLabelText("Meal name")).not.toBeInTheDocument());
+      const saved = await db.meals.get(meal.id);
+      expect(saved?.instructions).toEqual([]);
     });
   });
 
