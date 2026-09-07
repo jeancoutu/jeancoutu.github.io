@@ -127,16 +127,6 @@
       return;
     }
 
-    if (ingredientRows.length === 0) {
-      error = $_("meals.create.errors.ingredients");
-      return;
-    }
-
-    if (parsedInstructions.length === 0) {
-      error = $_("meals.create.errors.instructions");
-      return;
-    }
-
     const mealInput = {
       name: name.trim(),
       duration,
