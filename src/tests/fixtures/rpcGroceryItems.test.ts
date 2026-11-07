@@ -71,6 +71,41 @@ describe("sync_grocery_item RPC", () => {
     expect(data).toMatchObject({ status: "ok", id: itemId, version: 2 });
   });
 
+  it("update path persists a renamed item instead of keeping the original name", async () => {
+    const fake = await createFakeSupabase();
+    await fake._testHelpers.signInAsNewUser();
+    const planId = await makePlan(fake, "2026-01-05");
+
+    const itemId = crypto.randomUUID();
+    await fake.rpc("sync_grocery_item", {
+      p_weekly_plan_id: planId,
+      p_client_id: itemId,
+      p_name: "Carrots",
+      p_category: "vegetables",
+      p_quantity: "2",
+      p_checked: false,
+      p_to_verify: false,
+      p_base_version: null,
+      p_deleted: false,
+    });
+
+    const { error } = await fake.rpc("sync_grocery_item", {
+      p_weekly_plan_id: planId,
+      p_client_id: itemId,
+      p_name: "Baby carrots",
+      p_category: "vegetables",
+      p_quantity: "2",
+      p_checked: false,
+      p_to_verify: false,
+      p_base_version: 1,
+      p_deleted: false,
+    });
+    expect(error).toBeNull();
+
+    const refetched = await fake.from("grocery_items").select("*").eq("id", itemId).maybeSingle();
+    expect(refetched.data).toMatchObject({ name: "Baby carrots" });
+  });
+
   it("returns a conflict (no row payload) when base_version is stale", async () => {
     const fake = await createFakeSupabase();
     await fake._testHelpers.signInAsNewUser();

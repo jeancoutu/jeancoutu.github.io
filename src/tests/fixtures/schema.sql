@@ -952,7 +952,7 @@ create or replace function sync_grocery_item(
         return jsonb_build_object('status', 'conflict', 'id', v_existing.id, 'version', v_existing.version);
       end if;
 
-      update grocery_items set quantity = p_quantity, checked = p_checked, to_verify = p_to_verify, category = p_category
+      update grocery_items set name = p_name, quantity = p_quantity, checked = p_checked, to_verify = p_to_verify, category = p_category
       where id = v_existing.id
       returning * into v_row;
 
@@ -1068,7 +1068,7 @@ create or replace function sync_grocery_items(p_items jsonb) returns jsonb
           continue;
         end if;
 
-        update grocery_items set quantity = v_quantity, checked = v_checked, to_verify = v_to_verify, category = v_category
+        update grocery_items set name = v_name, quantity = v_quantity, checked = v_checked, to_verify = v_to_verify, category = v_category
         where id = v_existing.id
         returning * into v_row;
 
