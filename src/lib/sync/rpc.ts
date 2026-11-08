@@ -104,6 +104,8 @@ async function pushGroceryPreset(op: SyncQueueItem): Promise<PushResult> {
     p_base_version: op.baseVersion,
     p_name: row.name,
     p_items: row.items,
+    // Old queued payloads (written before the Costco list existed) lack it.
+    p_is_costco: row.isCostco ?? false,
   });
 }
 
@@ -131,6 +133,9 @@ async function pushWeeklyPlan(op: SyncQueueItem): Promise<PushResult> {
     p_dismissed_names: row.dismissedNames,
     p_day_plans: dayPlansToRows(row.plan),
     p_preset_ids: row.presetIds,
+    // null = "leave unchanged" server-side, for old queued payloads that
+    // predate the field; they must not switch an enabled section off.
+    p_costco_enabled: row.costcoEnabled ?? null,
   });
 }
 
@@ -147,6 +152,7 @@ async function pushGroceryItem(op: SyncQueueItem): Promise<PushResult> {
       p_to_verify: row.toVerify,
       p_base_version: op.baseVersion,
       p_deleted: true,
+      p_is_costco: row.isCostco ?? false,
     });
   }
   const row = op.payload as LocalGroceryItem;
@@ -160,6 +166,7 @@ async function pushGroceryItem(op: SyncQueueItem): Promise<PushResult> {
     p_to_verify: row.toVerify,
     p_base_version: op.baseVersion,
     p_deleted: false,
+    p_is_costco: row.isCostco ?? false,
   });
 }
 
@@ -197,6 +204,7 @@ export interface PulledGroceryPreset {
   id: string;
   name: string;
   items: { name: string; quantity: string; category: string }[];
+  is_costco?: boolean;
   version: number;
   updated_at: string;
   deleted_at: string | null;
@@ -217,6 +225,7 @@ export interface PulledWeeklyPlan {
   dismissed_ingredient_names: string[];
   day_plans: { day_key: string; note: string | null; supper_meal_id: string | null; diner_meal_id: string | null }[];
   preset_ids: string[];
+  costco_enabled?: boolean;
   version: number;
   updated_at: string;
   deleted_at: string | null;
@@ -230,6 +239,7 @@ export interface PulledGroceryItem {
   category: string;
   checked: boolean;
   to_verify: boolean;
+  is_costco?: boolean;
   version: number;
   updated_at: string;
   deleted_at: string | null;
@@ -252,6 +262,7 @@ export interface GroceryItemBatchInput {
   quantity: string;
   checked: boolean;
   toVerify: boolean;
+  isCostco: boolean;
   baseVersion: number | null;
   deleted: boolean;
 }
@@ -275,6 +286,7 @@ export async function pushGroceryItems(items: GroceryItemBatchInput[]): Promise<
     quantity: item.quantity,
     checked: item.checked,
     to_verify: item.toVerify,
+    is_costco: item.isCostco,
     base_version: item.baseVersion,
     deleted: item.deleted,
   }));
@@ -325,7 +337,7 @@ export async function refetchGroceryPreset(id: string): Promise<PulledGroceryPre
     Omit<PulledGroceryPreset, "items"> & { grocery_preset_items: PulledGroceryPreset["items"] }
   >(
     "grocery_presets",
-    "id, name, version, updated_at, deleted_at, grocery_preset_items(name, quantity, category)",
+    "id, name, is_costco, version, updated_at, deleted_at, grocery_preset_items(name, quantity, category)",
     id,
   );
   if (!data) return null;
@@ -345,7 +357,7 @@ export async function refetchWeeklyPlan(id: string): Promise<PulledWeeklyPlan | 
     Omit<PulledWeeklyPlan, "preset_ids"> & { weekly_plan_grocery_presets: { preset_id: string }[] }
   >(
     "weekly_plans",
-    "id, week_start, dismissed_ingredient_names, version, updated_at, deleted_at, day_plans(day_key, note, supper_meal_id, diner_meal_id), weekly_plan_grocery_presets(preset_id)",
+    "id, week_start, dismissed_ingredient_names, costco_enabled, version, updated_at, deleted_at, day_plans(day_key, note, supper_meal_id, diner_meal_id), weekly_plan_grocery_presets(preset_id)",
     id,
   );
   if (!data) return null;
@@ -359,7 +371,7 @@ export async function refetchWeeklyPlan(id: string): Promise<PulledWeeklyPlan | 
 export async function refetchGroceryItem(id: string): Promise<PulledGroceryItem | null> {
   return selectOne<PulledGroceryItem>(
     "grocery_items",
-    "id, weekly_plan_id, name, quantity, category, checked, to_verify, version, updated_at, deleted_at",
+    "id, weekly_plan_id, name, quantity, category, checked, to_verify, is_costco, version, updated_at, deleted_at",
     id,
   );
 }

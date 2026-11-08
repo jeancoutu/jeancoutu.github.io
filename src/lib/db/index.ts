@@ -44,6 +44,10 @@ export interface LocalGroceryPreset extends SyncMeta {
   id: string;
   name: string;
   items: Ingredient[];
+  // The single household-level "Costco recurring" list. Not indexed, so no
+  // Dexie version bump — rows written before this field existed lack it;
+  // read paths default with `?? false`.
+  isCostco: boolean;
 }
 
 export interface LocalWeeklyPlan extends SyncMeta {
@@ -52,6 +56,8 @@ export interface LocalWeeklyPlan extends SyncMeta {
   plan: WeeklyPlan;
   dismissedNames: string[];
   presetIds: string[];
+  // Not indexed, so no Dexie version bump; default with `?? false` on read.
+  costcoEnabled: boolean;
 }
 
 export interface LocalGroceryItem extends SyncMeta {
@@ -62,6 +68,9 @@ export interface LocalGroceryItem extends SyncMeta {
   category: IngredientCategory;
   checked: boolean;
   toVerify: boolean;
+  // Lives in the week's Costco section instead of a category group. Not
+  // indexed, so no Dexie version bump; default with `?? false` on read.
+  isCostco: boolean;
 }
 
 export interface LocalMealIdea extends SyncMeta {

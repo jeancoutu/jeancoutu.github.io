@@ -15,7 +15,7 @@
   import IngredientCategoryManager from "./lib/components/IngredientCategoryManager.svelte";
   import { dbStatus } from "./lib/db/status.svelte";
 
-  let showNav = $derived(router.current.name !== "meal" && router.current.name !== "preset");
+  let showNav = $derived(router.current.name !== "meal");
 
   $effect(() => {
     document.title = $_(`app.title`);

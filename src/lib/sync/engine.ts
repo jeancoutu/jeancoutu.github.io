@@ -131,6 +131,7 @@ function applyGroceryPreset(row: PulledGroceryPreset): Promise<unknown> {
       quantity: i.quantity,
       category: i.category as LocalGroceryPreset["items"][number]["category"],
     })),
+    isCostco: row.is_costco ?? false,
     version: row.version,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
@@ -157,6 +158,7 @@ function applyWeeklyPlan(row: PulledWeeklyPlan): Promise<unknown> {
     plan: rowsToDayPlans(row.day_plans ?? []),
     dismissedNames: row.dismissed_ingredient_names ?? [],
     presetIds: row.preset_ids ?? [],
+    costcoEnabled: row.costco_enabled ?? false,
     version: row.version,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
@@ -173,6 +175,7 @@ function applyGroceryItem(row: PulledGroceryItem): Promise<unknown> {
     category: row.category as LocalGroceryItem["category"],
     checked: row.checked,
     toVerify: row.to_verify,
+    isCostco: row.is_costco ?? false,
     version: row.version,
     updatedAt: row.updated_at,
     deletedAt: row.deleted_at,
@@ -191,6 +194,20 @@ async function refreshEntityAfterConflict(entity: SyncEntity, id: string, canoni
     case "groceryPreset": {
       const row = await refetchGroceryPreset(targetId);
       if (row) await applyGroceryPreset(row);
+      // Costco-list collision: another device created the household's single
+      // Costco list first, so the server answered with its id. Drop our stale
+      // local duplicate and repoint any still-queued ops at the canonical id
+      // so none dangle on the dead one.
+      if (targetId !== id) {
+        await db.groceryPresets.delete(id);
+        await db.syncQueue.toCollection().modify((item) => {
+          if (item.entity === "groceryPreset" && item.entityId === id) {
+            item.entityId = targetId;
+            if (item.payload) (item.payload as LocalGroceryPreset).id = targetId;
+            if (item.baseVersion === null && row) item.baseVersion = row.version;
+          }
+        });
+      }
       break;
     }
     case "mealIdea": {
@@ -265,10 +282,31 @@ async function reapplyWeeklyPlanEdit(canonicalId: string, payload: LocalWeeklyPl
     plan: { ...canonical.plan, ...payload.plan },
     dismissedNames: [...new Set([...canonical.dismissedNames, ...payload.dismissedNames])],
     presetIds: [...new Set([...canonical.presetIds, ...payload.presetIds])],
+    // OR: a collision must never silently switch an enabled section off.
+    costcoEnabled: (canonical.costcoEnabled ?? false) || (payload.costcoEnabled ?? false),
     updatedAt: new Date().toISOString(),
   };
   await db.weeklyPlans.put(merged);
   await enqueue("weeklyPlan", canonicalId, "upsert", canonical.version, merged);
+}
+
+// Same wrong-row collision as reapplyWeeklyPlanEdit, for the single Costco
+// list: the canonical row is already in Dexie, so union our items into it by
+// name (the canonical copy wins on a duplicate) and queue a normal
+// version-checked update instead of dropping the user's recurring items.
+async function reapplyCostcoPresetEdit(canonicalId: string, payload: LocalGroceryPreset): Promise<void> {
+  const canonical = await db.groceryPresets.get(canonicalId);
+  if (!canonical || canonical.deletedAt) return;
+  const known = new Set(canonical.items.map((i) => i.name));
+  const extra = payload.items.filter((i) => !known.has(i.name));
+  if (extra.length === 0) return;
+  const merged: LocalGroceryPreset = {
+    ...canonical,
+    items: [...canonical.items, ...extra],
+    updatedAt: new Date().toISOString(),
+  };
+  await db.groceryPresets.put(merged);
+  await enqueue("groceryPreset", canonicalId, "upsert", canonical.version, merged);
 }
 
 async function flushSingleOp(op: CoalescedOp): Promise<void> {
@@ -296,6 +334,8 @@ async function flushSingleOp(op: CoalescedOp): Promise<void> {
       // upsert_weekly_plan's contract adopt the canonical row and re-apply
       // the edit as a real (version-checked) update instead of dropping it.
       await reapplyWeeklyPlanEdit(result.id, op.payload as LocalWeeklyPlan);
+    } else if (op.entity === "groceryPreset" && op.op === "upsert" && result.id !== op.entityId) {
+      await reapplyCostcoPresetEdit(result.id, op.payload as LocalGroceryPreset);
     }
   } else if (result.id !== op.entityId) {
     // Server assigned a different canonical id (weekly-plan collision).
@@ -352,6 +392,7 @@ async function flushGroceryItemBatch(ops: CoalescedOp[]): Promise<void> {
           quantity: row.quantity,
           checked: row.checked,
           toVerify: row.toVerify,
+          isCostco: row.isCostco ?? false,
           baseVersion: await refreshBaseVersion(op),
           deleted: op.op === "delete",
         };

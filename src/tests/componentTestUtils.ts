@@ -30,7 +30,9 @@ export function resetStores(): void {
   weeklyPlan.dismissedNamesPerWeek = {};
   weeklyPlan.selectedWeek = toWeekKey(getWeekSaturday());
   groceryList.itemsByWeek = {};
+  groceryList.costcoEnabledByWeek = {};
   groceryPresets.all = [];
+  groceryPresets.costco = null;
   groceryPresets.activeIdsByWeek = {};
   mealIdeas.all = [];
 }

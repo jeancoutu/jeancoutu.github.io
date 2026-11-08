@@ -174,6 +174,7 @@ describe("planner meal selection persistence", () => {
       plan: {},
       dismissedNames: [],
       presetIds: [],
+      costcoEnabled: false,
       version: 1,
       updatedAt: new Date().toISOString(),
       deletedAt: null,

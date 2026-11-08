@@ -18,7 +18,12 @@
     if (tabId === "meals") {
       return current.name === "meals" || current.name === "meal" || current.name === "mealIdeas";
     }
-    return current.name === "settings";
+    return (
+      current.name === "settings" ||
+      current.name === "presets" ||
+      current.name === "preset" ||
+      current.name === "ingredients"
+    );
   }
 </script>
 

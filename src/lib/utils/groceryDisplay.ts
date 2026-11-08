@@ -51,7 +51,9 @@ export function buildDisplayItems(
   dbItems: GroceryDBItem[],
   dismissed: Set<string>,
 ): DisplayItem[] {
-  const dbByName = mergeDbItemsByName(dbItems);
+  // Costco rows are a separate section: never matched to meal ingredients by
+  // name, never shown as custom category items (see buildCostcoItems).
+  const dbByName = mergeDbItemsByName(dbItems.filter((i) => !i.isCostco));
   const mealPlanNames = new Set(mealPlanItems.map((i) => i.name));
 
   const mealPlanDisplayItems: DisplayItem[] = mealPlanItems
@@ -84,4 +86,19 @@ export function buildDisplayItems(
     }));
 
   return [...mealPlanDisplayItems, ...customDisplayItems];
+}
+
+export interface CostcoDisplayItem {
+  id: string;
+  name: string;
+  quantity: string;
+  checked: boolean;
+}
+
+// The flat Costco section, unchecked items first (stable otherwise).
+export function buildCostcoItems(dbItems: GroceryDBItem[]): CostcoDisplayItem[] {
+  return dbItems
+    .filter((i) => i.isCostco)
+    .map(({ id, name, quantity, checked }) => ({ id, name, quantity, checked }))
+    .sort((a, b) => Number(a.checked) - Number(b.checked));
 }

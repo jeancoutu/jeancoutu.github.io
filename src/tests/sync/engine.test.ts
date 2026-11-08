@@ -70,7 +70,7 @@ describe("sync engine", () => {
 
   it("remaps a local id to the server-assigned canonical id on collision", async () => {
     const local: LocalWeeklyPlan = {
-      id: "local-temp-id", weekStart: "2026-01-05", plan: {}, dismissedNames: [], presetIds: [],
+      id: "local-temp-id", weekStart: "2026-01-05", plan: {}, dismissedNames: [], presetIds: [], costcoEnabled: false,
       version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
     };
     await db.weeklyPlans.put(local);
@@ -94,7 +94,7 @@ describe("sync engine", () => {
   // (dead references are dropped instead of wedging the queue), so seed it.
   async function seedPlanRow(id: string): Promise<void> {
     await db.weeklyPlans.put({
-      id, weekStart: "2026-01-05", plan: {}, dismissedNames: [], presetIds: [],
+      id, weekStart: "2026-01-05", plan: {}, dismissedNames: [], presetIds: [], costcoEnabled: false,
       version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
     });
   }
@@ -102,7 +102,7 @@ describe("sync engine", () => {
   it("remaps a grocery item id on merge collision without touching other entities", async () => {
     await seedPlanRow("plan-1");
     const local: LocalGroceryItem = {
-      id: "local-item", weeklyPlanId: "plan-1", name: "Carrots", quantity: "2", category: "vegetables", checked: false, toVerify: false,
+      id: "local-item", weeklyPlanId: "plan-1", name: "Carrots", quantity: "2", category: "vegetables", checked: false, toVerify: false, isCostco: false,
       version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
     };
     await db.groceryItems.put(local);
@@ -133,11 +133,11 @@ describe("sync engine", () => {
   it("batches multiple queued grocery-item ops into a single sync_grocery_items call", async () => {
     await seedPlanRow("plan-1");
     const itemA: LocalGroceryItem = {
-      id: "item-a", weeklyPlanId: "plan-1", name: "Carrots", quantity: "2", category: "vegetables", checked: false, toVerify: false,
+      id: "item-a", weeklyPlanId: "plan-1", name: "Carrots", quantity: "2", category: "vegetables", checked: false, toVerify: false, isCostco: false,
       version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
     };
     const itemB: LocalGroceryItem = {
-      id: "item-b", weeklyPlanId: "plan-1", name: "Rice", quantity: "1", category: "aisle", checked: false, toVerify: false,
+      id: "item-b", weeklyPlanId: "plan-1", name: "Rice", quantity: "1", category: "aisle", checked: false, toVerify: false, isCostco: false,
       version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
     };
     await db.groceryItems.bulkPut([itemA, itemB]);
@@ -159,7 +159,7 @@ describe("sync engine", () => {
 
   it("drops queued grocery-item ops whose plan row no longer exists instead of wedging the queue", async () => {
     const orphan: LocalGroceryItem = {
-      id: "orphan-item", weeklyPlanId: "gone-plan", name: "Carrots", quantity: "2", category: "vegetables", checked: false, toVerify: false,
+      id: "orphan-item", weeklyPlanId: "gone-plan", name: "Carrots", quantity: "2", category: "vegetables", checked: false, toVerify: false, isCostco: false,
       version: 1, updatedAt: "2026-01-01T00:00:00.000Z", deletedAt: null,
     };
     await enqueue("groceryItem", "orphan-item", "upsert", null, orphan);

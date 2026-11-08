@@ -55,7 +55,7 @@ describe("PresetDetail", () => {
     render(PresetDetail, { id: preset.id });
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "← Back to presets" }));
+    await user.click(screen.getByRole("button", { name: "Back to presets" }));
 
     expect(router.current).toEqual({ name: "presets" });
   });

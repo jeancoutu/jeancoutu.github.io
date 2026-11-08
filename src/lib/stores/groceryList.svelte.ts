@@ -4,6 +4,7 @@ import { auth, onUserChange } from "./auth.svelte";
 import { onSynced } from "../sync/status.svelte";
 import { weeklyPlanRepo } from "../repos/weeklyPlanRepo";
 import { groceryItemRepo, type GroceryDBItem } from "../repos/groceryItemRepo";
+import { groceryPresetRepo } from "../repos/groceryPresetRepo";
 import { adjustQuantityString } from "../utils/groceryList";
 
 export type { GroceryDBItem };
@@ -13,6 +14,8 @@ type WeekItems = Record<string, GroceryDBItem[]>;
 class GroceryListStore {
   itemsByWeek = $state<WeekItems>({});
   itemsForWeek = $derived(this.itemsByWeek[weeklyPlan.selectedWeek] ?? []);
+  costcoEnabledByWeek = $state<Record<string, boolean>>({});
+  costcoEnabled = $derived(this.costcoEnabledByWeek[weeklyPlan.selectedWeek] ?? false);
 }
 
 export const groceryList = new GroceryListStore();
@@ -34,6 +37,10 @@ async function loadWeek(weekKey: string): Promise<void> {
     const row = await weeklyPlanRepo.getByWeek(weekKey);
     const items = row ? await groceryItemRepo.getForPlan(row.id) : [];
     groceryList.itemsByWeek = { ...groceryList.itemsByWeek, [weekKey]: items };
+    groceryList.costcoEnabledByWeek = {
+      ...groceryList.costcoEnabledByWeek,
+      [weekKey]: row?.costcoEnabled ?? false,
+    };
   } catch (err) {
     console.error("Failed to load grocery items:", err);
   }
@@ -44,6 +51,7 @@ onUserChange(async ($session) => {
     await loadWeek(weeklyPlan.selectedWeek);
   } else {
     groceryList.itemsByWeek = {};
+    groceryList.costcoEnabledByWeek = {};
   }
 });
 
@@ -80,7 +88,7 @@ export function toggleGroceryItemChecked(
 ): void {
   const weekKey = weeklyPlan.selectedWeek;
   const existing = (groceryList.itemsByWeek[weekKey] ?? []).find(
-    (i) => i.name === name && i.category === category,
+    (i) => !i.isCostco && i.name === name && i.category === category,
   );
 
   (async () => {
@@ -112,7 +120,7 @@ export async function addGroceryItem(
   }
 
   const existing = (groceryList.itemsByWeek[weekKey] ?? []).find(
-    (i) => i.name === trimmedName,
+    (i) => !i.isCostco && i.name === trimmedName,
   );
   const trimmedQuantity = quantity.trim() || "1";
   const mergedQuantity = existing
@@ -142,7 +150,7 @@ export function toggleGroceryItemToVerify(
 ): void {
   const weekKey = weeklyPlan.selectedWeek;
   const existing = (groceryList.itemsByWeek[weekKey] ?? []).find(
-    (i) => i.name === name && i.category === category,
+    (i) => !i.isCostco && i.name === name && i.category === category,
   );
 
   (async () => {
@@ -186,7 +194,7 @@ export function editGroceryItem(
   // Renaming onto an existing item's name+category would collide with its unique
   // constraint; merge into that item instead of creating a duplicate.
   const collision = items.find(
-    (i) => i.id !== id && i.name === trimmedName && i.category === category,
+    (i) => !i.isCostco && i.id !== id && i.name === trimmedName && i.category === category,
   );
 
   (async () => {
@@ -225,3 +233,151 @@ export function editGroceryItem(
     };
   })().catch(console.error);
 }
+
+// ============================================================
+// Costco section: an optional per-week flat list of manual items, seeded from
+// the household's "Costco recurring" list when switched on. Rows are normal
+// groceryItems flagged isCostco, kept apart from the category groups and from
+// meal-name matching (see buildCostcoItems).
+// ============================================================
+
+function costcoItems(weekKey: string): GroceryDBItem[] {
+  return (groceryList.itemsByWeek[weekKey] ?? []).filter((i) => i.isCostco);
+}
+
+let costcoToggleInFlight = false;
+
+export async function enableCostco(): Promise<void> {
+  if (costcoToggleInFlight) return;
+  costcoToggleInFlight = true;
+  const weekKey = weeklyPlan.selectedWeek;
+  try {
+    const plan = await weeklyPlanRepo.setCostcoEnabled(weekKey, true);
+    // Seed once, at enable time; later edits to the recurring list don't
+    // touch weeks that are already enabled.
+    const recurring = await groceryPresetRepo.findCostcoList();
+    const present = new Set(
+      (await groceryItemRepo.getForPlan(plan.id)).filter((i) => i.isCostco).map((i) => i.name),
+    );
+    for (const item of recurring?.items ?? []) {
+      if (present.has(item.name)) continue;
+      present.add(item.name);
+      await groceryItemRepo.upsert(plan.id, {
+        name: item.name,
+        quantity: item.quantity || "1",
+        category: item.category,
+        checked: false,
+        isCostco: true,
+      });
+    }
+  } catch (err) {
+    console.error("Failed to enable Costco section:", err);
+  } finally {
+    costcoToggleInFlight = false;
+  }
+  await loadWeek(weekKey);
+}
+
+export async function disableCostco(): Promise<void> {
+  if (costcoToggleInFlight) return;
+  costcoToggleInFlight = true;
+  const weekKey = weeklyPlan.selectedWeek;
+  try {
+    const plan = await weeklyPlanRepo.setCostcoEnabled(weekKey, false);
+    await groceryItemRepo.deleteCostcoItems(plan.id);
+  } catch (err) {
+    console.error("Failed to disable Costco section:", err);
+  } finally {
+    costcoToggleInFlight = false;
+  }
+  await loadWeek(weekKey);
+}
+
+export async function addCostcoItem(name: string, quantity = "1"): Promise<void> {
+  const trimmedName = name.trim();
+  if (!trimmedName) return;
+  const weekKey = weeklyPlan.selectedWeek;
+  const trimmedQuantity = quantity.trim() || "1";
+  const existing = costcoItems(weekKey).find((i) => i.name === trimmedName);
+  const mergedQuantity = existing
+    ? (adjustQuantityString(existing.quantity, [trimmedQuantity], []) ?? trimmedQuantity)
+    : trimmedQuantity;
+
+  try {
+    const plan = await weeklyPlanRepo.getOrCreate(weekKey);
+    const item = await groceryItemRepo.upsert(plan.id, {
+      id: existing?.id,
+      name: trimmedName,
+      quantity: mergedQuantity,
+      category: existing?.category ?? "aisle",
+      checked: existing?.checked ?? false,
+      isCostco: true,
+    });
+    upsertInStore(weekKey, item);
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+export function toggleCostcoItemChecked(id: string, checked: boolean): void {
+  const weekKey = weeklyPlan.selectedWeek;
+  const existing = costcoItems(weekKey).find((i) => i.id === id);
+  if (!existing) return;
+  groceryItemRepo
+    .upsert(existing.weeklyPlanId, {
+      id,
+      name: existing.name,
+      quantity: existing.quantity,
+      category: existing.category,
+      checked,
+      isCostco: true,
+    })
+    .then((item) => upsertInStore(weekKey, item))
+    .catch(console.error);
+}
+
+export function editCostcoItem(id: string, name: string, quantity: string): void {
+  const trimmedName = name.trim();
+  if (!trimmedName) return;
+  const trimmedQty = quantity.trim() || "1";
+  const weekKey = weeklyPlan.selectedWeek;
+  const items = costcoItems(weekKey);
+  const current = items.find((i) => i.id === id);
+  if (!current) return;
+
+  // Renaming onto another Costco item's name would hit the unique key; merge
+  // into that item instead.
+  const collision = items.find((i) => i.id !== id && i.name === trimmedName);
+
+  (async () => {
+    if (collision) {
+      const merged = await groceryItemRepo.upsert(collision.weeklyPlanId, {
+        id: collision.id,
+        name: collision.name,
+        category: collision.category,
+        quantity: adjustQuantityString(collision.quantity, [trimmedQty], []) ?? trimmedQty,
+        checked: collision.checked,
+        isCostco: true,
+      });
+      await groceryItemRepo.delete(id);
+      groceryList.itemsByWeek = {
+        ...groceryList.itemsByWeek,
+        [weekKey]: (groceryList.itemsByWeek[weekKey] ?? [])
+          .filter((i) => i.id !== id)
+          .map((i) => (i.id === merged.id ? merged : i)),
+      };
+      return;
+    }
+    const updated = await groceryItemRepo.upsert(current.weeklyPlanId, {
+      id,
+      name: trimmedName,
+      category: current.category,
+      quantity: trimmedQty,
+      checked: current.checked,
+      isCostco: true,
+    });
+    upsertInStore(weekKey, updated);
+  })().catch(console.error);
+}
+
+export const removeCostcoItem = removeGroceryItem;

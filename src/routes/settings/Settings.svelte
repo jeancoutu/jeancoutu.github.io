@@ -9,6 +9,7 @@
   import { resetLocalCache } from "../../lib/sync/engine";
   import { checkForAppUpdate } from "../../lib/pwa";
   import { household, leaveCurrentHousehold } from "../../lib/stores/household.svelte";
+  import { ensureCostcoPreset } from "../../lib/stores/groceryPresets.svelte";
 
   let confirmSignOutOpen = $state(false);
   let confirmClearCacheOpen = $state(false);
@@ -26,6 +27,21 @@
     } catch (e) {
       alert(e instanceof Error ? e.message : "Failed to leave household");
       leavingHousehold = false;
+    }
+  }
+
+  let openingCostco = $state(false);
+
+  async function openCostcoList() {
+    if (openingCostco) return;
+    openingCostco = true;
+    try {
+      const list = await ensureCostcoPreset();
+      navigate(`/preset/${encodeURIComponent(list.id)}`);
+    } catch (err) {
+      console.error("Failed to open Costco list:", err);
+    } finally {
+      openingCostco = false;
     }
   }
 
@@ -86,6 +102,17 @@
       class="w-full rounded-pill border border-rule bg-transparent px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-rule-strong hover:bg-paper-2"
     >
       {$_("settings.presets.manage")}
+    </button>
+  </SettingsCard>
+  <SettingsCard title={$_("settings.costco.title")}>
+    <p class="m-0 mb-3 text-sm leading-[1.45] text-ink-2">{$_("settings.costco.description")}</p>
+    <button
+      type="button"
+      onclick={openCostcoList}
+      disabled={openingCostco}
+      class="w-full rounded-pill border border-rule bg-transparent px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-rule-strong hover:bg-paper-2 disabled:opacity-50"
+    >
+      {$_("settings.costco.manage")}
     </button>
   </SettingsCard>
   <SettingsCard title={$_("settings.ingredients.title")}>

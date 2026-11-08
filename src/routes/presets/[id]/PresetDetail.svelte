@@ -11,7 +11,10 @@
 
   let { id }: Props = $props();
 
-  let preset = $derived(groceryPresets.all.find((candidate) => candidate.id === id));
+  let isCostco = $derived(groceryPresets.costco?.id === id);
+  let preset = $derived(
+    isCostco ? groceryPresets.costco : groceryPresets.all.find((candidate) => candidate.id === id),
+  );
 
   let name = $state("");
   let rows = $state<Ingredient[]>([]);
@@ -31,20 +34,20 @@
     if (hasNavigatedInApp()) {
       window.history.back();
     } else {
-      navigate("/presets");
+      navigate(isCostco ? "/settings" : "/presets");
     }
   }
 
   async function save() {
     if (!preset) return;
-    if (!name.trim()) {
+    if (!isCostco && !name.trim()) {
       error = $_("presets.errors.name");
       return;
     }
     saving = true;
     error = "";
     try {
-      await updatePresetById(preset.id, { name, items: rows });
+      await updatePresetById(preset.id, { name: isCostco ? preset.name : name, items: rows });
       goBack();
     } catch {
       error = $_("presets.errors.save");
@@ -75,8 +78,14 @@
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="size-[15px] transition-transform group-hover:-translate-x-0.5">
         <path d="M15 6l-6 6 6 6" />
       </svg>
-      {$_("presets.back")}
+      {isCostco ? $_("settings.costco.back") : $_("presets.back")}
     </button>
+
+    {#if isCostco}
+      <h1 class="m-0 mb-4 font-display text-[clamp(1.4rem,5vw+0.4rem,1.75rem)] font-bold tracking-[-0.015em] text-ink">
+        {$_("settings.costco.title")}
+      </h1>
+    {/if}
 
     <form
       class="flex flex-col gap-4"
@@ -91,16 +100,18 @@
         </p>
       {/if}
 
-      <label class="block">
-        <span class="mb-1.5 block text-[0.8125rem] font-semibold text-ink">{$_("presets.name")}</span>
-        <input
-          type="text"
-          bind:value={name}
-          maxlength={50}
-          class="w-full rounded-input border border-rule bg-surface px-3.5 py-2.5 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
-          placeholder={$_("presets.namePlaceholder")}
-        />
-      </label>
+      {#if !isCostco}
+        <label class="block">
+          <span class="mb-1.5 block text-[0.8125rem] font-semibold text-ink">{$_("presets.name")}</span>
+          <input
+            type="text"
+            bind:value={name}
+            maxlength={50}
+            class="w-full rounded-input border border-rule bg-surface px-3.5 py-2.5 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
+            placeholder={$_("presets.namePlaceholder")}
+          />
+        </label>
+      {/if}
 
       <IngredientListEditor legend={$_("presets.ingredients")} bind:rows />
 

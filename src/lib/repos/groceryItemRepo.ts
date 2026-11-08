@@ -5,16 +5,19 @@ import { adjustQuantityString, type GroceryAdjustment } from "../utils/groceryLi
 export type GroceryDBItem = LocalGroceryItem;
 
 export class GroceryItemRepository {
+  // Includes the Costco section's rows (isCostco); callers that only want
+  // one side filter on that flag.
   async getForPlan(weeklyPlanId: string): Promise<LocalGroceryItem[]> {
-    return db.groceryItems
+    const rows = await db.groceryItems
       .where("weeklyPlanId")
       .equals(weeklyPlanId)
       .and((i) => !i.deletedAt)
       .toArray();
+    return rows.map((r) => ({ ...r, isCostco: r.isCostco ?? false }));
   }
 
   // Leaf root (Decision 3/4): each grocery item syncs independently via the
-  // merge-by-(weeklyPlanId, name, category) RPC, so two devices editing
+  // merge-by-(weeklyPlanId, name, category, isCostco) RPC, so two devices editing
   // different items never conflict.
   async upsert(
     weeklyPlanId: string,
@@ -25,6 +28,7 @@ export class GroceryItemRepository {
       category: IngredientCategory;
       checked: boolean;
       toVerify?: boolean;
+      isCostco?: boolean;
     },
   ): Promise<LocalGroceryItem> {
     const id = input.id ?? crypto.randomUUID();
@@ -38,6 +42,8 @@ export class GroceryItemRepository {
       category: input.category,
       checked: input.checked,
       toVerify: input.toVerify ?? existing?.toVerify ?? false,
+      // An existing row never changes section (the server ignores it too).
+      isCostco: existing ? (existing.isCostco ?? false) : (input.isCostco ?? false),
       version: existing?.version ?? 1,
       updatedAt: now,
       deletedAt: null,
@@ -60,8 +66,12 @@ export class GroceryItemRepository {
   // instead of leaving a tombstone, since a cleared/replaced plan has no
   // use for per-item history. The delete op still carries the pre-delete
   // row as its payload so the server-side merge RPC has what it needs.
+  //
+  // Costco rows are left alone: this backs "clear week" / auto-fill, which
+  // reset the meal-derived list, while the Costco section is manual and has
+  // its own lifecycle (deleteCostcoItems).
   async deleteAll(weeklyPlanId: string): Promise<void> {
-    const existing = await this.getForPlan(weeklyPlanId);
+    const existing = (await this.getForPlan(weeklyPlanId)).filter((i) => !i.isCostco);
     const deletedAt = new Date().toISOString();
     await Promise.all(
       existing.map(async (item) => {
@@ -70,6 +80,14 @@ export class GroceryItemRepository {
         await db.groceryItems.delete(item.id);
       }),
     );
+  }
+
+  // Tombstones (rather than hard-deletes) the section's rows: disabling
+  // Costco is an everyday toggle, and re-enabling re-seeds fresh rows that
+  // the server revives over the tombstones.
+  async deleteCostcoItems(weeklyPlanId: string): Promise<void> {
+    const existing = (await this.getForPlan(weeklyPlanId)).filter((i) => i.isCostco);
+    for (const item of existing) await this.delete(item.id);
   }
 
   async replaceAll(
@@ -89,8 +107,12 @@ export class GroceryItemRepository {
     adjustments: GroceryAdjustment[],
     dismissedNames: string[] = [],
   ): Promise<LocalGroceryItem[]> {
-    const existing = await this.getForPlan(weeklyPlanId);
-    if (adjustments.length === 0) return existing;
+    const all = await this.getForPlan(weeklyPlanId);
+    // Meal/preset adjustments never touch the Costco section, even when a
+    // Costco row shares an ingredient's name.
+    const costcoRows = all.filter((i) => i.isCostco);
+    const existing = all.filter((i) => !i.isCostco);
+    if (adjustments.length === 0) return all;
 
     const byName = new Map(existing.map((item) => [item.name, item]));
     const dismissed = new Set(dismissedNames);
@@ -125,7 +147,7 @@ export class GroceryItemRepository {
       }
     }
 
-    return [...byName.values()];
+    return [...byName.values(), ...costcoRows];
   }
 }
 

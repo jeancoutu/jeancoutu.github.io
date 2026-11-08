@@ -14,6 +14,7 @@ function dbItem(overrides: Partial<GroceryDBItem> & { id: string; name: string }
     quantity: "1",
     checked: false,
     toVerify: false,
+    isCostco: false,
     version: 1,
     updatedAt: "2026-01-01T00:00:00.000Z",
     deletedAt: null,

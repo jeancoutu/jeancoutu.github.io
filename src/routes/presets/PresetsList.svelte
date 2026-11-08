@@ -2,6 +2,7 @@
   import { _ } from "svelte-i18n";
   import { groceryPresets, addPreset, deletePresetById } from "../../lib/stores/groceryPresets.svelte";
   import { navigate } from "../../lib/utils/router.svelte";
+  import BackToSettings from "../../lib/components/BackToSettings.svelte";
 
   let newName = $state("");
   let creating = $state(false);
@@ -38,7 +39,8 @@
   }
 </script>
 
-<div>
+<div class="flex flex-col">
+  <BackToSettings />
   <header class="mb-4">
     <h1 class="m-0 mb-1 font-display text-[clamp(1.4rem,5vw+0.4rem,1.75rem)] font-bold tracking-[-0.015em] text-ink">{$_("presets.title")}</h1>
     <p class="m-0 text-sm leading-[1.45] text-ink-2">{$_("presets.subtitle")}</p>

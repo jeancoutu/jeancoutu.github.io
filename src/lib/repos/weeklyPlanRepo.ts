@@ -3,7 +3,8 @@ import type { WeeklyPlan } from "../types";
 
 export class WeeklyPlanRepository {
   async getByWeek(weekStart: string): Promise<LocalWeeklyPlan | undefined> {
-    return db.weeklyPlans.where("weekStart").equals(weekStart).and((p) => !p.deletedAt).first();
+    const row = await db.weeklyPlans.where("weekStart").equals(weekStart).and((p) => !p.deletedAt).first();
+    return row ? { ...row, costcoEnabled: row.costcoEnabled ?? false } : undefined;
   }
 
   async getOrCreate(weekStart: string): Promise<LocalWeeklyPlan> {
@@ -22,6 +23,7 @@ export class WeeklyPlanRepository {
         plan: {},
         dismissedNames: [],
         presetIds: [],
+        costcoEnabled: false,
         version: 1,
         updatedAt: now,
         deletedAt: null,
@@ -32,11 +34,17 @@ export class WeeklyPlanRepository {
     });
   }
 
-  async save(row: LocalWeeklyPlan, patch: Partial<Pick<LocalWeeklyPlan, "plan" | "dismissedNames" | "presetIds">>): Promise<LocalWeeklyPlan> {
+  async save(row: LocalWeeklyPlan, patch: Partial<Pick<LocalWeeklyPlan, "plan" | "dismissedNames" | "presetIds" | "costcoEnabled">>): Promise<LocalWeeklyPlan> {
     const updated: LocalWeeklyPlan = { ...row, ...patch, updatedAt: new Date().toISOString() };
     await db.weeklyPlans.put(updated);
     await enqueue("weeklyPlan", row.id, "upsert", row.version, updated);
     return updated;
+  }
+
+  async setCostcoEnabled(weekStart: string, enabled: boolean): Promise<LocalWeeklyPlan> {
+    const row = await this.getOrCreate(weekStart);
+    if (row.costcoEnabled === enabled) return row;
+    return this.save(row, { costcoEnabled: enabled });
   }
 
   async setPlan(weekStart: string, plan: WeeklyPlan): Promise<LocalWeeklyPlan> {

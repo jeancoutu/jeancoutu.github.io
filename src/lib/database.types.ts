@@ -196,6 +196,7 @@ export interface Database {
           household_id: string;
           week_start: string;
           dismissed_ingredient_names: string[];
+          costco_enabled: boolean;
           created_at: string;
         };
         Insert: {
@@ -203,6 +204,7 @@ export interface Database {
           household_id?: string;
           week_start: string;
           dismissed_ingredient_names?: string[];
+          costco_enabled?: boolean;
           created_at?: string;
         };
         Update: {
@@ -210,6 +212,7 @@ export interface Database {
           household_id?: string;
           week_start?: string;
           dismissed_ingredient_names?: string[];
+          costco_enabled?: boolean;
           created_at?: string;
         };
         Relationships: [];
@@ -257,6 +260,7 @@ export interface Database {
           quantity: string;
           category: IngredientCategoryEnum;
           checked: boolean;
+          is_costco: boolean;
           updated_at: string;
         };
         Insert: {
@@ -266,6 +270,7 @@ export interface Database {
           quantity?: string;
           category: IngredientCategoryEnum;
           checked?: boolean;
+          is_costco?: boolean;
           updated_at?: string;
         };
         Update: {
@@ -275,6 +280,7 @@ export interface Database {
           quantity?: string;
           category?: IngredientCategoryEnum;
           checked?: boolean;
+          is_costco?: boolean;
           updated_at?: string;
         };
         Relationships: [
@@ -292,18 +298,21 @@ export interface Database {
           id: string;
           household_id: string;
           name: string;
+          is_costco: boolean;
           created_at: string;
         };
         Insert: {
           id?: string;
           household_id?: string;
           name: string;
+          is_costco?: boolean;
           created_at?: string;
         };
         Update: {
           id?: string;
           household_id?: string;
           name?: string;
+          is_costco?: boolean;
           created_at?: string;
         };
         Relationships: [];

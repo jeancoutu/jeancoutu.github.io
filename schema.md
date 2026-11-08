@@ -212,6 +212,7 @@ create table weekly_plans (
   household_id uuid not null references households(id) on delete cascade default get_my_household_id(),
   week_start   date not null,
   dismissed_ingredient_names text[] not null default '{}',
+  costco_enabled boolean not null default false,
   created_at   timestamptz not null default now(),
   version      int not null default 1,
   updated_at   timestamptz not null default now(),
@@ -245,10 +246,11 @@ create table grocery_items (
   category       ingredient_category not null,
   checked        boolean not null default false,
   to_verify      boolean not null default false,
+  is_costco      boolean not null default false,
   updated_at     timestamptz not null default now(),
   version        int not null default 1,
   deleted_at     timestamptz,
-  unique (weekly_plan_id, name, category)
+  unique (weekly_plan_id, name, category, is_costco)
 );
 
 -- ============================================================
@@ -259,11 +261,17 @@ create table grocery_presets (
   id           uuid primary key default gen_random_uuid(),
   household_id uuid not null references households(id) on delete cascade default get_my_household_id(),
   name         text not null,
+  is_costco    boolean not null default false,
   created_at   timestamptz not null default now(),
   version      int not null default 1,
   updated_at   timestamptz not null default now(),
   deleted_at   timestamptz
 );
+
+-- At most one live "Costco recurring" list per household.
+create unique index grocery_presets_one_costco_idx
+  on grocery_presets (household_id)
+  where is_costco and deleted_at is null;
 
 -- ============================================================
 -- GROCERY PRESET ITEMS (many-to-one with grocery_presets)
@@ -633,11 +641,19 @@ create or replace function delete_meal(p_id uuid, p_base_version int) returns js
   end;
   $$;
 
+-- NOTE (costco migration): p_is_costco was appended with `default false`.
+-- It is only read on insert (a preset never changes kind afterwards). If the
+-- household already has a different live Costco list, the insert is answered
+-- with a 'conflict' carrying the canonical row's id/version so the client
+-- adopts it and re-queues its edit (same remap contract as weekly_plans).
+-- When applying to an existing DB, drop the old overload first:
+--   drop function if exists upsert_grocery_preset(uuid, int, text, jsonb);
 create or replace function upsert_grocery_preset(
   p_id uuid,
   p_base_version int,
   p_name text,
-  p_items jsonb -- [{name, quantity, category}]
+  p_items jsonb, -- [{name, quantity, category}]
+  p_is_costco boolean default false
 ) returns jsonb
   language plpgsql security definer set search_path = public
   as $$
@@ -647,8 +663,16 @@ create or replace function upsert_grocery_preset(
     v_rows_affected int;
   begin
     if p_base_version is null then
-      insert into grocery_presets (id, household_id, name)
-      values (p_id, v_household_id, p_name)
+      if coalesce(p_is_costco, false) then
+        select * into v_row from grocery_presets
+        where household_id = v_household_id and is_costco and deleted_at is null and id <> p_id;
+        if v_row.id is not null then
+          return jsonb_build_object('status', 'conflict', 'id', v_row.id, 'version', v_row.version);
+        end if;
+      end if;
+
+      insert into grocery_presets (id, household_id, name, is_costco)
+      values (p_id, v_household_id, p_name, coalesce(p_is_costco, false))
       on conflict (id) do update set name = excluded.name
       where grocery_presets.household_id = v_household_id
       returning * into v_row;
@@ -787,13 +811,19 @@ create or replace function delete_meal_idea(p_id uuid, p_base_version int) retur
 -- p_base_version is instead treated as a version conflict (see below) so a
 -- late-arriving offline "create" can't silently clobber another device's
 -- already-synced day plans.
+-- NOTE (costco migration): p_costco_enabled was appended with `default null`;
+-- null means "leave unchanged" (false on insert) so stale cached PWA clients
+-- calling the old 6-arg signature cannot switch the section off.
+-- When applying to an existing DB, drop the old overload first:
+--   drop function if exists upsert_weekly_plan(uuid, int, date, text[], jsonb, uuid[]);
 create or replace function upsert_weekly_plan(
   p_id uuid,
   p_base_version int,
   p_week_start date,
   p_dismissed_names text[],
   p_day_plans jsonb, -- [{day_key, note, supper_meal_id, diner_meal_id}]
-  p_preset_ids uuid[]
+  p_preset_ids uuid[],
+  p_costco_enabled boolean default null
 ) returns jsonb
   language plpgsql security definer set search_path = public
   as $$
@@ -805,10 +835,11 @@ create or replace function upsert_weekly_plan(
     where household_id = v_household_id and week_start = p_week_start and deleted_at is null;
 
     if v_row.id is null then
-      insert into weekly_plans (id, household_id, week_start, dismissed_ingredient_names)
-      values (p_id, v_household_id, p_week_start, p_dismissed_names)
+      insert into weekly_plans (id, household_id, week_start, dismissed_ingredient_names, costco_enabled)
+      values (p_id, v_household_id, p_week_start, p_dismissed_names, coalesce(p_costco_enabled, false))
       on conflict (household_id, week_start) do update set
         dismissed_ingredient_names = excluded.dismissed_ingredient_names,
+        costco_enabled = excluded.costco_enabled,
         deleted_at = null
       returning * into v_row;
     else
@@ -824,7 +855,8 @@ create or replace function upsert_weekly_plan(
         return jsonb_build_object('status', 'conflict', 'id', v_row.id, 'version', v_row.version);
       end if;
 
-      update weekly_plans set dismissed_ingredient_names = p_dismissed_names
+      update weekly_plans set dismissed_ingredient_names = p_dismissed_names,
+        costco_enabled = coalesce(p_costco_enabled, costco_enabled)
       where id = v_row.id
       returning * into v_row;
     end if;
@@ -891,7 +923,18 @@ create or replace function merge_grocery_quantity(existing text, incoming text) 
   end;
   $$;
 
--- Leaf root (Decision 3/4): identity is (weekly_plan_id, name, category).
+-- NOTE (costco migration): identity is now (weekly_plan_id, name, category,
+-- is_costco) so a Costco row can share a name with a normal-category row.
+-- p_is_costco (appended, `default false`) is only used on insert/revive; an
+-- existing row never changes section. When applying to an existing DB:
+--   alter table weekly_plans add column costco_enabled boolean not null default false;
+--   alter table grocery_presets add column is_costco boolean not null default false;
+--   create unique index grocery_presets_one_costco_idx on grocery_presets (household_id) where is_costco and deleted_at is null;
+--   alter table grocery_items add column is_costco boolean not null default false;
+--   alter table grocery_items drop constraint grocery_items_weekly_plan_id_name_category_key;
+--   alter table grocery_items add constraint grocery_items_identity_key unique (weekly_plan_id, name, category, is_costco);
+--   drop function if exists sync_grocery_item(uuid, uuid, text, ingredient_category, text, boolean, boolean, int, boolean);
+-- Leaf root (Decision 3/4): identity is (weekly_plan_id, name, category, is_costco).
 -- On a name collision the row is merged (quantities combined, checked
 -- and to_verify OR'd) and the canonical id/version returned so the client
 -- remaps. p_deleted=true handles the delete path in the same RPC since both
@@ -905,7 +948,8 @@ create or replace function sync_grocery_item(
   p_checked boolean,
   p_to_verify boolean,
   p_base_version int,
-  p_deleted boolean
+  p_deleted boolean,
+  p_is_costco boolean default false
 ) returns jsonb
   language plpgsql security definer set search_path = public
   as $$
@@ -961,9 +1005,9 @@ create or replace function sync_grocery_item(
     -- item, e.g. clear-week then regenerate) is a fresh write, not a merge:
     -- overwrite quantity/checked/to_verify instead of combining with the
     -- stale value.
-    insert into grocery_items (id, weekly_plan_id, name, category, quantity, checked, to_verify)
-    values (p_client_id, p_weekly_plan_id, p_name, p_category, p_quantity, p_checked, p_to_verify)
-    on conflict (weekly_plan_id, name, category) do update set
+    insert into grocery_items (id, weekly_plan_id, name, category, quantity, checked, to_verify, is_costco)
+    values (p_client_id, p_weekly_plan_id, p_name, p_category, p_quantity, p_checked, p_to_verify, coalesce(p_is_costco, false))
+    on conflict (weekly_plan_id, name, category, is_costco) do update set
       quantity = case when grocery_items.deleted_at is not null
                    then excluded.quantity
                    else merge_grocery_quantity(grocery_items.quantity, excluded.quantity) end,
@@ -1001,6 +1045,7 @@ create or replace function sync_grocery_items(p_items jsonb) returns jsonb
     v_quantity text;
     v_checked boolean;
     v_to_verify boolean;
+    v_is_costco boolean;
     v_base_version int;
     v_deleted boolean;
     v_plan_owned boolean;
@@ -1018,6 +1063,7 @@ create or replace function sync_grocery_items(p_items jsonb) returns jsonb
       v_quantity := v_item->>'quantity';
       v_checked := (v_item->>'checked')::boolean;
       v_to_verify := (v_item->>'to_verify')::boolean;
+      v_is_costco := coalesce((v_item->>'is_costco')::boolean, false);
       v_base_version := nullif(v_item->>'base_version', '')::int;
       v_deleted := (v_item->>'deleted')::boolean;
 
@@ -1078,9 +1124,9 @@ create or replace function sync_grocery_items(p_items jsonb) returns jsonb
 
       -- See sync_grocery_item: reviving a tombstoned row overwrites instead
       -- of merging with the stale pre-delete value.
-      insert into grocery_items (id, weekly_plan_id, name, category, quantity, checked, to_verify)
-      values (v_client_id, v_weekly_plan_id, v_name, v_category, v_quantity, v_checked, v_to_verify)
-      on conflict (weekly_plan_id, name, category) do update set
+      insert into grocery_items (id, weekly_plan_id, name, category, quantity, checked, to_verify, is_costco)
+      values (v_client_id, v_weekly_plan_id, v_name, v_category, v_quantity, v_checked, v_to_verify, v_is_costco)
+      on conflict (weekly_plan_id, name, category, is_costco) do update set
         quantity = case when grocery_items.deleted_at is not null
                      then excluded.quantity
                      else merge_grocery_quantity(grocery_items.quantity, excluded.quantity) end,
@@ -1142,6 +1188,7 @@ create or replace function pull_changes(p_since timestamptz) returns jsonb
     select coalesce(jsonb_agg(jsonb_build_object(
       'id', wp.id, 'week_start', wp.week_start,
       'dismissed_ingredient_names', wp.dismissed_ingredient_names,
+      'costco_enabled', wp.costco_enabled,
       'version', wp.version, 'updated_at', wp.updated_at, 'deleted_at', wp.deleted_at,
       'day_plans', coalesce((
         select jsonb_agg(jsonb_build_object(
@@ -1159,7 +1206,7 @@ create or replace function pull_changes(p_since timestamptz) returns jsonb
       and (p_since is null or wp.updated_at > p_since);
 
     select coalesce(jsonb_agg(jsonb_build_object(
-      'id', gp.id, 'name', gp.name,
+      'id', gp.id, 'name', gp.name, 'is_costco', gp.is_costco,
       'version', gp.version, 'updated_at', gp.updated_at, 'deleted_at', gp.deleted_at,
       'items', coalesce((
         select jsonb_agg(jsonb_build_object('name', gpi.name, 'quantity', gpi.quantity, 'category', gpi.category))
@@ -1173,7 +1220,7 @@ create or replace function pull_changes(p_since timestamptz) returns jsonb
     select coalesce(jsonb_agg(jsonb_build_object(
       'id', gi.id, 'weekly_plan_id', gi.weekly_plan_id, 'name', gi.name,
       'quantity', gi.quantity, 'category', gi.category, 'checked', gi.checked,
-      'to_verify', gi.to_verify,
+      'to_verify', gi.to_verify, 'is_costco', gi.is_costco,
       'version', gi.version, 'updated_at', gi.updated_at, 'deleted_at', gi.deleted_at
     )), '[]'::jsonb) into v_grocery_items
     from grocery_items gi

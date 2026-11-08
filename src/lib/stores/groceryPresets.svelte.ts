@@ -26,6 +26,9 @@ function buildPresetInput(input: GroceryPresetInput): Omit<GroceryPreset, "id"> 
 
 class GroceryPresetsStore {
   all = $state<GroceryPreset[]>([]);
+  // The household's "Costco recurring" list, kept out of `all` so it never
+  // shows as a chip or in the presets list. Null until first created.
+  costco = $state<GroceryPreset | null>(null);
   activeIdsByWeek = $state<Record<string, string[]>>({});
   activeForWeek = $derived(
     new Set(this.activeIdsByWeek[weeklyPlan.selectedWeek] ?? []),
@@ -36,6 +39,7 @@ export const groceryPresets = new GroceryPresetsStore();
 
 async function refreshPresets(): Promise<void> {
   groceryPresets.all = await groceryPresetRepo.getAll();
+  groceryPresets.costco = (await groceryPresetRepo.findCostcoList()) ?? null;
 }
 
 async function loadActiveIds(weekKey: string): Promise<void> {
@@ -56,6 +60,7 @@ onUserChange(async ($session) => {
     await loadActiveIds(weeklyPlan.selectedWeek);
   } else {
     groceryPresets.all = [];
+    groceryPresets.costco = null;
     groceryPresets.activeIdsByWeek = {};
   }
 });
@@ -91,7 +96,15 @@ export async function updatePresetById(
   input: GroceryPresetInput,
 ): Promise<GroceryPreset> {
   const preset = await groceryPresetRepo.update(id, buildPresetInput(input));
-  groceryPresets.all = groceryPresets.all.map((p) => (p.id === id ? preset : p));
+  if (groceryPresets.costco?.id === id) groceryPresets.costco = preset;
+  else groceryPresets.all = groceryPresets.all.map((p) => (p.id === id ? preset : p));
+  return preset;
+}
+
+// Settings entry point: creates the Costco recurring list on first use.
+export async function ensureCostcoPreset(): Promise<GroceryPreset> {
+  const preset = await groceryPresetRepo.getCostcoList();
+  groceryPresets.costco = preset;
   return preset;
 }
 

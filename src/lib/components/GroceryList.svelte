@@ -5,8 +5,14 @@
   import { weeklyPlan } from "../stores/weeklyPlan.svelte";
   import { getMealById } from "../stores/meals.svelte";
   import {
+    addCostcoItem,
     addGroceryItem,
+    disableCostco,
+    editCostcoItem,
     editGroceryItem,
+    enableCostco,
+    removeCostcoItem,
+    toggleCostcoItemChecked,
     groceryList,
     removeGroceryItem,
     toggleGroceryItemChecked,
@@ -18,7 +24,7 @@
     getPlannedMeals,
     groupGroceryByCategory,
   } from "../utils/groceryList";
-  import { buildDisplayItems, type DisplayItem } from "../utils/groceryDisplay";
+  import { buildCostcoItems, buildDisplayItems, type DisplayItem } from "../utils/groceryDisplay";
   import { longpress } from "../utils/longpress";
   import { groceryPresets, togglePresetForWeek } from "../stores/groceryPresets.svelte";
   import { showToast } from "../stores/toast.svelte";
@@ -35,6 +41,8 @@
       items: [...group.items].sort((a, b) => Number(a.checked) - Number(b.checked)),
     })),
   );
+
+  let costcoItems = $derived(buildCostcoItems(dbItems));
 
   let addingCategory = $state<IngredientCategory | null>(null);
   let newItemName = $state("");
@@ -149,6 +157,81 @@
       togglingPresetId = null;
     }
   }
+
+  // ---- Costco section ----
+  let togglingCostco = $state(false);
+  let confirmingDisableCostco = $state(false);
+
+  async function handleEnableCostco() {
+    if (togglingCostco) return;
+    togglingCostco = true;
+    try {
+      await enableCostco();
+    } finally {
+      togglingCostco = false;
+    }
+  }
+
+  async function handleDisableCostco() {
+    if (togglingCostco) return;
+    togglingCostco = true;
+    try {
+      await disableCostco();
+    } finally {
+      togglingCostco = false;
+      confirmingDisableCostco = false;
+    }
+  }
+
+  let addingCostco = $state(false);
+  let costcoName = $state("");
+  let costcoQuantity = $state("");
+
+  function cancelAddingCostco() {
+    addingCostco = false;
+    costcoName = "";
+    costcoQuantity = "";
+  }
+
+  function submitAddCostco() {
+    if (!costcoName.trim()) return;
+    void addCostcoItem(costcoName, costcoQuantity);
+    cancelAddingCostco();
+  }
+
+  function handleCostcoAddKeydown(event: KeyboardEvent) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      submitAddCostco();
+    } else if (event.key === "Escape") {
+      cancelAddingCostco();
+    }
+  }
+
+  let editingCostcoId = $state<string | null>(null);
+  let costcoEditName = $state("");
+  let costcoEditQuantity = $state("");
+
+  function startEditingCostco(item: { id: string; name: string; quantity: string }) {
+    editingCostcoId = item.id;
+    costcoEditName = item.name;
+    costcoEditQuantity = item.quantity;
+  }
+
+  function submitCostcoEdit() {
+    if (!editingCostcoId || !costcoEditName.trim()) return;
+    editCostcoItem(editingCostcoId, costcoEditName, costcoEditQuantity);
+    editingCostcoId = null;
+  }
+
+  function handleCostcoEditKeydown(event: KeyboardEvent) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      submitCostcoEdit();
+    } else if (event.key === "Escape") {
+      editingCostcoId = null;
+    }
+  }
 </script>
 
 <section class="mt-6">
@@ -176,6 +259,17 @@
       </div>
     {/if}
   </div>
+
+  {#if !groceryList.costcoEnabled}
+    <button
+      type="button"
+      onclick={handleEnableCostco}
+      disabled={togglingCostco}
+      class="mb-4 min-h-11 rounded-pill border border-rule bg-surface px-4 py-2.5 text-[0.8125rem] font-semibold text-ink-2 transition hover:border-rule-strong hover:bg-paper-2 disabled:opacity-50"
+    >
+      {$_("grocery.costco.enable")}
+    </button>
+  {/if}
 
   {#if allDisplayItems.length === 0}
     <p class="mb-4 rounded-card border-[1.5px] border-dashed border-rule p-6 text-center text-sm text-ink-3">
@@ -370,4 +464,205 @@
       </div>
     {/each}
   </div>
+
+  {#if groceryList.costcoEnabled}
+    <div class="mb-6" data-testid="costco-section">
+      <div class="mb-2 flex items-center justify-between gap-2">
+        <h3 class="font-body text-xs font-bold tracking-[0.06em] text-accent-deep uppercase">
+          {$_("grocery.costco.title")}
+        </h3>
+        <button
+          type="button"
+          class="flex size-7 shrink-0 items-center justify-center rounded-full border-[1.5px] border-accent text-accent-deep transition hover:bg-accent-tint"
+          aria-label={$_("grocery.costco.add")}
+          onclick={() => (addingCostco = true)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="size-[15px]">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
+      </div>
+
+      {#if addingCostco}
+        <form
+          class="mb-2 flex flex-col gap-2 rounded-card border border-rule bg-paper-2 p-3"
+          onsubmit={(event) => {
+            event.preventDefault();
+            submitAddCostco();
+          }}
+        >
+          <div class="flex gap-2">
+            <label class="min-w-0 flex-1">
+              <span class="sr-only">{$_("grocery.addName")}</span>
+              <input
+                type="text"
+                bind:value={costcoName}
+                {@attach autofocus}
+                placeholder={$_("grocery.addName")}
+                class="w-full min-w-0 rounded-input border border-rule bg-surface px-3 py-2.5 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
+                onkeydown={handleCostcoAddKeydown}
+              />
+            </label>
+            <label class="w-22 shrink-0">
+              <span class="sr-only">{$_("grocery.addQuantity")}</span>
+              <input
+                type="text"
+                bind:value={costcoQuantity}
+                placeholder={$_("grocery.addQuantity")}
+                class="w-full min-w-0 rounded-input border border-rule bg-surface px-3 py-2.5 font-body text-[0.9375rem] text-ink placeholder:text-ink-3 focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
+                onkeydown={handleCostcoAddKeydown}
+              />
+            </label>
+          </div>
+          <div class="flex justify-end gap-2">
+            <button
+              type="button"
+              class="rounded-pill border border-rule bg-transparent px-4 py-2.5 text-[0.8125rem] font-semibold text-ink-2 transition hover:border-rule-strong hover:bg-surface"
+              onclick={cancelAddingCostco}
+            >
+              {$_("grocery.addCancel")}
+            </button>
+            <button
+              type="submit"
+              class="rounded-pill bg-accent px-4 py-2.5 text-[0.8125rem] font-semibold text-surface shadow-btn-cast transition hover:-translate-y-px hover:bg-accent-deep active:translate-y-0 active:shadow-none disabled:pointer-events-none disabled:opacity-50"
+              disabled={!costcoName.trim()}
+            >
+              {$_("grocery.addConfirm")}
+            </button>
+          </div>
+        </form>
+      {/if}
+
+      {#if costcoItems.length === 0}
+        <p class="py-2 text-sm text-ink-3">{$_("grocery.costco.empty")}</p>
+      {:else}
+        <ul class="m-0 list-none p-0">
+          {#each costcoItems as item (item.id)}
+            <li animate:flip={{ duration: 250 }}>
+              {#if editingCostcoId === item.id}
+                <form
+                  class="mb-2 flex flex-col gap-2 rounded-card border-[1.5px] border-accent bg-paper-2 p-3 shadow-[0_0_0_3px_var(--color-accent-tint)]"
+                  onsubmit={(event) => {
+                    event.preventDefault();
+                    submitCostcoEdit();
+                  }}
+                >
+                  <div class="flex gap-2">
+                    <label class="min-w-0 flex-1">
+                      <span class="sr-only">{$_("grocery.addName")}</span>
+                      <input
+                        type="text"
+                        bind:value={costcoEditName}
+                        placeholder={$_("grocery.addName")}
+                        class="w-full min-w-0 rounded-input border border-rule bg-surface px-3 py-2.5 font-body text-[0.9375rem] text-ink focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
+                        onkeydown={handleCostcoEditKeydown}
+                      />
+                    </label>
+                    <label class="w-22 shrink-0">
+                      <span class="sr-only">{$_("grocery.addQuantity")}</span>
+                      <input
+                        type="text"
+                        bind:value={costcoEditQuantity}
+                        placeholder={$_("grocery.addQuantity")}
+                        class="w-full min-w-0 rounded-input border border-rule bg-surface px-3 py-2.5 font-body text-[0.9375rem] text-ink focus:border-accent focus:ring-3 focus:ring-accent-tint focus:outline-none"
+                        onkeydown={handleCostcoEditKeydown}
+                      />
+                    </label>
+                  </div>
+                  <div class="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      class="rounded-pill border border-rule bg-transparent px-4 py-2.5 text-[0.8125rem] font-semibold text-ink-2 transition hover:border-rule-strong hover:bg-surface"
+                      onclick={() => (editingCostcoId = null)}
+                    >
+                      {$_("grocery.addCancel")}
+                    </button>
+                    <button
+                      type="submit"
+                      class="rounded-pill bg-accent px-4 py-2.5 text-[0.8125rem] font-semibold text-surface shadow-btn-cast transition hover:-translate-y-px hover:bg-accent-deep active:translate-y-0 active:shadow-none disabled:pointer-events-none disabled:opacity-50"
+                      disabled={!costcoEditName.trim()}
+                    >
+                      {$_("grocery.editConfirm")}
+                    </button>
+                  </div>
+                </form>
+              {:else}
+                <div class="flex items-center gap-2 py-[0.55rem]">
+                  <label
+                    class="flex min-w-0 flex-1 cursor-pointer items-center gap-2 select-none"
+                    use:longpress={{ onLongPress: () => startEditingCostco(item) }}
+                  >
+                    <input
+                      type="checkbox"
+                      class="sr-only"
+                      checked={item.checked}
+                      onchange={() => toggleCostcoItemChecked(item.id, !item.checked)}
+                    />
+                    <span
+                      class="flex size-[21px] shrink-0 items-center justify-center rounded-[6px] border-[1.5px] transition
+                        {item.checked ? 'border-accent bg-accent text-surface' : 'border-rule-strong bg-surface text-surface'}"
+                    >
+                      {#if item.checked}
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="size-[13px]">
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                      {/if}
+                    </span>
+                    <span class="min-w-0 flex-1 [overflow-wrap:anywhere] text-[0.9375rem] {item.checked ? 'text-ink-3 line-through' : 'text-ink'}">
+                      {item.name}
+                    </span>
+                    <span class="ml-auto shrink-0 rounded-[6px] border border-rule bg-paper-2 px-[0.45rem] py-[0.1rem] font-body text-xs font-bold whitespace-nowrap text-ink-2 tabular-nums transition {item.checked ? 'opacity-55' : ''}">
+                      {item.quantity}
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    class="flex size-7 shrink-0 items-center justify-center rounded-icon text-ink-3 transition hover:bg-danger-tint hover:text-danger"
+                    aria-label={$_("grocery.remove")}
+                    onclick={() => removeCostcoItem(item.id)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" class="size-[14px]">
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    </svg>
+                  </button>
+                </div>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+      {/if}
+
+      {#if confirmingDisableCostco}
+        <div class="mt-2 flex flex-col gap-2 rounded-card border border-danger bg-danger-tint p-3" role="alertdialog" aria-label={$_("grocery.costco.disable")}>
+          <p class="m-0 text-sm text-ink">{$_("grocery.costco.confirmDisable")}</p>
+          <div class="flex justify-end gap-2">
+            <button
+              type="button"
+              class="min-h-11 rounded-pill border border-rule bg-surface px-4 py-2.5 text-[0.8125rem] font-semibold text-ink-2"
+              onclick={() => (confirmingDisableCostco = false)}
+              disabled={togglingCostco}
+            >
+              {$_("grocery.addCancel")}
+            </button>
+            <button
+              type="button"
+              class="min-h-11 rounded-pill bg-danger px-4 py-2.5 text-[0.8125rem] font-semibold text-surface disabled:opacity-50"
+              onclick={handleDisableCostco}
+              disabled={togglingCostco}
+            >
+              {$_("grocery.costco.confirmDisableAction")}
+            </button>
+          </div>
+        </div>
+      {:else}
+        <button
+          type="button"
+          class="mt-1 min-h-11 rounded-pill px-3 text-[0.8125rem] font-semibold text-danger transition hover:bg-danger-tint"
+          onclick={() => (confirmingDisableCostco = true)}
+        >
+          {$_("grocery.costco.disable")}
+        </button>
+      {/if}
+    </div>
+  {/if}
 </section>

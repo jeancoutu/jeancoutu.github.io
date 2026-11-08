@@ -1,6 +1,7 @@
 <script lang="ts">
   import { _ } from "svelte-i18n";
   import Modal from "./Modal.svelte";
+  import BackToSettings from "./BackToSettings.svelte";
   import { meals, recategorizeIngredientEverywhere } from "../stores/meals.svelte";
   import { INGREDIENT_CATEGORIES } from "../types";
   import type { IngredientCategory } from "../types";
@@ -101,7 +102,8 @@
   }
 </script>
 
-<div>
+<div class="flex flex-col">
+  <BackToSettings />
   <header class="mb-4">
     <h1 class="m-0 mb-1 font-display text-[clamp(1.4rem,5vw+0.4rem,1.75rem)] font-bold tracking-[-0.015em] text-ink">
       {$_("ingredients.title")}
