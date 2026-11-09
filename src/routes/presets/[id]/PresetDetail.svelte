@@ -115,7 +115,7 @@
 
       <IngredientListEditor legend={$_("presets.ingredients")} bind:rows />
 
-      <div class="sticky bottom-0 -mx-4 -mb-4 flex justify-end gap-2 border-t border-rule bg-surface px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+      <div class="sticky bottom-0 -mx-4 -mb-4 flex justify-end gap-2 border-t border-rule bg-paper px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         <button
           type="button"
           onclick={goBack}

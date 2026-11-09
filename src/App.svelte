@@ -36,7 +36,7 @@
     <Toast />
     <PendingInviteBanner />
     <div class="mx-auto flex min-h-full w-full max-w-lg flex-col bg-paper">
-      <main class="flex-1 px-4 pt-4 {showNav ? 'pb-24' : 'pb-4'}">
+      <main class="flex-1 px-4 pt-4 {showNav ? 'pb-[calc(5rem+env(safe-area-inset-bottom,0px))]' : 'pb-4'}">
         {#if router.current.name === "planner"}
           <Planner />
         {:else if router.current.name === "meals"}
